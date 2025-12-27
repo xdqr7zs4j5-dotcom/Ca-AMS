@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tồn kho</title>
+
+<style>
+  :root{
+    --bg:#f5f5f7; --card:#fff; --text:#111; --muted:#6b7280; --line:#e5e7eb;
+    --blue:#007aff; --red:#ff3b30; --radius:14px; --shadow:0 6px 24px rgba(0,0,0,.06);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; display:flex; flex-direction:column; background:var(--bg);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif; color:var(--text)
+  }
+
+  .wrap{padding:16px; display:flex; flex-direction:column; gap:12px; flex:1 1 auto; min-height:0}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow)}
+  .filters{display:flex; flex-wrap:wrap; gap:10px; padding:12px; align-items:center}
+  .pill{display:flex; align-items:center; gap:8px; padding:4px 8px; border:1px solid var(--line); border-radius:999px; background:#fff}
+  .pill label{font-size:12px; color:var(--muted)}
+  .pill input,.pill select{border:none; outline:none; font-size:14px; background:transparent; min-height:24px}
+  .pill select{
+    min-width:140px; appearance:none; padding-right:18px;
+    background:linear-gradient(45deg,transparent 50%,var(--muted) 50%) right 8px center/8px 8px no-repeat
+  }
+  .pill .btn{border:none; background:var(--blue); color:#fff; padding:8px 12px; border-radius:999px; font-weight:600; cursor:pointer}
+  .pill .btn:active{opacity:.85}
+
+  .meta{margin-left:auto; display:flex; gap:10px; align-items:center; color:var(--muted); font-size:13px}
+  .chip{background:#eef2ff; color:#1e40af; padding:4px 10px; border-radius:999px; font-weight:700}
+
+  .table-card{flex:1 1 auto; min-height:0; padding:8px}
+  .table-wrap{overflow:auto; border-radius:12px; border:1px solid var(--line); background:#fff; height:100%}
+  table{width:100%; border-collapse:separate; border-spacing:0}
+  thead th{
+    position:sticky; top:0; z-index:1; background:#fafafa; border-bottom:1px solid var(--line);
+    font-size:13px; font-weight:700; color:#374151; text-align:left; padding:10px 12px
+  }
+  tbody td{border-bottom:1px solid var(--line); padding:10px 12px; vertical-align:middle; font-size:14px}
+  tbody tr:hover{background:#fafbff}
+  .cell-check{width:42px}
+  .num{text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+  .lowText{color:var(--red); font-weight:700}
+
+  @media (max-width: 900px){
+    th:nth-child(4), td:nth-child(4){display:none;} /* Ẩn ĐVT trên màn nhỏ */
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <!-- Hàng lọc -->
+  <div class="card">
+    <div class="filters">
+      <div class="pill">
+        <label>Hành động</label>
+        <select id="chonHanhDong">
+          <option value="">— Chọn —</option>
+          <option value="chinhsua">Chỉnh kho nhanh</option>
+          <option value="xuatexcel">Xuất Excel (danh sách hiện tại)</option>
+        </select>
+      </div>
+
+      <div class="pill" style="min-width:280px; flex:1">
+        <label>Tìm</label>
+        <input id="timSP" type="text" placeholder="Tìm theo tên hoặc mã SP…" style="width:100%">
+      </div>
+
+      <div class="pill">
+        <label>Lọc tồn</label>
+        <select id="locTon">
+          <option value="all">Tất cả</option>
+          <option value="neg">Âm (&lt; 0)</option>
+          <option value="lt50">&lt; 50</option>
+        </select>
+      </div>
+
+      <!-- THÊM: khoảng ngày -->
+      <div class="pill">
+        <label>Từ</label>
+        <input id="fromDate" type="date">
+      </div>
+      <div class="pill">
+        <label>Đến</label>
+        <input id="toDate" type="date">
+      </div>
+
+      <div class="meta">
+        <span>Kết quả:</span><span class="chip" id="demKetQua">0</span>
+        <span>| Đã chọn:</span><span class="chip" id="demChon">0</span>
+        <span>| Tổng tồn cuối:</span><span class="chip" id="tongTon">0</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bảng -->
+  <div class="card table-card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th class="cell-check"><input id="chkAll" type="checkbox" class="ios-check"></th>
+            <th>Mã SP</th>
+            <th>Tên SP</th>
+            <th>Đvt</th>
+            <th class="num">Tồn đầu</th>
+            <th class="num">Tăng</th>
+            <th class="num">Giảm</th>
+            <th class="num">Tồn cuối</th>
+          </tr>
+        </thead>
+        <tbody id="noiDungBang"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- JS -->
+<script type="module">
+import { supabase } from "./supabase.config.js";
+
+const $  = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+
+const tb        = $("#noiDungBang");
+const ipTim     = $("#timSP");
+const selLocTon = $("#locTon");
+const lblCount  = $("#demKetQua");
+const lblChon   = $("#demChon");
+const lblTong   = $("#tongTon");
+const chkAll    = $("#chkAll");
+const selAct    = $("#chonHanhDong");
+const ipFrom    = $("#fromDate");
+const ipTo      = $("#toDate");
+
+let RAW = [];                 // sanpham
+let VIEW = [];                // sau lọc
+let SELECTED = new Set();     // masp đã chọn
+let STAT = new Map();         // masp -> { open, inc, dec, close }
+
+const noAccent = s => (s||"").normalize("NFD").replace(/\p{Diacritic}/gu,"").toLowerCase();
+const fmt = n => (Number(n)||0).toLocaleString("vi-VN");
+
+// mặc định 30 ngày gần nhất
+(function initDates(){
+  const today = new Date();
+  const start = new Date(); start.setDate(today.getDate()-30);
+  ipTo.value   = today.toISOString().slice(0,10);
+  ipFrom.value = start.toISOString().slice(0,10);
+})();
+
+async function loadData(){
+  const { data, error } = await supabase
+    .from("sanpham")
+    .select("masp, tensp, dvt, tonkho")
+    .order("tensp", { ascending:true, nullsFirst:true });
+
+  if(error){ console.error("Lỗi tải tồn kho:", error); return; }
+
+  RAW = (data||[]).map(r => ({
+    masp: (r.masp||"").toString(),
+    tensp: (r.tensp||"").toString(),
+    dvt:   (r.dvt||"").toString(),
+    tonkho: Number(r.tonkho) || 0
+  }));
+
+  applyFiltersAndRender();
+}
+
+/* =============== TÍNH THEO KHOẢNG NGÀY (dùng created_at) =============== */
+// tách truy vấn theo lô để tránh .in quá dài
+async function fetchLogsByIds(ids, whereBuilder){
+  const CHUNK = 200;
+  let out = [];
+  for(let i=0;i<ids.length;i+=CHUNK){
+    const slice = ids.slice(i,i+CHUNK);
+    let q = supabase.from("td_tonkho")
+      .select("masp, dieuchinh, created_at")
+      .in("masp", slice);
+    q = whereBuilder(q);
+    const { data, error } = await q;
+    if(error){ console.error("Lỗi td_tonkho:", error); return null; }
+    out = out.concat(data||[]);
+  }
+  return out;
+}
+
+async function recomputeStats(){
+  if (!ipFrom.value || !ipTo.value){ STAT.clear(); return; }
+  const ids = VIEW.map(x=>x.masp);
+  if (ids.length === 0){ STAT.clear(); return; }
+
+  const fromISO = new Date(ipFrom.value + "T00:00:00");
+  const toISO   = new Date(ipTo.value   + "T23:59:59");
+
+  // 1) Tổng biến động SAU ngày kết thúc
+  const afterData = await fetchLogsByIds(ids, q => q.gt("created_at", toISO.toISOString()));
+  if (afterData === null) return;
+  const sumAfter = new Map();
+  afterData.forEach(r=>{
+    sumAfter.set(r.masp, (sumAfter.get(r.masp)||0) + (Number(r.dieuchinh)||0));
+  });
+
+  // 2) Biến động TRONG khoảng
+  const inData = await fetchLogsByIds(
+    ids,
+    q => q.gte("created_at", fromISO.toISOString()).lte("created_at", toISO.toISOString())
+  );
+  if (inData === null) return;
+
+  const incMap = new Map(), decMap = new Map(), sumPeriod = new Map();
+  inData.forEach(r=>{
+    const d = Number(r.dieuchinh)||0;
+    sumPeriod.set(r.masp, (sumPeriod.get(r.masp)||0) + d);
+    if (d > 0) incMap.set(r.masp, (incMap.get(r.masp)||0) + d);
+    else if (d < 0) decMap.set(r.masp, (decMap.get(r.masp)||0) + Math.abs(d));
+  });
+
+  // 3) Tổng hợp
+  STAT.clear();
+  for (const r of VIEW){
+    const tonNow = Number(r.tonkho)||0;
+    const aft    = Number(sumAfter.get(r.masp)||0);
+    const endBal = tonNow - aft;                // tồn cuối tại ngày Đến
+    const sumIn  = Number(sumPeriod.get(r.masp)||0);
+    const open   = endBal - sumIn;
+    const inc    = Number(incMap.get(r.masp)||0);
+    const dec    = Number(decMap.get(r.masp)||0);
+    STAT.set(r.masp, { open, inc, dec, close:endBal });
+  }
+}
+
+/* ======================= LỌC + RENDER ======================= */
+async function applyFiltersAndRender(){
+  const q  = ipTim.value.trim();
+  const qn = noAccent(q);
+  const mode = selLocTon.value;
+
+  VIEW = RAW.filter(x => {
+    const hit = noAccent(x.tensp).includes(qn) || noAccent(x.masp).includes(qn);
+    if(!hit) return false;
+    if(mode === "neg")   return x.tonkho < 0;
+    if(mode === "lt50")  return x.tonkho < 50;
+    return true;
+  });
+
+  await recomputeStats();
+  render(VIEW);
+  updateMeta();
+}
+
+function render(ds){
+  // sort theo tồn cuối (nếu có), fallback theo tồn hiện tại
+  const rows = [...ds].sort((a,b)=>{
+    const sa = STAT.get(a.masp), sb = STAT.get(b.masp);
+    const va = sa ? sa.close : a.tonkho;
+    const vb = sb ? sb.close : b.tonkho;
+    return va - vb;
+  });
+
+  tb.innerHTML = "";
+  const frag = document.createDocumentFragment();
+
+  rows.forEach(r=>{
+    const st = STAT.get(r.masp) || {open:0,inc:0,dec:0,close:r.tonkho||0};
+    const tr = document.createElement("tr");
+    const checked = SELECTED.has(r.masp);
+    tr.innerHTML = `
+      <td class="cell-check">
+        <input type="checkbox" class="chk ios-check" data-masp="${r.masp}" ${checked?'checked':''}>
+      </td>
+      <td class="mono">${r.masp}</td>
+      <td>${r.tensp}</td>
+      <td>${r.dvt}</td>
+      <td class="num">${fmt(st.open)}</td>
+      <td class="num">${fmt(st.inc)}</td>
+      <td class="num">${fmt(st.dec)}</td>
+      <td class="num ${st.close < 0 || st.close < 50 ? 'lowText' : ''}">${fmt(st.close)}</td>
+    `;
+    frag.appendChild(tr);
+  });
+
+  tb.appendChild(frag);
+
+  $$("#noiDungBang .chk").forEach(cb=>{
+    cb.addEventListener("change", ()=>{
+      const id = cb.dataset.masp;
+      if(cb.checked) SELECTED.add(id); else SELECTED.delete(id);
+      updateMeta();
+      syncMasterCheckbox();
+    });
+  });
+
+  syncMasterCheckbox();
+}
+
+/* =================== META + MASTER CHECKBOX =================== */
+function updateMeta(){
+  lblCount.textContent = VIEW.length.toString();
+  lblChon.textContent  = SELECTED.size.toString();
+  const sum = VIEW.reduce((s,r)=>{
+    const st = STAT.get(r.masp);
+    return s + (st ? st.close : (r.tonkho||0));
+  },0);
+  lblTong.textContent  = fmt(sum);
+}
+
+function syncMasterCheckbox(){
+  const total = VIEW.length;
+  if(total === 0){ chkAll.checked=false; chkAll.indeterminate=false; return; }
+  let checkedInView = 0;
+  for(const r of VIEW){ if(SELECTED.has(r.masp)) checkedInView++; }
+  if(checkedInView === 0){ chkAll.checked=false; chkAll.indeterminate=false; }
+  else if(checkedInView === total){ chkAll.checked=true; chkAll.indeterminate=false; }
+  else { chkAll.checked=false; chkAll.indeterminate=true; }
+}
+
+/* =========================== ACTIONS =========================== */
+function doAction(){
+  const val = selAct.value;
+  if(!val) return;
+
+  if(val === "chinhsua"){
+    if(SELECTED.size !== 1){
+      alert("Chọn đúng 1 sản phẩm để chỉnh kho nhanh.");
+      selAct.value = ""; return;
+    }
+    const masp = Array.from(SELECTED)[0];
+    window.open(`tk_chinh.html?masp=${encodeURIComponent(masp)}`,"_blank","width=760,height=640");
+  }
+
+  if(val === "xuatexcel"){
+    exportCurrentToCSV();
+  }
+
+  selAct.value = "";
+}
+
+function exportCurrentToCSV(){
+  const header = ["Mã SP","Tên SP","ĐVT","Tồn đầu","Tăng","Giảm","Tồn cuối"];
+  const lines = VIEW.map(r=>{
+    const st = STAT.get(r.masp) || {open:0,inc:0,dec:0,close:r.tonkho||0};
+    return [r.masp, r.tensp, r.dvt, st.open, st.inc, st.dec, st.close];
+  });
+  const csv = [header, ...lines].map(row =>
+    row.map(x => `"${String(x).replace(/"/g,'""')}"`).join(",")
+  ).join("\n");
+
+  const blob = new Blob([csv], {type: "text/csv;charset=utf-8;"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = `tonkho_${ipFrom.value}_den_${ipTo.value}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+
+/* =========================== EVENTS =========================== */
+let t;
+ipTim.addEventListener("input", ()=>{ clearTimeout(t); t = setTimeout(applyFiltersAndRender, 120); });
+selLocTon.addEventListener("change", applyFiltersAndRender);
+ipFrom.addEventListener("change", applyFiltersAndRender);
+ipTo.addEventListener("change", applyFiltersAndRender);
+
+chkAll.addEventListener("change", e=>{
+  if(e.target.checked){ VIEW.forEach(r=>SELECTED.add(r.masp)); }
+  else{ VIEW.forEach(r=>SELECTED.delete(r.masp)); }
+  $$("#noiDungBang .chk").forEach(c=> c.checked = e.target.checked);
+  updateMeta();
+  syncMasterCheckbox();
+});
+
+selAct.addEventListener("change", doAction);
+
+document.addEventListener("DOMContentLoaded", loadData);
+</script>
+</body>
+</html>

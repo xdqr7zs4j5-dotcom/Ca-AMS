@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<title>Cá 3 màu – Húc 2 lần mới nổ (no-lag)</title>
+<link href="https://fonts.googleapis.com/css2?family=Grandstander:wght@800&family=Fredoka:wght@700;800&family=Baloo+2:wght@800&display=swap&subset=vietnamese" rel="stylesheet">
+<style>
+  html,body{height:100%;margin:0}
+  body{background:#fff}
+  svg#lake{width:100vw;height:100vh;display:block;shape-rendering:geometricPrecision}
+
+  #tailTop,#tailBottom{transform-box:fill-box;will-change:transform}
+  #tailTop{transform-origin:left center}
+  #tailBottom{transform-origin:right center}
+  #eyeLid{transform-box:fill-box;transform-origin:50% 0%;transform:scaleY(0);will-change:transform}
+  #bubbleLayer,#fxLayer{pointer-events:none}
+
+  /* Đặt gốc transform cho bong bóng lớn để scale đúng tâm */
+  #mega{ transform-box: fill-box; transform-origin: center; }
+
+  .nose-hit{animation:noseflash .18s ease}
+  @keyframes noseflash{from{filter:brightness(1.4)}to{filter:brightness(1)}}
+
+  /* Pop wobble (đã thêm px để hết warning) */
+  @keyframes pop{
+    0%   { transform: translate(210px,170px) scale(1); }
+    40%  { transform: translate(210px,170px) scale(0.94,1.08); }
+    60%  { transform: translate(210px,170px) scale(1.06,0.92); }
+    80%  { transform: translate(210px,170px) scale(0.98,1.02); }
+    100% { transform: translate(210px,170px) scale(1); }
+  }
+</style>
+</head>
+<body>
+
+<svg id="lake" viewBox="0 0 420 340" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="water" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e9f7ff"/><stop offset="100%" stop-color="#f5fbff"/>
+    </linearGradient>
+
+    <radialGradient id="pinkBody" cx="30%" cy="30%" r="40%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.85"/>
+      <stop offset="20%" stop-color="#f8a9c7"/><stop offset="100%" stop-color="#e83d96"/>
+    </radialGradient>
+
+    <!-- SVG không hiểu CSS var() trong gradientTransform → dùng số và cập nhật bằng JS -->
+    <linearGradient id="rainbow" x1="0" y1="0" x2="1" y2="1" gradientTransform="translate(0 0)">
+      <stop offset="0%"  stop-color="#ff4d4d"/>
+      <stop offset="20%" stop-color="#ffa64d"/>
+      <stop offset="40%" stop-color="#ffee4d"/>
+      <stop offset="60%" stop-color="#7dff4d"/>
+      <stop offset="80%" stop-color="#4dd2ff"/>
+      <stop offset="100%" stop-color="#c44dff"/>
+    </linearGradient>
+
+    <radialGradient id="bubbleFill" cx="38%" cy="35%" r="70%">
+      <stop offset="0%"  stop-color="#ffffff" stop-opacity="0.98"/>
+      <stop offset="40%" stop-color="#ffffff" stop-opacity="0.42"/>
+      <stop offset="85%" stop-color="#ffffff" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.03"/>
+    </radialGradient>
+
+    <!-- ✨ Thêm highlight màu & inner shadow cho cảm giác 3D -->
+    <radialGradient id="bubbleIris" cx="28%" cy="24%" r="85%">
+      <stop offset="0%"   stop-color="#ffffff" stop-opacity="0.35"/>
+      <stop offset="28%"  stop-color="#ffe4f5" stop-opacity="0.28"/>
+      <stop offset="55%"  stop-color="#d9f7ff" stop-opacity="0.22"/>
+      <stop offset="78%"  stop-color="#c6ffe6" stop-opacity="0.16"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.00"/>
+    </radialGradient>
+
+    <linearGradient id="bubbleSheenLG" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#ffffff" stop-opacity="0.55"/>
+      <stop offset="65%"  stop-color="#ffffff" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+
+    <filter id="bubbleSoft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="0.55" result="halo"/>
+      <feBlend in="SourceGraphic" in2="halo" mode="screen"/>
+    </filter>
+    <filter id="bubbleSoftMega" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="0.35" result="halo"/>
+      <feBlend in="SourceGraphic" in2="halo" mode="screen"/>
+    </filter>
+
+    <filter id="innerShadow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="1.2" result="blur"/>
+      <feOffset dx="0" dy="1" in="blur" result="off"/>
+      <feComposite in="off" in2="SourceAlpha" operator="arithmetic" k2="-1" k3="1" result="inner"/>
+      <feColorMatrix in="inner" type="matrix"
+        values="0 0 0 0 0
+                0 0 0 0 0
+                0 0 0 0 0
+                0 0 0 .45 0" result="shadow"/>
+      <feComposite in="shadow" in2="SourceGraphic" operator="over"/>
+    </filter>
+
+    <path id="shapeBody" d="M0 -110 C -50 -110,-80 -80,-80 -20 C -80 50,-25 90,0 100 A 40 28 0 0 0 20 100 C 40 90,80 35,80 -10 C 80 -60,50 -110,0 -110 Z"/>
+    <path id="shapeCyan" d="M0 -110 C -50 -150,-80 -80,-90 30 C -100 22,-28 -145,-80 -19 C 30 20,85 -30,85 -85 C 80 -100,25 -190,0 -120 Z"/>
+    <clipPath id="bodyClip"><use href="#shapeBody"/></clipPath>
+
+    <clipPath id="halfLower" clipPathUnits="objectBoundingBox"><rect x="0" y="0.65" width="1" height="0.55"/></clipPath>
+    <linearGradient id="fadeLower" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="black"/><stop offset="0.1" stop-color="white"/><stop offset="1" stop-color="white"/>
+    </linearGradient>
+    <mask id="maskLower"><rect x="0" y="0" width="1" height="1" fill="url(#fadeLower)"/></mask>
+
+    <clipPath id="eyeClip"><circle cx="17" cy="-68" r="23"/></clipPath>
+  </defs>
+
+  <rect width="100%" height="100%" fill="url(#water)"/>
+
+  <g id="bubbleLayer"></g>
+
+  <!-- Bong bóng to + xoáy bên trong (đã bỏ "lốc xoáy") -->
+  <g id="mega" transform="translate(210 170)" filter="url(#bubbleSoftMega)">
+    <g id="megaInner"><clipPath id="megaClip"><circle cx="0" cy="0" r="40"/></clipPath>
+
+    <!-- Lõi mờ trắng -->
+    <circle id="megaCore" r="40" fill="url(#bubbleFill)" opacity="5"/>
+
+    <!-- ✨ Lớp highlight màu 3D bên trong -->
+    <circle id="megaIris" r="37" fill="url(#bubbleIris)" clip-path="url(#megaClip)" opacity="5"/>
+
+    <!-- ✨ Miếng sheen quét chéo mềm -->
+    <path id="megaSheen2"
+          d="M -6 -12 C -10 -45, 39 -38, 26 16
+             C -6 8, -16 -36, -16 -32 Z"
+          fill="url(#bubbleFill)"
+          opacity="10"
+          clip-path="url(#megaClip)"></path>
+
+    <!-- Vòng ngoài -->
+    <circle id="megaRing" r="40" fill="none" stroke="url(#rainbow)" stroke-width="0.4" vector-effect="non-scaling-stroke"/>
+    <circle r="38.6" fill="none" stroke="#bfe6ff" stroke-width="0.9" vector-effect="non-scaling-stroke" stroke-linecap="round"/>
+
+    <!-- Vệt sáng vòng cung & 2 chấm (tọa độ local 0,0) -->
+    <path id="megaShine" d="" fill="none" stroke="url(#rainbow)" stroke-width="0.5" opacity="5"
+          stroke-linecap="round" vector-effect="non-scaling-stroke"/>
+    <circle id="megaDot1" r="0" fill="white" opacity="5"/>
+    <circle id="megaDot2" r="0" fill="#dff3ff" opacity="9"/>
+
+    <!-- Viền trong tối nhẹ -->
+    <circle id="megaInnerShadow" r="38.6" fill="none" stroke="url(#rainbow)"stroke-opacity="2" stroke-width="0.2"
+            filter="url(#innerShadow)" opacity="3"/>
+
+    <!-- (Để trống, không còn xoáy) -->
+    <g id="wordCa" clip-path="url(#megaClip)"></g>
+    </g>
+  </g>
+
+  <g id="fxLayer"></g>
+  <g id="logoBubble" opacity="0"></g>
+
+  <!-- CÁ -->
+  <g id="move" transform="translate(470 120)">
+    <g id="fishDir" transform="rotate(-82)">
+      <g id="tail" fill="#f0c419">
+        <g id="tailTop"><ellipse cx="120" cy="25" rx="30" ry="19" transform="rotate(42 -35 -44)"/></g>
+        <g id="tailBottom"><ellipse cx="108" cy="90" rx="30" ry="19" transform="rotate(-38 90 264)"/></g>
+      </g>
+      <g id="bodyAll">
+        <g id="bodyBase">
+          <use href="#shapeBody" fill="url(#pinkBody)" stroke="#e96fa8" stroke-opacity="0.5" stroke-width="2" vector-effect="non-scaling-stroke"/>
+          <use href="#shapeCyan" fill="#10c7d3" clip-path="url(#bodyClip)"/>
+        </g>
+        <g id="bodyLowerOverlay" clip-path="url(#halfLower)" mask="url(#maskLower)"><use href="#shapeBody" fill="url(#pinkBody)"/><use href="#shapeCyan" fill="#10c7d3" clip-path="url(#bodyClip)"/></g>
+      </g>
+
+      <g id="eye">
+        <circle cx="17" cy="-68" r="23" fill="#f1f5f9"/>
+        <circle cx="20" cy="-68" r="11" fill="#111"/>
+        <g id="lidBox" transform="rotate(90 17 -68)" clip-path="url(#eyeClip)"><rect id="eyeLid" x="-6" y="-91" width="46" height="46" fill="#10c7d3"/></g>
+      </g>
+
+      <circle id="tailRef"  cx="-90" cy="-10" r="0" fill="none"/>
+      <circle id="mouthRef" cx="88"  cy="-100" r="0" fill="none"/>
+    </g>
+  </g>
+</svg>
+
+<script>
+/* ====== CONSTS ====== */
+const SCALE=0.4, vbW=420, vbH=340;
+const baseSpeed = 40;          // bơi tự do (sau khi nổ)
+const APPROACH_SPEED = 60;     // tốc độ áp sát vòng (guidedApproach)
+const RETREAT_SPEED  = 100;    // giật lùi sau hit #1 (phase='retreat')
+const RETREAT_DURATION = 330;  // ms
+const IMPULSE_MS = 320;        // ms giật lùi tức thời ngay khi nổ ở hit #2
+const IMPULSE_BOOST = 1.0;     // 1.2–1.4 nếu muốn lùi mạnh hơn
+
+/* ====== REFS ====== */
+const svg = document.getElementById('lake');
+const mover=document.getElementById('move'),
+      tailTop=document.getElementById('tailTop'),
+      tailBottom=document.getElementById('tailBottom'),
+      bodyLowerOverlay=document.getElementById('bodyLowerOverlay'),
+      bodyAll=document.getElementById('bodyAll'),
+      eyeLid=document.getElementById('eyeLid'),
+      mouthRef=document.getElementById('mouthRef'),
+      bubbleLayer=document.getElementById('bubbleLayer'),
+      fxLayer=document.getElementById('fxLayer'),
+      mega=document.getElementById('mega'),
+      megaShine=document.getElementById('megaShine'),
+      megaDot1=document.getElementById('megaDot1'),
+      megaDot2=document.getElementById('megaDot2'),
+      logoBubble=document.getElementById('logoBubble'),
+      wordCa=document.getElementById('wordCa'),
+      tail = document.getElementById('tail'),
+      rainbowGrad = document.getElementById('rainbow');
+
+let x=vbW+110, y=170, last=null;
+const margin=60;
+const MEGA_CX=210, MEGA_CY=170, MEGA_R=40;
+
+/* Blink */
+function blink(){ eyeLid.animate([{transform:'scaleY(0)'},{transform:'scaleY(1)',offset:.35},{transform:'scaleY(0)'}],{duration:220}); }
+(function loopBlink(){setTimeout(()=>{blink();loopBlink();},1500+Math.random()*2500)})(); 
+
+/* Helpers */
+function svgPoint(elem, x, y){
+  const pt = svg.createSVGPoint();
+  pt.x = x; pt.y = y;
+  const m = elem.getCTM?.() || elem.getScreenCTM?.();
+  const root = svg.getScreenCTM?.();
+  if (!m || !root) return { x: 0, y: 0 };
+  const scr = (elem.getScreenCTM ? pt.matrixTransform(m) : pt);
+  const inv = svg.getScreenCTM ? root.inverse() : svg.createSVGMatrix();
+  const p = scr.matrixTransform(inv);
+  return { x: p.x, y: p.y };
+}
+const snap=v=>Math.round(v*2)/2;
+const hypot2=(ax,ay,bx,by)=>Math.hypot(ax-bx, ay-by);
+function getMouthSVG(){ return svgPoint(mouthRef, +mouthRef.getAttribute('cx'), +mouthRef.getAttribute('cy')); }
+
+/* ====== BONG BÓNG NHỎ (BG + mouth) ====== */
+const bubbles=[];
+const MAX_BG=8, MAX_MOUTH=10;
+let lastEmit=0;
+function pickRadius(){ const r=Math.random(); return r<0.7?1.6+Math.random()*1.6:r<0.95?3+Math.random()*3:6+Math.random()*4; }
+function createBubble(kind='bg'){
+  let x0,y0;
+  if(kind==='mouth'){
+    const p=svgPoint(mouthRef,+mouthRef.getAttribute('cx'),+mouthRef.getAttribute('cy'));
+    x0=p.x+(Math.random()*3-1.5); y0=p.y+(Math.random()*2-1);
+  }else{
+    if(Math.random()<0.78){x0=Math.random()*vbW; y0=Math.random()*vbH;}
+    else{ x0=Math.random()*vbW; y0=vbH+10+Math.random()*30; }
+  }
+  const r=pickRadius();
+  const g=document.createElementNS(svg.namespaceURI,'g');
+  g.setAttribute('transform',`translate(${x0} ${y0})`);
+  g.setAttribute('opacity', kind==='bg'?'0.9':'0');
+  g.setAttribute('filter','url(#bubbleSoft)');
+
+  const core=document.createElementNS(svg.namespaceURI,'circle');
+  core.setAttribute('r',r); core.setAttribute('fill','url(#bubbleFill)');
+
+  const ring=document.createElementNS(svg.namespaceURI,'circle');
+  ring.setAttribute('r',r); ring.setAttribute('fill','none');
+  ring.setAttribute('stroke','url(#rainbow)'); ring.setAttribute('stroke-linecap','round');
+  ring.setAttribute('stroke-width','0.4'); ring.setAttribute('vector-effect','non-scaling-stroke');
+
+  const inner=document.createElementNS(svg.namespaceURI,'circle');
+  inner.setAttribute('r', Math.max(r-0.5, 0.1));
+  inner.setAttribute('fill','none'); inner.setAttribute('stroke','#bfe6ff');
+  inner.setAttribute('stroke-width','0.9'); inner.setAttribute('stroke-linecap','round');
+  inner.setAttribute('vector-effect','non-scaling-stroke');
+
+  const insetArc = Math.max(1.5, Math.min(3.0, r*0.3));
+  const radArc   = Math.max(r - insetArc, 0.1);
+  const th0  = Math.random()*Math.PI*2;
+  const span = (40 + Math.random()*60) * Math.PI/180;
+  const x1 = radArc * Math.cos(th0 - span/2), y1 = radArc * Math.sin(th0 - span/2);
+  const x2 = radArc * Math.cos(th0 + span/2), y2 = radArc * Math.sin(th0 + span/2);
+
+  const shineArc = document.createElementNS(svg.namespaceURI,'path');
+  shineArc.setAttribute('d',`M ${x1} ${y1} A ${radArc} ${radArc} 0 0 1 ${x2} ${y2}`);
+  shineArc.setAttribute('fill','none'); shineArc.setAttribute('stroke','url(#rainbow)');
+  shineArc.setAttribute('stroke-linecap','round'); shineArc.setAttribute('stroke-width','0.35');
+  shineArc.setAttribute('opacity','0.95'); shineArc.setAttribute('vector-effect','non-scaling-stroke');
+
+  function dotAt(offset, shrink=0){
+    const inset = Math.max(0.5, insetArc*0.85) + shrink;
+    const rd = Math.max(r - inset, 0.1);
+    const th = th0 + Math.PI + offset;
+    const cx = rd*Math.cos(th), cy = rd*Math.sin(th);
+    const d = document.createElementNS(svg.namespaceURI,'circle');
+    d.setAttribute('cx',cx); d.setAttribute('cy',cy);
+    d.setAttribute('r',Math.max(r*0.08,0.25));
+    d.setAttribute('fill','white'); d.setAttribute('opacity','0.95');
+    return d;
+  }
+  const dot1 = dotAt(-0.15), dot2 = dotAt(0.15,0.15);
+  dot2.setAttribute('fill','#dff3ff'); dot2.setAttribute('opacity','0.92');
+
+  g.append(core,ring,inner,shineArc,dot1,dot2);
+  bubbleLayer.appendChild(g);
+
+  const vy0=-(10+Math.random()*12), vx0=(Math.random()<0.5?-1:1)*(2+Math.random()*4);
+  const freq=0.25+Math.random()*0.45, amp=(r<3?1.4:r<7?2.4:3.2), phase=Math.random()*Math.PI*2;
+
+  bubbles.push({kind, el:g, x:x0, y:y0, r, vx:vx0, vy:vy0, ax:0, ay:-1.1, born:performance.now(),
+    ttl:(kind==='bg'?12000:7000)+Math.random()*4000, freq, amp, phase});
+}
+for(let i=0;i<MAX_BG;i++) createBubble('bg');
+
+function spawnFromMouth(now){
+  const mouths = bubbles.reduce((n,b)=>n+(b.kind==='mouth'),0);
+  if(mouths>=MAX_MOUTH) return;
+  if(now-lastEmit<520+Math.random()*380) return;
+  lastEmit=now; createBubble('mouth');
+}
+function recycle(b){
+  b.x=Math.random()*vbW; b.y=vbH+10+Math.random()*30;
+  b.vx=(Math.random()<0.5?-1:1)*(2+Math.random()*4);
+  b.vy=-(10+Math.random()*12); b.born=performance.now(); b.ttl=11000+Math.random()*5000;
+}
+function updateBubbles(dtMs, now){
+  const tSec=now/1000, dt=dtMs/1000;
+  for(let i=bubbles.length-1;i>=0;i--){
+    const b = bubbles[i];
+    b.vx+=b.ax*dt; b.vy+=b.ay*dt;
+    const wobble=Math.sin((tSec*2*Math.PI*b.freq)+b.phase)*b.amp;
+    b.x = snap(b.x + b.vx*dt + wobble*dt*0.30);
+    b.y = snap(b.y + b.vy*dt);
+    const life=now-b.born;
+    const s=1+Math.min(life/b.ttl,1)*(b.r<3?0.12: b.r<7?0.10:0.06);
+    let op=(b.kind==='mouth') ? (life<240? life/240 : (life>b.ttl-600? Math.max(0,(b.ttl-life)/600):1)) : 0.9;
+    b.el.setAttribute('transform',`translate(${b.x} ${b.y}) scale(${s})`);
+    b.el.setAttribute('opacity',op);
+
+    const out = (b.y<-25 || life>=b.ttl);
+    if(out){
+      if(b.kind==='bg'){ recycle(b); }
+      else{ if(b.el.parentNode) b.el.parentNode.removeChild(b.el); bubbles.splice(i,1); }
+      continue;
+    }
+    if(b.x<-25) b.x=vbW+25; if(b.x>vbW+25) b.x=-25;
+  }
+  const bgCount=bubbles.filter(b=>b.kind==='bg').length;
+  for(let k=bgCount;k<MAX_BG;k++) createBubble('bg');
+}
+
+/* ====== BURST ====== */
+const burstBubbles=[];
+function spawnBurstBubbles(cx, cy, n=48){
+  for(let i=0;i<n;i++){
+    const r = 1.2 + Math.random()*2.6;
+    const g=document.createElementNS(svg.namespaceURI,'g');
+    g.setAttribute('transform',`translate(${cx} ${cy})`);
+    g.setAttribute('filter','url(#bubbleSoft)');
+    const core=document.createElementNS(svg.namespaceURI,'circle');
+    core.setAttribute('r',r); core.setAttribute('fill','url(#bubbleFill)');
+    const ring=document.createElementNS(svg.namespaceURI,'circle');
+    ring.setAttribute('r',r); ring.setAttribute('fill','none');
+    ring.setAttribute('stroke','url(#rainbow)'); ring.setAttribute('stroke-width','0.35');
+    ring.setAttribute('vector-effect','non-scaling-stroke');
+    const inner=document.createElementNS(svg.namespaceURI,'circle');
+    inner.setAttribute('r',Math.max(r-0.4,0.1)); inner.setAttribute('fill','none');
+    inner.setAttribute('stroke','#bfe6ff'); inner.setAttribute('stroke-width','0.7');
+    inner.setAttribute('vector-effect','non-scaling-stroke');
+    g.append(core,ring,inner); fxLayer.appendChild(g);
+
+    const a=Math.random()*Math.PI*2, sp=90+Math.random()*140;
+    burstBubbles.push({el:g, x:cx, y:cy, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp-60, ay:-35, life:0, ttl:2000+Math.random()*900, r});
+  }
+}
+function updateBurstBubbles(dt){
+  const t=dt/1000;
+  for(let i=burstBubbles.length-1;i>=0;i--){
+    const b=burstBubbles[i];
+    b.life+=dt; b.vy+=b.ay*t; b.x+=b.vx*t; b.y+=b.vy*t;
+    const fade=Math.max(0,1 - b.life/b.ttl);
+    b.el.setAttribute('transform',`translate(${b.x} ${b.y})`);
+    b.el.setAttribute('opacity',fade);
+    if(b.life>=b.ttl){ fxLayer.removeChild(b.el); burstBubbles.splice(i,1); }
+  }
+}
+
+/* ====== BONG BÓNG TO: vệt + chấm + hiệu ứng ====== */
+function configureMegaShineAndDots(){
+  // Dùng local coords (tâm 0,0) vì #mega đã translate(210,170)
+  const insetArc=6, radArc=MEGA_R-insetArc, spanDeg=70, th0=-30*Math.PI/180;
+  const x1 = radArc*Math.cos(th0 - spanDeg*Math.PI/180/2);
+  const y1 = radArc*Math.sin(th0 - spanDeg*Math.PI/180/2);
+  const x2 = radArc*Math.cos(th0 + spanDeg*Math.PI/180/2);
+  const y2 = radArc*Math.sin(th0 + spanDeg*Math.PI/180/2);
+  megaShine.setAttribute('d',`M ${x1} ${y1} A ${radArc} ${radArc} 0 0 1 ${x2} ${y2}`);
+
+  // set kích thước ban đầu (vị trí sẽ do updateOrbitDots điều khiển)
+  megaDot1.setAttribute('r',3.2);
+  megaDot2.setAttribute('r',2.6);
+}
+
+/* ====== 2 CHẤM BẬT NGƯỢC TRÊN VIỀN (W KHÁC NHAU) ====== */
+const RING_R = MEGA_R - 2.6;
+const DOT_R1 = 3.2;
+const DOT_R2 = 2.6;
+
+const COLLIDE_EPS = 0.12;   // ngưỡng góc để coi là “va” (rad ~ 7°)
+const SEP_EPS     = 0.08;   // tách nhẹ sau va (rad)
+const COOLDOWN_S  = 0.10;   // chống dính nhiều frame liên tiếp
+const MIN_W       = 0.6;    // tốc độ góc nhỏ nhất (rad/s)
+const MAX_W       = 1.8;    // tốc độ góc lớn nhất (rad/s)
+
+// Góc khởi tạo ngẫu nhiên → có thể va ở bất kỳ đâu theo thời gian
+let a1 = Math.random() * Math.PI * 2;
+let a2 = Math.random() * Math.PI * 2;
+
+// Tạo 2 vận tốc góc khác nhau, ngược chiều
+function randSpeed(){ return MIN_W + Math.random() * (MAX_W - MIN_W); }
+let w1 =  randSpeed();
+let w2 =  randSpeed();
+if (Math.abs(w2 - w1) < 0.12) w2 += 0.18;   // đảm bảo khác đáng kể
+w2 = -w2; // ngược chiều để chắc chắn gặp nhau
+
+let collideCD = 0;
+
+function angDiff(a, b){
+  // khoảng cách góc theo cung ngắn trong (-π, π]
+  let d = (b - a + Math.PI) % (2*Math.PI) - Math.PI;
+  return d <= -Math.PI ? d + 2*Math.PI : d;
+}
+
+function updateBounceDots(dtMs){
+  if (!document.getElementById('mega')) return;
+  const dt = dtMs / 1000;
+  collideCD = Math.max(0, collideCD - dt);
+
+  // 1) cập nhật góc theo vận tốc góc (giữ nguyên độ lớn w1≠w2)
+  a1 = (a1 + w1 * dt + 2*Math.PI) % (2*Math.PI);
+  a2 = (a2 + w2 * dt + 2*Math.PI) % (2*Math.PI);
+
+  // 2) kiểm tra va và bật ngược (đảo dấu cả hai)
+  const dAng = Math.abs(angDiff(a1, a2));
+  if (collideCD === 0 && dAng < COLLIDE_EPS){
+    w1 = -w1;
+    w2 = -w2;
+    // tách nhẹ để khỏi kẹt
+    a1 = (a1 - SEP_EPS + 2*Math.PI) % (2*Math.PI);
+    a2 = (a2 + SEP_EPS) % (2*Math.PI);
+    collideCD = COOLDOWN_S;
+  }
+
+  // 3) vẽ chấm trên viền (tọa độ local, tâm (0,0))
+  const x1 = RING_R * Math.cos(a1), y1 = RING_R * Math.sin(a1);
+  const x2 = RING_R * Math.cos(a2), y2 = RING_R * Math.sin(a2);
+
+  megaDot1.setAttribute('cx', x1.toFixed(2));
+  megaDot1.setAttribute('cy', y1.toFixed(2));
+  megaDot2.setAttribute('cx', x2.toFixed(2));
+  megaDot2.setAttribute('cy', y2.toFixed(2));
+  megaDot1.setAttribute('r', DOT_R1);
+  megaDot2.setAttribute('r', DOT_R2);
+  megaDot1.setAttribute('opacity','0.95');
+  megaDot2.setAttribute('opacity','0.92');
+}
+
+/* ====== DẪN ĐƯỜNG & TRẠNG THÁI ====== */
+function guidedApproach(dt){
+  const mouth=getMouthSVG();
+  const targetX = MEGA_CX - MEGA_R - 2;
+  const targetY = MEGA_CY + Math.sin(performance.now()*0.005+2.2)*6;
+  const ang = Math.atan2(targetY - mouth.y, targetX - mouth.x);
+  const step = APPROACH_SPEED*(dt/1000);
+  x += Math.cos(ang)*step; y += Math.sin(ang)*step;
+}
+
+let phase='approach', scripted=true, retreatTimer=0;
+let hitCount=0, canHit=true;
+let retreatImpulseMs = 0;
+
+/* ====== Rainbow gradient shift (JS) ====== */
+let rainbowPhase = 0;
+function updateRainbow(dtMs){
+  rainbowPhase += dtMs * 0.001;
+  const dx = Math.sin(rainbowPhase * 0.4) * 0.6;
+  if (rainbowGrad) {
+    rainbowGrad.setAttribute('gradientTransform', `translate(${dx.toFixed(3)} 0)`);
+  }
+}
+
+/* ====== LOOP ====== */
+function tick(t){
+  if(last==null) last=t; const dt=t-last; last=t;
+
+  updateRainbow(dt);
+  spawnFromMouth(t);
+  updateBubbles(dt,t);
+  updateBurstBubbles(dt);
+  updateBounceDots(dt);
+
+  if (scripted) {
+    if (phase==='approach') guidedApproach(dt);
+    if (phase==='retreat') {
+      retreatTimer+=dt;
+      const awayX = RETREAT_SPEED*(dt/1000);
+      const awayY = (y - MEGA_CY) * 0.6 * (dt/1000);
+      x += awayX; y += awayY;
+      if (retreatTimer>RETREAT_DURATION){ retreatTimer=0; phase='approach'; }
+    }
+
+    const m = getMouthSVG();
+    const dist = Math.hypot(m.x-MEGA_CX, m.y-MEGA_CY);
+
+    if (dist > MEGA_R + 12) canHit = true;
+
+    if (dist <= MEGA_R + 2 && canHit) {
+      wobbleMega(); ringRipple();
+      mover.classList.add('nose-hit'); setTimeout(()=>mover.classList.remove('nose-hit'),120);
+      canHit = false; hitCount++;
+
+      if (hitCount===1) {
+        phase='retreat';
+      } else if (hitCount>=2) {
+        popMega();
+        setTimeout(()=>{ buildLogoBubble(MEGA_CX,MEGA_CY,30); startLogoFloat(); }, 380);
+        retreatImpulseMs = IMPULSE_MS;
+        scripted=false; phase='free';
+      }
+    }
+  }
+
+  if (retreatImpulseMs > 0) {
+    const d = Math.min(dt, retreatImpulseMs);
+    const tsec = d/1000;
+    const awayX = 140 * tsec;
+    const awayY = (y - MEGA_CY) * 0.7 * tsec;
+    x += awayX; y += awayY;
+    retreatImpulseMs -= d;
+  }
+
+  // Free swim
+  if (!scripted || phase==='free' || phase==='pop') {
+    x = snap(x - baseSpeed * (dt/1000));
+    if (x < -margin) { x = vbW + margin; y = 50 + Math.random()*(vbH-100); }
+  }
+
+  // Apply fish transforms
+  mover.setAttribute('transform',`translate(${snap(x)} ${snap(y)}) scale(${SCALE})`);
+
+  // Tail & body motion
+  const sec=t/1000, moveBase=1.05+60*0.006, wagBase=moveBase*0.48;
+  const wagTop=Math.sin(sec*2*Math.PI*wagBase)*9, wagBot=Math.sin(sec*2*Math.PI*wagBase+Math.PI/10)*8;
+  tailTop.setAttribute('transform',`rotate(${wagTop})`); tailBottom.setAttribute('transform',`rotate(${wagBot})`);
+  const hingeX=10, hingeY=0, backSway=Math.sin(sec*2*Math.PI*wagBase-Math.PI/12)*3.0;
+  tail.setAttribute('transform',`rotate(${backSway} ${hingeX} ${hingeY})`);
+  bodyLowerOverlay.setAttribute('transform',`rotate(${backSway} ${hingeX} ${hingeY})`);
+  const pulse=Math.sin(sec*2*Math.PI*moveBase+Math.PI/8), sx=1+pulse*0.016, sy=1-pulse*0.009;
+  const frontNod=Math.sin(sec*2*Math.PI*wagBase+Math.PI/2)*0.9;
+  bodyAll.setAttribute('transform',`translate(${hingeX} ${hingeY}) rotate(${frontNod}) scale(${sx} ${sy}) translate(${-hingeX} ${-hingeY})`);
+
+  // Logo bubble float
+  if (logoFloat){
+    const tsec = dt/1000;
+    logoFloat.life += dt;
+    const sway = Math.sin((performance.now()/1000) * 2.2 + logoFloat.swayPhase) * 6;
+    logoFloat.vy += logoFloat.ay * tsec;
+    const dx = (logoFloat.vx * tsec), dy = (logoFloat.vy * tsec) + (sway*0.02);
+
+    const m = logoBubble.transform.baseVal.consolidate();
+    const prev = m ? m.matrix : svg.createSVGMatrix();
+    const tx = (prev.e||0) + dx, ty = (prev.f||0) + dy;
+    logoBubble.setAttribute('transform',`translate(${tx} ${ty})`);
+
+    const fade = Math.max(0, 1 - (logoFloat.life / logoFloat.ttl));
+    logoBubble.setAttribute('opacity', fade);
+    if (logoFloat.life >= logoFloat.ttl) { logoBubble.setAttribute('opacity',0); logoFloat=null; }
+  }
+
+  requestAnimationFrame(tick);
+}
+
+/* Hiệu ứng của bong bóng lớn */
+const megaInner = document.getElementById('megaInner');
+function wobbleMega(){
+  megaInner.animate([
+    { transform: 'scale(1, 1)' },
+    { transform: 'scale(0.94, 1.08)', offset: 0.18 },
+    { transform: 'scale(1.06, 0.92)', offset: 0.42 },
+    { transform: 'scale(0.98, 1.02)', offset: 0.68 },
+    { transform: 'scale(1, 1)' }
+  ], { duration: 380, easing: 'cubic-bezier(.2,.7,.2,1)' });
+}
+function ringRipple(){
+  const r=document.createElementNS(svg.namespaceURI,'circle');
+  r.setAttribute('cx',MEGA_CX); r.setAttribute('cy',MEGA_CY); r.setAttribute('r',MEGA_R);
+  r.setAttribute('fill','none'); r.setAttribute('stroke','url(#rainbow)'); r.setAttribute('stroke-width','1.4');
+  r.setAttribute('opacity','0.9'); fxLayer.appendChild(r);
+  r.animate([{r:MEGA_R,opacity:0.9},{r:MEGA_R+14,opacity:0}],{duration:240,fill:'forwards'}).onfinish=()=>fxLayer.removeChild(r);
+}
+function popMega(){
+  spawnBurstBubbles(MEGA_CX, MEGA_CY, 48);
+  const anim = megaInner.animate(
+    [
+      { opacity: 1,    transform: 'scale(1)'    },
+      { opacity: 0.25, transform: 'scale(1.16)' },
+      { opacity: 0,    transform: 'scale(1.30)' }
+    ],
+    { duration: 380, easing: 'ease-out', fill: 'forwards' }
+  );
+  anim.onfinish = ()=> { mega.remove(); };
+}
+
+
+/* ====== LOGO BUBBLE (sau khi nổ) ====== */
+let logoFloat=null;
+function buildLogoBubble(cx,cy,r=30){
+  while(logoBubble.firstChild) logoBubble.removeChild(logoBubble.firstChild);
+  const core=document.createElementNS(svg.namespaceURI,'circle');
+  core.setAttribute('cx',cx); core.setAttribute('cy',cy); core.setAttribute('r',r);
+  core.setAttribute('fill','url(#bubbleFill)'); core.setAttribute('opacity','0.18');
+
+  const ring=document.createElementNS(svg.namespaceURI,'circle');
+  ring.setAttribute('cx',cx); ring.setAttribute('cy',cy); ring.setAttribute('r',r);
+  ring.setAttribute('fill','none'); ring.setAttribute('stroke','url(#rainbow)');
+  ring.setAttribute('stroke-width','0.4'); ring.setAttribute('vector-effect','non-scaling-stroke'); ring.setAttribute('stroke-linecap','round');
+
+  const inner=document.createElementNS(svg.namespaceURI,'circle');
+  inner.setAttribute('cx',cx); inner.setAttribute('cy',cy); inner.setAttribute('r',r-1.4);
+  inner.setAttribute('fill','none'); inner.setAttribute('stroke','#bfe6ff');
+  inner.setAttribute('stroke-width','0.9'); inner.setAttribute('vector-effect','non-scaling-stroke'); inner.setAttribute('stroke-linecap','round');
+
+  const insetArc=5, radArc=r-insetArc, spanDeg=70, th0=-35*Math.PI/180;
+  const x1=cx + radArc*Math.cos(th0 - spanDeg*Math.PI/180/2);
+  const y1=cy + radArc*Math.sin(th0 - spanDeg*Math.PI/180/2);
+  const x2=cx + radArc*Math.cos(th0 + spanDeg*Math.PI/180/2);
+  const y2=cy + radArc*Math.sin(th0 + spanDeg*Math.PI/180/2);
+  const shine=document.createElementNS(svg.namespaceURI,'path');
+  shine.setAttribute('d',`M ${x1} ${y1} A ${radArc} ${radArc} 0 0 1 ${x2} ${y2}`);
+  shine.setAttribute('fill','none'); shine.setAttribute('stroke','url(#rainbow)');
+  shine.setAttribute('stroke-width','0.35'); shine.setAttribute('stroke-linecap','round'); shine.setAttribute('opacity','0.95');
+  shine.setAttribute('vector-effect','non-scaling-stroke');
+
+  function dotAt(offset, shrink=0){
+    const rd = r - Math.max(3.0, insetArc*0.85) - shrink;
+    const th = th0 + Math.PI + offset;
+    return {cx: cx + rd*Math.cos(th), cy: cy + rd*Math.sin(th)};
+  }
+  const d1=dotAt(-0.15,0.0), d2=dotAt(0.15,0.9);
+  const dot1=document.createElementNS(svg.namespaceURI,'circle');
+  dot1.setAttribute('cx',d1.cx); dot1.setAttribute('cy',d1.cy); dot1.setAttribute('r',r*0.1);
+  dot1.setAttribute('fill','white'); dot1.setAttribute('opacity','0.95');
+  const dot2=document.createElementNS(svg.namespaceURI,'circle');
+  dot2.setAttribute('cx',d2.cx); dot2.setAttribute('cy',d2.cy); dot2.setAttribute('r',r*0.085);
+  dot2.setAttribute('fill','#dff3ff'); dot2.setAttribute('opacity','0.92');
+
+  logoBubble.append(core,ring,inner,shine,dot1,dot2);
+  logoBubble.setAttribute('opacity','1');
+  logoBubble.setAttribute('transform','translate(0 0)');
+}
+function startLogoFloat(){
+  logoFloat = { vx:(Math.random()<0.5?-1:1)*10, vy:-12, ay:-4, life:0, ttl:6000, swayPhase:Math.random()*Math.PI*2 };
+}
+
+/* Init */
+configureMegaShineAndDots();
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>

@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Thêm khách hàng</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      --bg:#f5f5f7; --card:#fff; --text:#111; --muted:#6b7280; --blue:#007aff; --line:#e5e7eb;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:var(--text)}
+
+    /* ===== Header cố định iOS ===== */
+    .appbar{
+      position:sticky; top:0; z-index:10;
+      display:flex; align-items:center; justify-content:space-between;
+      padding:12px 16px; background:rgba(245,245,247,.8); backdrop-filter: saturate(180%) blur(16px);
+      border-bottom:1px solid var(--line);
+    }
+    .appbar h2{margin:0;font-size:18px;font-weight:600}
+    .btn{
+      border:0; background:var(--blue); color:#fff; padding:8px 14px; border-radius:10px; font-weight:600; cursor:pointer;
+    }
+    .btn:disabled{opacity:.6;cursor:not-allowed}
+
+    /* ===== Khung nội dung ===== */
+    .wrap{max-width:720px;margin:16px auto;padding:0 12px 24px}
+
+    .section-title{
+      font-size:12px; color:var(--muted); margin:14px 4px 8px;
+      text-transform:uppercase; letter-spacing:.02em;
+    }
+
+    /* ===== Danh sách iOS ===== */
+    .ios-list{
+      background:var(--card); border-radius:14px; overflow:hidden;
+      box-shadow:0 1px 0 rgba(0,0,0,.04), 0 0 0 1px rgba(0,0,0,.04);
+    }
+    .cell{
+      display:flex; align-items:center; gap:12px;
+      padding:12px 16px; border-bottom:1px solid var(--line);
+    }
+    .cell:last-child{border-bottom:none}
+    .label{
+      flex:0 0 42%; min-width:180px; color:#000; font-weight:500;
+    }
+    .field{
+      flex:1; display:flex; justify-content:flex-end;
+    }
+    .field input,
+    .field select{
+      width:100%; max-width:380px;
+      border:none; outline:none; background:transparent;
+      text-align:right; color:var(--blue);
+      font-size:16px; padding:6px 0;
+    }
+    .field input::placeholder{color:#9aa3b2}
+    /* Giữ mũi tên select mặc định, nhưng canh phải nội dung */
+    select{appearance:auto}
+
+    /* Hàng số/tiền nhìn gọn hơn */
+    input[type="number"]{ -moz-appearance:textfield; }   /* ✅ đúng */
+    input[type="number"]::-webkit-outer-spin-button,     /* ✅ đúng */
+    input[type="number"]::-webkit-inner-spin-button{ -webkit-appearance: none; margin: 0; } /* ✅ đúng */
+
+    /* Hàng lỗi nhẹ */
+    .hint{color:var(--muted); font-size:12px; margin:8px 4px 0}
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="appbar">
+    <h2>Thêm khách hàng</h2>
+    <button id="btnLuuHeader" class="btn" data-action="saveKH" data-hotkey="Ctrl+S">Lưu</button>
+  </div>
+
+  <div class="wrap">
+    <!-- Group 1 -->
+    <div class="section-title">Thông tin khách hàng</div>
+    <div class="ios-list">
+      <div class="cell">
+        <div class="label">Tên người đại diện *</div>
+        <div class="field"><input id="tenkh" required placeholder="Nhập tên" data-step="1"></div>
+      </div>
+      <div class="cell">
+        <div class="label">Tên đơn vị</div>
+        <div class="field"><input id="tendv" placeholder="Tên công ty/đơn vị" data-step="2"></div>
+      </div>
+      <div class="cell">
+        <div class="label">Địa chỉ</div>
+        <div class="field"><input id="diachi" placeholder="Địa chỉ" data-step="3"></div>
+      </div>
+      <div class="cell">
+        <div class="label">Tuyến *</div>
+        <div class="field">
+          <select id="tuyen" required data-step="9" data-enter-action="saveKH">
+            <option value="">-- Chọn tuyến --</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Group 2 -->
+    <div class="section-title">Liên hệ & Thuế</div>
+    <div class="ios-list">
+      <div class="cell">
+        <div class="label">SĐT</div>
+        <div class="field"><input id="sdt" placeholder="Số điện thoại" data-step="4"></div>
+      </div>
+      <div class="cell">
+        <div class="label">Email</div>
+        <div class="field"><input id="email" placeholder="email@domain.com" data-step="7"></div>
+      </div>
+      <div class="cell">
+        <div class="label">MST</div>
+        <div class="field"><input id="mst" placeholder="Mã số thuế" data-step="5"></div>
+      </div>
+      <div class="cell">
+        <div class="label">CCCD</div>
+        <div class="field"><input id="cccd" placeholder="Số CCCD" data-step="6"></div>
+      </div>
+    </div>
+
+    <!-- Group 3 -->
+    <div class="section-title">Công nợ</div>
+    <div class="ios-list">
+      <div class="cell">
+        <div class="label">Công nợ ban đầu</div>
+        <div class="field"><input id="congno" type="number" step="1000" value="0" placeholder="0" data-step="8"></div>
+      </div>
+    </div>
+
+    <div class="hint">Mẹo: Nhấn <b>Ctrl + S</b> để lưu nhanh.</div>
+
+    <!-- Form thật (ẩn) để dùng validation & requestSubmit -->
+    <form id="formKH" style="display:none">
+      <button id="btnLuuKH" type="submit" data-action="saveKH"></button>
+    </form>
+  </div>
+
+  <!-- ===== Logic ===== -->
+   <script type="module">
+    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+    import { KeyboardManager } from './hotkeys.js';
+
+    // --- Supabase ---
+    const supabase = createClient(
+      'https://qvifxqsgjsvvdjfclyjm.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF2aWZ4cXNnanN2dmRqZmNseWptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQwMzc0MDcsImV4cCI6MjA2OTYxMzQwN30.egiHCr2zYRZyf6kwJk7xgcRYD5dqhU-n1H_Dnuo-jso'
+    );
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const makhSua = urlParams.get("makh");
+
+    // Khởi tạo hotkey (Ctrl+S) -> submit form
+    new KeyboardManager({
+      onAction: (act) => {
+        if (act === 'saveKH') document.getElementById('formKH').requestSubmit();
+      }
+    });
+
+    // Click nút trên header cũng submit
+    document.getElementById('btnLuuHeader').addEventListener('click', () => {
+      document.getElementById('formKH').requestSubmit();
+    });
+
+    // ===== Load danh sách Tuyến =====
+    async function taiDanhSachTuyen() {
+      const select = document.getElementById("tuyen");
+      select.innerHTML = '<option value="">-- Chọn tuyến --</option>';
+
+      const { data, error } = await supabase
+        .from("thietlap_kh")
+        .select("tuyen_gh")
+        .neq("tuyen_gh", "");
+
+      if (error) {
+        console.error("Lỗi Supabase:", error);
+        alert("❌ Không thể tải tuyến: " + error.message);
+        return;
+      }
+
+      // Khử trùng lặp & sort
+      const uniq = Array.from(new Set((data||[]).map(r => (r.tuyen_gh||"").trim()))).filter(Boolean).sort();
+      uniq.forEach(t => {
+        const option = document.createElement("option");
+        option.value = t;
+        option.textContent = t;
+        select.appendChild(option);
+      });
+    }
+
+    // ===== Load khách hàng khi sửa =====
+    async function taiDuLieuKhachHang(makh) {
+      const { data, error } = await supabase
+        .from("khachhang")
+        .select("*")
+        .eq("makh", makh)
+        .single();
+
+      if (error || !data) {
+        alert("❌ Không tìm thấy khách hàng.");
+        return;
+      }
+
+      document.getElementById("tenkh").value = data.tenkh || "";
+      document.getElementById("diachi").value = data.diachi || "";
+      document.getElementById("sdt").value = data.sdt || "";
+      document.getElementById("mst").value = data.mst || "";
+      document.getElementById("tendv").value = data.tendv || "";
+      document.getElementById("cccd").value = data.cccd || "";
+      document.getElementById("email").value = data.email || "";
+      document.getElementById("congno").value = data.congno_openning ?? 0;
+      document.getElementById("tuyen").value = data.tuyen || "";
+    }
+
+    // ===== Lưu / Cập nhật =====
+async function themKhachHang(event) {
+  event.preventDefault();
+
+  const tenkh = document.getElementById("tenkh").value.trim();
+  const diachi = document.getElementById("diachi").value.trim();
+  const sdt    = document.getElementById("sdt").value.trim();
+  const mst    = document.getElementById("mst").value.trim();
+  const tendv  = document.getElementById("tendv").value.trim();
+  const cccd   = document.getElementById("cccd").value.trim();
+  const email  = document.getElementById("email").value.trim();
+  const tuyen  = document.getElementById("tuyen").value.trim();
+
+  // Số dư đầu kỳ (congno_openning) — đọc từ input #congno
+  const congno_openning = Number.parseFloat(document.getElementById("congno").value) || 0;
+
+  if (!tenkh) { alert("⚠️ Vui lòng nhập tên người đại diện!"); return; }
+  if (!tuyen) { alert("⚠️ Vui lòng chọn tuyến!"); return; }
+
+  const makh = makhSua || `${tenkh}-${tuyen}`;
+
+  if (!makhSua) {
+    const { data: check, error: chkErr } = await supabase
+      .from("khachhang")
+      .select("makh")
+      .eq("makh", makh)
+      .maybeSingle();
+
+    if (chkErr) { alert("❌ Lỗi kiểm tra mã KH: " + chkErr.message); return; }
+    if (check)  { alert("❌ Mã khách hàng đã tồn tại!"); return; }
+  }
+
+  // GỬI LÊN DB: KHÔNG có 'congno' (đã xoá) — CHỈ có 'congno_openning'
+  const khachHang = { makh, tenkh, diachi, sdt, mst, tendv, cccd, email, tuyen, congno_openning };
+
+  let error;
+  if (makhSua) {
+    ({ error } = await supabase.from("khachhang").update(khachHang).eq("makh", makhSua));
+  } else {
+    ({ error } = await supabase.from("khachhang").insert([khachHang]));
+  }
+
+  if (error) {
+    alert("❌ Lỗi: " + error.message);
+  } else {
+    if (!makhSua) {
+      alert(`✅ Đã thêm khách hàng!\nMã KH: ${makh}`);
+      // reset fields (giữ lại reset cho #congno)
+      ["tenkh","tendv","diachi","sdt","mst","cccd","email"].forEach(id=>{
+        const el = document.getElementById(id); if (!el) return; el.value = "";
+      });
+      const ipCN = document.getElementById("congno");
+      if (ipCN) ipCN.value = 0;               // reset số dư đầu kỳ
+      document.getElementById("tuyen").value = "";
+
+      if (window.opener) {
+        window.opener.postMessage({ type: "khachHangMoi", makh, khachHang }, window.location.origin);
+        window.close?.();
+      }
+    } else {
+      alert("✅ Đã cập nhật khách hàng!");
+      if (window.opener) {
+        window.opener.postMessage({ type: "khachHangCapNhat", makh }, window.location.origin);
+        window.close?.();
+      }
+    }
+  }
+}
+    // ===== Mount =====
+    window.addEventListener("DOMContentLoaded", async () => {
+      await taiDanhSachTuyen();
+      if (makhSua) {
+        document.querySelector('.appbar h2').textContent = 'Sửa khách hàng';
+        await taiDuLieuKhachHang(makhSua);
+      }
+      // Gắn submit 1 lần duy nhất (dùng form ẩn để trọn vẹn HTML5 validation)
+      document.getElementById("formKH").addEventListener("submit", themKhachHang);
+    });
+  </script>
+</body>
+</html>

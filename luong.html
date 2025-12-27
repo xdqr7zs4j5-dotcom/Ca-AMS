@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Bảng lương</title>
+  <style>
+  :root{
+    --bg:#f5f5f7; --card:#fff; --text:#111; --muted:#6b7280; --line:#e5e7eb;
+    --blue:#0a84ff; --red:#ff3b30; --green:#16a34a; --amber:#f59e0b;
+    --radius:14px; --shadow:0 6px 24px rgba(0,0,0,.06);
+
+    /* Kích thước control (để ô Switch = ô chọn tháng) */
+    --ctl-h:40px;         /* chiều cao vỏ ngoài */
+    --ctl-pad-h:12px;     /* padding ngang vỏ ngoài */
+    --track-h:24px;       /* chiều cao track switch & input tháng */
+    --track-w:44px;       /* chiều rộng track switch */
+  }
+
+  /* ===== Base ===== */
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial,sans-serif;
+  }
+  h2{margin:0 0 6px}
+  .muted{color:var(--muted)}
+  .right{text-align:right}
+
+  /* ===== Layout ===== */
+  .wrap{max-width:1000px; margin:20px auto; padding:0 16px}
+  .card{
+    background:var(--card); border:1px solid var(--line);
+    border-radius:var(--radius); box-shadow:var(--shadow); padding:16px;
+  }
+  .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+  .grow{flex:1}
+
+  /* ===== Inputs: Month & Switch – cùng 1 style ===== */
+  .pill,
+  .switch{
+    display:inline-flex; align-items:center; gap:10px;
+    height:var(--ctl-h);
+    padding:0 var(--ctl-pad-h);
+    border:1px solid var(--line);
+    background:#fff;
+    border-radius:12px;
+    box-shadow:0 1px 0 rgba(0,0,0,.02);
+  }
+
+  /* Ô chọn tháng */
+  .pill input[type="month"]{
+    appearance:none; -webkit-appearance:none;
+    height:var(--track-h); line-height:var(--track-h);
+    font:inherit; border:none; outline:none; background:transparent;
+    padding:0; margin:0;
+  }
+  .pill input[type="month"]::-webkit-calendar-picker-indicator{
+    opacity:.6; cursor:pointer; margin-left:6px;
+  }
+
+  /* Switch */
+  .switch .sw-lbl{
+    font-size:14px; user-select:none; transition:color .15s, opacity .15s;
+    color:var(--muted); font-weight:500; opacity:.9;
+  }
+  .switch .sw-lbl.active{ color:#111; font-weight:600; opacity:1 }
+
+  .switch input{
+    appearance:none; -webkit-appearance:none;
+    width:var(--track-w); height:var(--track-h);
+    position:relative; flex:0 0 auto;
+    border-radius:999px; background:#e5e7eb; border:1px solid #e5e7eb;
+    outline:none; cursor:pointer; transition:background .2s, border-color .2s;
+  }
+  .switch input::after{
+    content:""; position:absolute; top:2px; left:2px;
+    width:calc(var(--track-h) - 4px); height:calc(var(--track-h) - 4px);
+    border-radius:50%; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.15);
+    transition:transform .22s ease;
+  }
+  .switch input:checked{ background:var(--blue); border-color:var(--blue) }
+  .switch input:checked::after{
+    transform:translateX(calc(var(--track-w) - var(--track-h)));
+  }
+
+  /* Focus ring đồng nhất */
+  .pill:focus-within,
+  .switch:focus-within{
+    box-shadow:0 0 0 3px rgba(10,132,255,.15);
+    border-color:var(--blue);
+  }
+
+  /* ===== Stat cards ===== */
+  .stats{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:12px}
+  .stat{border:1px solid var(--line); border-radius:12px; padding:14px; background:#fafafa}
+  .stat h3{margin:0 0 6px; font-size:13px; color:var(--muted); font-weight:600}
+  .stat .val{font-size:22px; font-weight:800}
+  .val.negative{color:var(--red)}
+  .val.positive{color:var(--green)}
+
+  /* ===== Total ===== */
+  .total{margin-top:12px; border:1px solid var(--line); border-radius:14px; padding:18px; background:#fff}
+  .total h3{margin:0 0 8px; font-size:13px; color:var(--muted)}
+  .total .val{font-size:30px; font-weight:900}
+
+  /* ===== Actions ===== */
+  .actions{display:flex; gap:10px; margin-top:12px}
+  .btn{border:1px solid var(--line); background:var(--card); border-radius:12px; padding:10px 14px; cursor:pointer}
+  .btn.primary{background:var(--blue); color:#fff; border-color:transparent}
+
+  /* ===== Tables ===== */
+  table{width:100%; border-collapse:collapse; margin-top:14px; font-size:14px}
+  th,td{border:1px solid var(--line); padding:8px}
+  thead th{background:#f3f4f6}
+  tfoot td{background:#fafafa; font-weight:700}
+
+  /* ===== Legend ===== */
+  .legend{display:flex; gap:8px; align-items:center; margin-top:8px; color:var(--muted); font-size:13px}
+  .dot{width:10px; height:10px; border-radius:50%}
+  .d-full{background:var(--blue)}
+  .d-half{background:var(--amber)}
+  .d-ung{background:var(--red)}
+  .d-thuong{background:var(--green)}
+
+  /* ===== Responsive & Print ===== */
+  @media (max-width:800px){
+    .stats{grid-template-columns:1fr 1fr}
+  }
+  @media print{
+    .actions,.pill,.legend,#salaryMode{display:none!important}
+    body{background:#fff}
+    .card{border:none; box-shadow:none}
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="row">
+        <div class="grow">
+          <h2 id="title">Bảng lương</h2>
+          <div class="muted" id="sub">Đang tải…</div>
+        </div>
+
+        <!-- Toggle: SWITCH -->
+        <div class="switch" id="salaryMode">
+          <span class="sw-lbl" id="swLeft">Theo ngày công</span>
+          <input type="checkbox" id="mode_switch" aria-label="Chuyển chế độ lương">
+          <span class="sw-lbl" id="swRight">Theo bậc</span>
+        </div>
+
+        <div class="pill">
+          <span></span>
+          <input type="month" id="chonThang">
+        </div>
+      </div>
+
+      <div class="legend">
+        <span class="dot d-full"></span><span>full = 1 công</span>
+        <span class="dot d-half"></span><span>half = 0.5 công</span>
+        <span class="dot d-ung"></span><span>ứng</span>
+        <span class="dot d-thuong"></span><span>thưởng</span>
+      </div>
+
+      <div class="stats">
+        <div class="stat">
+          <h3 id="labelCong">Số công</h3>
+          <div class="val" id="soCong">—</div>
+        </div>
+        <div class="stat">
+          <h3 id="labelLuong">Lương theo công</h3>
+          <div class="val" id="luongTinh">—</div>
+        </div>
+        <div class="stat">
+          <h3>Trừ Ứng</h3>
+          <div class="val negative" id="tongUng">—</div>
+        </div>
+        <div class="stat">
+          <h3>Thưởng</h3>
+          <div class="val positive" id="tongThuong">—</div>
+        </div>
+      </div>
+
+      <div class="total">
+        <h3>TỔNG LƯƠNG</h3>
+        <div class="val" id="tongLuong">—</div>
+      </div>
+
+      <div class="actions">
+        <button class="btn" id="backBtn">← Quay lại</button>
+        <button class="btn" id="refreshBtn">↻ Tải lại</button>
+        <button class="btn primary" id="printBtn">🖨 In</button>
+      </div>
+
+      <h3 style="margin:16px 0 8px">Dòng phát sinh trong tháng</h3>
+      <table>
+        <thead>
+          <tr>
+            <th style="width:120px">Ngày</th>
+            <th style="width:120px">Loại</th>
+            <th class="right">Số tiền</th>
+            <th>Ghi chú</th>
+          </tr>
+        </thead>
+        <tbody id="psBody">
+          <tr><td colspan="4" class="muted">Đang tải…</td></tr>
+        </tbody>
+      </table>
+
+      <!-- PHẦN DOANH THU NGÀY: chỉ hiện với nhân viên "bán hàng" -->
+      <div id="dtSection">
+        <h3 style="margin:20px 0 8px">Doanh thu theo ngày (từ view)</h3>
+        <table>
+          <thead>
+            <tr>
+              <th style="width:120px">Ngày</th>
+              <th style="width:120px">Mã NV</th>
+              <th>Tên NV</th>
+              <th class="right">Doanh thu</th>
+              <th style="width:100px">Số HĐ</th>
+            </tr>
+          </thead>
+          <tbody id="dtDayBody">
+            <tr><td colspan="4" class="muted">Đang tải…</td></tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="3">Tổng doanh thu tháng</td>
+              <td class="right" id="dtDayTotal">—</td>
+              <td class="right" id="dtDayTotalHD">—</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <!-- END: dtSection -->
+
+    </div>
+  </div>
+
+  <script type="module">
+  import { supabase } from './supabase.config.js';
+
+  const fmt = new Intl.NumberFormat('vi-VN');
+  const $ = s => document.querySelector(s);
+
+  // ===== GLOBAL STATE =====
+  const STATE = { ns: null, rows: [], th: '' };
+  const sw = document.querySelector('#mode_switch');
+
+  // ===== Helper =====
+  function nowMonth(){
+    const d = new Date(); 
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  }
+  function monthRange(yyyymm){
+    const [y,m] = yyyymm.split('-').map(Number);
+    const start = `${y}-${String(m).padStart(2,'0')}-01`;
+    const endD = new Date(y, m, 1);
+    const end = `${endD.getFullYear()}-${String(endD.getMonth()+1).padStart(2,'0')}-01`;
+    return [start, end];
+  }
+  function removeDiacritics(s=''){
+    return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  }
+  function isSalesRole(chucvu){
+    if (!chucvu) return false;
+    const x = removeDiacritics(String(chucvu).toLowerCase().trim());
+    return x.includes('ban hang');
+  }
+  function escapeHtml(s=''){
+    return String(s).replace(/[&<>"']/g, m => (
+      {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]
+    ));
+  }
+
+  function currentMode(){ return sw?.checked ? 'bac' : 'ngaycong'; }
+  function paintSwitch(){
+    const left = document.querySelector('#swLeft');
+    const right = document.querySelector('#swRight');
+    const isBac = sw?.checked;
+    left?.classList.toggle('active', !isBac);
+    right?.classList.toggle('active',  isBac);
+  }
+
+  // ===== Loaders =====
+  async function loadNhanSu(manv){
+    const { data, error } = await supabase
+      .from('nhansu')
+      .select('manv, ten, chucvu, luong, congtc')
+      .eq('manv', manv)
+      .maybeSingle();
+    if (error) throw error;
+    return data;
+  }
+  async function loadChamCong(manv, yyyymm){
+    const [start, end] = monthRange(yyyymm);
+    const { data, error } = await supabase
+      .from('chamcong')
+      .select('ngay, loai, sotien, ghichu')
+      .eq('manv', manv)
+      .gte('ngay', start)
+      .lt('ngay', end)
+      .order('ngay', { ascending:true });
+    if (error) throw error;
+    return data || [];
+  }
+  async function loadDoanhThuNgay(manv, yyyymm){
+    const [start, end] = monthRange(yyyymm);
+    const { data, error } = await supabase
+      .from('v_bc_doanhthu_nv_ngay')
+      .select('ngay, label, manv, tennv, doanhthu, sohd_count')
+      .eq('manv', manv)
+      .gte('ngay', start)
+      .lt('ngay', end)
+      .order('ngay', { ascending:true });
+    if (error) throw error;
+    return data || [];
+  }
+  async function pickBac(doanhso){
+    const { data, error } = await supabase
+      .from('thietlap_luong')
+      .select('id, ten_bac, doanhthu_min, doanhthu_max, pct_hoahong')
+      .order('doanhthu_min', { ascending:true });
+    if (error) throw error;
+    return (data||[]).find(b =>
+      doanhso >= Number(b.doanhthu_min||0) &&
+      (b.doanhthu_max == null || doanhso < Number(b.doanhthu_max))
+    ) || null;
+  }
+
+  // ===== Logic =====
+  function tinhLuongTheoNgayCong(ns, rows){
+    let soCong = 0, tienCong = 0, tongUng = 0, tongThuong = 0;
+    for (const r of rows){
+      const loai = String(r.loai||'').toLowerCase();
+      const st = Number(r.sotien||0);
+      if (loai === 'full'){ soCong += 1; tienCong += st; }
+      else if (loai === 'half'){ soCong += 0.5; tienCong += st; }
+      else if (loai === 'ung'){ tongUng += Math.abs(st); }
+      else if (loai === 'thuong'){ tongThuong += Math.abs(st); }
+    }
+    const luongThang = Number(ns?.luong||0);
+    const congTC = Number(ns?.congtc||0) || 1;
+    const luongTheoCong = tienCong>0 ? Math.round(tienCong)
+                                     : Math.round((luongThang/congTC) * soCong);
+    const tongLuong = luongTheoCong - tongUng + tongThuong;
+    return { soCong, luongTheoCong, tongUng, tongThuong, tongLuong };
+  }
+
+  function renderPS(rows, mode){
+  const tb = $('#psBody'); tb.innerHTML = '';
+  const hideWorkRows = (mode === 'bac');
+  const visible = hideWorkRows
+    ? rows.filter(r => !['full','half'].includes(String(r.loai||'').toLowerCase()))
+    : rows;
+
+  if (!visible.length){
+    tb.innerHTML = `<tr><td colspan="4" class="muted">Không có phát sinh trong tháng.</td></tr>`;
+    return;
+  }
+  for (const r of visible){
+    const tr = document.createElement('tr');
+    const ngay = (r.ngay||'').slice(0,10);
+    tr.innerHTML = `
+      <td>${ngay}</td>
+      <td>${r.loai||''}</td>
+      <td class="right">${fmt.format(Number(r.sotien||0))} ₫</td>
+      <td>${escapeHtml(r.ghichu||'')}</td>
+    `;
+    tb.appendChild(tr);
+  }
+}
+
+  function renderDoanhThuNgay(rows){
+  const tb = $('#dtDayBody'); 
+  tb.innerHTML = '';
+  let total = 0;
+  let totalHD = 0;   // tổng số hóa đơn
+
+  if (!rows.length){
+    tb.innerHTML = `<tr><td colspan="5" class="muted">Không có dữ liệu.</td></tr>`;
+    $('#dtDayTotal').textContent = '0 ₫';
+    $('#dtDayTotalHD').textContent = '0';
+    return 0;
+  }
+
+  for (const r of rows){
+    const tr = document.createElement('tr');
+    const st = Number(r.doanhthu || 0);
+    const hd = Number(r.sohd_count || 0);
+    total += st;
+    totalHD += hd;
+
+    tr.innerHTML = `
+      <td>${(r.ngay || '').slice(0,10)}</td>
+      <td>${r.manv || ''}</td>
+      <td>${escapeHtml(r.tennv || '')}</td>
+      <td class="right">${fmt.format(st)} ₫</td>
+      <td class="right">${hd}</td>
+    `;
+    tb.appendChild(tr);
+  }
+
+  $('#dtDayTotal').textContent = `${fmt.format(total)} ₫`;
+  $('#dtDayTotalHD').textContent = totalHD;
+  return total;
+}
+
+  async function renderByMode(mode, ns, rows, yyyymm){
+  const sales = isSalesRole(ns?.chucvu);
+
+  // Chỉ hiện Doanh thu ngày khi: NV bán hàng && đang ở chế độ "bậc"
+  const showDT = sales && mode === 'bac';
+  $('#dtSection').style.display = showDT ? '' : 'none';
+
+  let doanhsoThang = 0;
+  if (showDT){
+    const dtRows = await loadDoanhThuNgay(ns?.manv, yyyymm);
+    doanhsoThang = renderDoanhThuNgay(dtRows) ?? 0;
+  } else {
+    // Khi ẩn dtSection vẫn reset nội dung/tổng cho gọn
+    $('#dtDayBody').innerHTML = `<tr><td colspan="4" class="muted">—</td></tr>`;
+    $('#dtDayTotal').textContent = '—';
+  }
+
+  if (mode === 'bac'){
+    const bac = await pickBac(doanhsoThang);
+    const pct = Number(bac?.pct_hoahong || 0);
+    const luongBac = Math.round(doanhsoThang * pct);
+    const agg = tinhLuongTheoNgayCong(ns, rows);
+    const tongLuong = luongBac - agg.tongUng + agg.tongThuong;
+
+    $('#labelCong').textContent  = 'Tổng doanh số (tháng)';
+    $('#labelLuong').textContent = `Lương theo bậc${bac ? ` (${bac.ten_bac})` : ''}`;
+    $('#soCong').textContent     = `${fmt.format(doanhsoThang)} ₫`;
+    $('#luongTinh').textContent  = `${fmt.format(luongBac)} ₫`;
+    $('#tongUng').textContent    = `${fmt.format(agg.tongUng)} ₫`;
+    $('#tongThuong').textContent = `${fmt.format(agg.tongThuong)} ₫`;
+    $('#tongLuong').textContent  = `${fmt.format(tongLuong)} ₫`;
+  } else {
+    $('#labelCong').textContent  = 'Số công';
+    $('#labelLuong').textContent = 'Lương theo công';
+    const kq = tinhLuongTheoNgayCong(ns, rows);
+    $('#soCong').textContent     = (kq.soCong % 1 === 0) ? kq.soCong : kq.soCong.toFixed(1);
+    $('#luongTinh').textContent  = `${fmt.format(kq.luongTheoCong)} ₫`;
+    $('#tongUng').textContent    = `${fmt.format(kq.tongUng)} ₫`;
+    $('#tongThuong').textContent = `${fmt.format(kq.tongThuong)} ₫`;
+    $('#tongLuong').textContent  = `${fmt.format(kq.tongLuong)} ₫`;
+  }
+}
+
+  // ===== Main =====
+  async function loadAll(){
+    const qs = new URLSearchParams(location.search);
+    const manv = qs.get('manv') || '';
+    if (!manv){ alert('Thiếu tham số manv'); return; }
+
+    const th = $('#chonThang').value || nowMonth();
+    $('#sub').textContent = `Mã: ${manv} · Tháng: ${th}`;
+
+    try{
+      const [ns, rows] = await Promise.all([loadNhanSu(manv), loadChamCong(manv, th)]);
+      STATE.ns = ns; STATE.rows = rows; STATE.th = th;
+
+      $('#title').textContent = `Bảng lương – ${ns?.ten || manv}`;
+      $('#sub').textContent   = `Mã: ${manv} · ${ns?.chucvu || ''} · Tháng: ${th}`;
+
+      renderPS(rows, currentMode());
+
+      const sales = isSalesRole(ns?.chucvu);
+      $('#dtSection').style.display = sales ? '' : 'none';
+
+      paintSwitch();
+      await renderByMode(currentMode(), STATE.ns, STATE.rows, STATE.th);
+    }catch(err){
+      console.error(err);
+      alert('Lỗi tải dữ liệu: ' + (err?.message || err));
+    }
+  }
+
+  // ===== Events =====
+  $('#backBtn').addEventListener('click', ()=> history.back());
+  $('#printBtn').addEventListener('click', ()=> window.print());
+  $('#refreshBtn').addEventListener('click', loadAll);
+  $('#chonThang').addEventListener('change', ()=>{
+    const th = $('#chonThang').value;
+    const u = new URL(location.href);
+    u.searchParams.set('thang', th);
+    history.replaceState({},'',u.toString());
+    loadAll();
+  });
+
+  if (sw && !sw.dataset.bound) {
+    sw.addEventListener('change', async ()=>{
+      paintSwitch();
+      renderPS(STATE.rows, currentMode());  
+      await renderByMode(currentMode(), STATE.ns, STATE.rows, STATE.th);
+    });
+    sw.dataset.bound = '1';
+  }
+
+  // ===== Start =====
+  $('#chonThang').value = new URLSearchParams(location.search).get('thang') || nowMonth();
+  loadAll();
+</script>
+
+</body>
+</html>

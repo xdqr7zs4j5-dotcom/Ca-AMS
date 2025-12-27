@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cá chấm công (UI kiểu DS Sản phẩm)</title>
+<style>
+  :root{
+    --bg:#f5f5f7; --card:#fff; --text:#111; --muted:#6b7280; --line:#e5e7eb;
+    --blue:#007aff; --red:#ff3b30; --radius:14px; --shadow:0 6px 24px rgba(0,0,0,.06);
+
+    /* 6 cột bên trái (chỉnh ở đây) */
+    --w1:100px;  /* Từ ngày */
+    --w2:100px;  /* Đến ngày */
+    --w3:110px;  /* Mã NV */
+    --w4:140px;  /* Tên */
+    --w5:90px;   /* Đếm */
+    --w6:54px;   /* ✏ UT */
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; display:flex; flex-direction:column;
+    background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+  }
+
+  /* ====== Card + Filters (giống DS Sản phẩm) ====== */
+  .wrap{flex:1 1 auto; min-height:0; padding:16px; display:flex; flex-direction:column; gap:12px}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow)}
+  .filters{display:flex; flex-wrap:wrap; gap:10px; padding:12px; align-items:center}
+  .pill{display:flex; align-items:center; gap:8px; padding:6px 10px; border:1px solid var(--line); border-radius:999px; background:#fff}
+  .pill label{font-size:12px; color:var(--muted)}
+  .pill input[type="month"], .pill input[type="text"], .pill select{border:none; outline:none; font-size:14px; background:transparent; min-height:24px}
+  .pill .btn{border:none; background:var(--blue); color:#fff; padding:8px 12px; border-radius:999px; font-weight:600; cursor:pointer}
+  .pill .btn:active{opacity:.85}
+
+  .meta{margin-left:auto; display:flex; gap:10px; align-items:center; color:var(--muted); font-size:13px}
+  .chip{background:#eef2ff; color:#1e40af; padding:4px 10px; border-radius:999px; font-weight:700}
+
+  /* ====== Bảng (giống DS Sản phẩm) ====== */
+  .table-card{flex:1 1 auto; min-height:0; padding:8px}
+  .table-wrap{overflow:auto; border-radius:12px; border:1px solid var(--line); background:#fff; height:100%}
+  table{width:max-content; min-width:100%; border-collapse:separate; border-spacing:0}
+  thead th{position:sticky; top:0; z-index:5; background:#fafafa; border-bottom:1px solid var(--line); font-size:13px; font-weight:700; color:#374151; text-align:center; padding:10px 12px}
+  tbody td{border-bottom:1px solid var(--line); padding:10px 12px; vertical-align:middle; font-size:14px; text-align:center}
+  tbody tr:hover{background:#fafbff}
+
+  /* ====== 6 cột trái cố định (như bản cũ) ====== */
+  th:nth-child(1), td:nth-child(1){position:sticky; left:0; width:var(--w1); background:var(--card); z-index:4; border-right:1px solid var(--line)}
+  th:nth-child(2), td:nth-child(2){position:sticky; left:calc(var(--w1)); width:var(--w2); background:var(--card); z-index:4; border-right:1px solid var(--line)}
+  th:nth-child(3), td:nth-child(3){position:sticky; left:calc(var(--w1) + var(--w2)); width:var(--w3); background:var(--card); z-index:4; border-right:1px solid var(--line)}
+  th:nth-child(4), td:nth-child(4){position:sticky; left:calc(var(--w1) + var(--w2) + var(--w3)); width:var(--w4); background:var(--card); z-index:4; border-right:1px solid var(--line); text-align:left}
+  th:nth-child(5), td:nth-child(5){position:sticky; left:calc(var(--w1) + var(--w2) + var(--w3) + var(--w4)); width:var(--w5); background:var(--card); z-index:4; border-right:1px solid var(--line)}
+  th:nth-child(6), td:nth-child(6){position:sticky; left:calc(var(--w1) + var(--w2) + var(--w3) + var(--w4) + var(--w5)); width:var(--w6); background:var(--card); z-index:4; border-right:1px solid var(--line); box-shadow:3px 0 0 rgba(0,0,0,.04)}
+
+  .muted{color:var(--muted)}
+  .weekend{background:#fafafa}
+  .name-input,.code-input{width:100%; border:1px solid var(--line); border-radius:8px; padding:6px 8px}
+  .count-badge{font-weight:700}
+  .cell-mark{display:inline-flex; align-items:center; justify-content:center; min-width:34px; height:28px; padding:0 8px; border:1px solid var(--line); border-radius:8px; user-select:none; cursor:pointer}
+  /* “o” cho ngày trống (không đi làm) */
+  .cell-mark[data-state="0"]{ color: var(--muted); }
+  .mark-half{background:#fff7ed}
+  .mark-full{background:#ecfeff}
+  .disabled{opacity:0.5; pointer-events:none}
+
+  /* Toggle nhỏ gọn để đặt trong pill */
+  .switch{position:relative; display:inline-block; width:46px; height:26px}
+  .switch input{opacity:0; width:0; height:0}
+  .switch .slider{position:absolute; inset:0; border-radius:999px; border:1px solid var(--line); background:#fee2e2; transition:background .2s ease}
+  .switch .slider::before{content:""; position:absolute; top:1px; left:2px; width:22px; height:22px; background:#fff; border-radius:50%; box-shadow:0 1px 3px rgba(0,0,0,.2); transition:transform .2s ease}
+  .switch input:checked + .slider{ background:#dcfce7 }
+  .switch input:checked + .slider::before{ transform:translateX(20px) }
+
+  /* Modal Ứng/Thưởng (giữ nguyên logic) */
+  .modal{position:fixed; inset:0; background:rgba(0,0,0,.15); display:none; align-items:center; justify-content:center}
+  .modal.open{display:flex}
+  .modal .panel{background:#fff; border-radius:14px; border:1px solid var(--line); width:360px; max-width:92vw; padding:14px; box-shadow:var(--shadow)}
+  .row{display:flex; gap:8px; margin:8px 0}
+  .row label{width:88px; text-align:right; color:var(--muted)}
+  .row input, .row select, .row textarea{flex:1; border:1px solid var(--line); border-radius:8px; padding:8px}
+  .panel .actions{display:flex; gap:8px; justify-content:flex-end; margin-top:10px}
+</style>
+</head>
+<body>
+
+  <div class="wrap">
+    <!-- ===== HÀNG LỌC DẠNG PILL (giống DS Sản phẩm) ===== -->
+    <div class="card">
+      <div class="filters">
+        <div class="pill">
+          <label>Tháng</label>
+          <input type="month" id="chonThang" />
+        </div>
+
+        <div class="pill">
+          <label>Chế độ</label>
+          <label class="switch" title="Chế độ chấm công">
+            <input type="checkbox" id="toggleMode">
+            <span class="slider"></span>
+          </label>
+          <span id="lblMode" class="muted">đến hôm nay</span>
+        </div>
+
+        <div class="pill">
+          <button class="btn" id="btnLuu">💾 Lưu</button>
+        </div>
+
+        <div class="meta">
+          <span>Kỳ:</span><span class="chip" id="subtitle">—</span>
+          <span>| NV active:</span><span class="chip" id="demNV">0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== BẢNG ===== -->
+    <div class="card table-card">
+      <div class="table-wrap">
+        <table id="bangLuong">
+          <thead id="thead"></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <datalist id="dsMaNV"></datalist>
+
+  <!-- Modal Ứng/Thưởng -->
+  <div class="modal" id="modalUT">
+    <div class="panel">
+      <h3 style="margin:0 0 6px">Ứng / Thưởng</h3>
+      <div class="row"><label>Nhân viên</label><input id="m_nv" readonly></div>
+      <div class="row"><label>Ngày</label><input type="date" id="m_ngay"></div>
+      <div class="row">
+        <label>Loại</label>
+        <select id="m_loai">
+          <option value="ung">Ứng (trừ)</option>
+          <option value="thuong">Thưởng (cộng)</option>
+        </select>
+      </div>
+      <div class="row"><label>Số tiền</label><input type="number" id="m_tien" min="0" step="1000" placeholder="0"></div>
+      <div class="row"><label>Ghi chú</label><textarea id="m_ghichu" rows="2" placeholder="(tùy chọn)"></textarea></div>
+      <div class="actions">
+        <button class="btn" id="m_huy">Hủy</button>
+        <button class="btn" id="m_luu">Lưu</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- App -->
+  <script type="module">
+    import { supabase } from './supabase.config.js';
+
+    const $ = s => document.querySelector(s);
+    const pad = n => String(n).padStart(2,'0');
+    const thuVN = ['CN','T2','T3','T4','T5','T6','T7'];
+    const today = new Date(); today.setHours(0,0,0,0);
+    const MODE = { ONLY_TODAY:'only-today', UP_TO_TODAY:'up-to-today' };
+    let markMode = MODE.ONLY_TODAY; 
+
+    const isSameYMD = (a,b)=> a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
+    const fmtDate = d => `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()}`;
+    const isoDate = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    const stripZero = n => Number.isInteger(n) ? String(n) : String(n.toFixed(1)).replace(/\.0$/,'');
+
+    function getYearMonth(){ const [y,m] = $('#chonThang').value.split('-').map(Number); return {year:y, month:m}; }
+    function getDaysOfMonth(y,m){
+      const first = new Date(y, m-1, 1); const a=[];
+      for(let d=new Date(first); d.getMonth()===first.getMonth(); d.setDate(d.getDate()+1)){
+        const d0=new Date(d); d0.setHours(0,0,0,0); a.push(d0);
+      } return a;
+    }
+
+    // ===== Data cache =====
+    const cacheChamCong = new Map();       // key: `${manv}|YYYY-MM-DD` -> 'full' | 'half' | 'ung' | 'thuong'
+    let currentDays = [];
+    let nhanSuMap = new Map();
+    let activeNV = [];
+
+    async function loadNhanSu(){
+      const { data, error } = await supabase
+        .from('nhansu')
+        .select('manv, ten, tinhtrang')
+        .eq('tinhtrang', 'active')
+        .order('manv');
+
+      if(error){ alert('Lỗi tải nhansu: ' + error.message); return; }
+
+      nhanSuMap = new Map((data||[]).map(r => [String(r.manv||''), String(r.ten||'')]));
+      activeNV = (data||[]).map(r => String(r.manv||''));
+
+      $('#dsMaNV').innerHTML = (data||[])
+        .map(r => `<option value="${r.manv}">${r.manv} - ${r.ten}</option>`)
+        .join('');
+
+      $('#demNV').textContent = data?.length || 0;
+    }
+
+    async function loadChamCongThang(){
+      cacheChamCong.clear();
+      const {year, month} = getYearMonth();
+      const tu = `${year}-${pad(month)}-01`;
+      const den = new Date(year, month, 1); // next month
+      const denStr = `${den.getFullYear()}-${pad(den.getMonth()+1)}-01`;
+
+      const { data, error } = await supabase
+        .from('chamcong')
+        .select('manv, ngay, loai')
+        .gte('ngay', tu).lt('ngay', denStr);
+
+      if(error){ alert('Lỗi tải chấm công: ' + error.message); return; }
+      for(const r of (data||[])){
+        const key = `${r.manv}|${r.ngay}`;
+        cacheChamCong.set(key, r.loai);
+      }
+    }
+
+    // ===== Render =====
+    function renderHeader(days){
+      const thead = $('#thead'); thead.innerHTML='';
+      const tr1 = document.createElement('tr');
+      tr1.innerHTML = `
+        <th>Từ ngày</th>
+        <th>Đến ngày</th>
+        <th>Mã NV</th>
+        <th>Tên</th>
+        <th>Đếm</th>
+        <th title="Ứng/Thưởng">✏️</th>`;
+      days.forEach(d=>{ const th=document.createElement('th'); th.textContent=d.getDate(); th.title=fmtDate(d); tr1.appendChild(th); });
+      const tr2 = document.createElement('tr');
+      tr2.innerHTML = `<th></th><th></th><th></th><th></th><th></th><th></th>`;
+      days.forEach(d=>{ const th=document.createElement('th'); th.textContent= thuVN[d.getDay()]; tr2.appendChild(th); });
+      thead.append(tr1,tr2);
+    }
+
+    function buildRow(days){
+      const tr = document.createElement('tr');
+
+      const tdFrom = document.createElement('td'); tr.appendChild(tdFrom);
+      const tdTo   = document.createElement('td'); tr.appendChild(tdTo);
+
+      const tdCode = document.createElement('td');
+      const inpMa = document.createElement('input'); inpMa.setAttribute('list','dsMaNV'); inpMa.className='code-input'; inpMa.placeholder='Chọn mã...';
+      tdCode.appendChild(inpMa); tr.appendChild(tdCode);
+
+      const tdName = document.createElement('td');
+      const inpTen = document.createElement('input'); inpTen.className='name-input'; inpTen.placeholder='Tên nhân viên';
+      tdName.appendChild(inpTen); tr.appendChild(tdName);
+
+      const tdCnt = document.createElement('td'); const cnt = document.createElement('span'); cnt.className='count-badge'; cnt.textContent='0';
+      tdCnt.appendChild(cnt); tr.appendChild(tdCnt);
+
+      const tdEdit = document.createElement('td');
+      const btnUT = document.createElement('button'); btnUT.className='pill'; btnUT.style.padding='4px 10px'; btnUT.textContent='✏️';
+      tdEdit.appendChild(btnUT); tr.appendChild(tdEdit);
+
+      // fill name, apply cache khi chọn mã
+      inpMa.addEventListener('change', ()=>{
+        const name = nhanSuMap.get((inpMa.value||'').trim()); if (name) inpTen.value = name;
+        applyTicksFromCache(tr, inpMa.value||'');
+      });
+
+      btnUT.addEventListener('click', ()=>{
+        const manv = (inpMa.value||'').trim();
+        const ten  = (inpTen.value||'').trim();
+        if(!manv){ alert('Chưa chọn mã NV'); return; }
+        $('#m_nv').value = `${manv} - ${ten}`;
+        $('#m_ngay').value = new Date().toISOString().slice(0,10);
+        $('#m_loai').value = 'ung';
+        $('#m_tien').value = '';
+        $('#m_ghichu').value = '';
+        $('#modalUT').dataset.manv = manv;
+        $('#modalUT').classList.add('open');
+      });
+
+      // trạng thái đánh dấu
+      let countVal = 0;
+      days.forEach(d=>{
+        const td = document.createElement('td');
+        if ([0,6].includes(d.getDay())) td.classList.add('weekend');
+
+        const btn = document.createElement('div');
+        btn.className = 'cell-mark';
+        btn.dataset.state = '0';
+        btn.title = fmtDate(d);
+        // Chỉ hiện “o” cho các ngày <= hôm nay
+        if (d.getTime() <= today.getTime()) {
+          btn.textContent = 'o'; }
+
+        // quyền bấm
+        const now0 = today.getTime();
+        if (markMode === 'only-today') {
+          if (!isSameYMD(d, today)) btn.classList.add('disabled');
+        } else {
+          if (d.getTime() > now0) btn.classList.add('disabled');
+        }
+
+        // click: 0 → ½ → ✓ → 0
+        btn.addEventListener('click', ()=>{
+          if (btn.classList.contains('disabled')) return;
+          const old = btn.dataset.state;
+          if (old==='1') countVal-=0.5; else if (old==='2') countVal-=1;
+
+          const next = old==='0' ? '1' : (old==='1' ? '2' : '0');
+          btn.dataset.state = next;
+          btn.textContent = next === '0' ? (d.getTime() <= today.getTime() ? 'o' : '') : (next === '1' ? '½' : '✓');
+          btn.classList.toggle('mark-half', next==='1');
+          btn.classList.toggle('mark-full', next==='2');
+
+          if (next==='1') countVal+=0.5; else if (next==='2') countVal+=1;
+          cnt.textContent = stripZero(countVal);
+
+          const ngayStr = fmtDate(d);
+          if (!tdFrom.textContent && next!=='0') tdFrom.textContent = ngayStr;
+          if (next!=='0') tdTo.textContent = ngayStr;
+          else {
+            let last=''; const marks = tr.querySelectorAll('.cell-mark');
+            days.forEach((dd,idx)=>{ if (marks[idx].dataset.state!=='0') last = fmtDate(dd); });
+            tdTo.textContent = last;
+          }
+          try {
+            const t = new Date().toISOString().slice(0,10);
+            localStorage.setItem('cc_done_' + t, String(Date.now())); // kích hoạt 'storage' event
+            window.top?.postMessage({ type: 'CC_PING' }, '*');        // báo index kiểm lại
+          } catch (e) {}
+        });
+
+        td.appendChild(btn); tr.appendChild(td);
+      });
+
+      tr.applyFromCache = (manv)=>{
+  countVal = 0;
+  const marks = tr.querySelectorAll('.cell-mark');
+  marks.forEach((btn, idx)=>{
+    const day  = days[idx];                         // <-- day
+    const key  = `${manv}|${isoDate(day)}`;
+    const loai = cacheChamCong.get(key);
+    let next = '0';
+    if (loai==='half') next='1';
+    if (loai==='full') next='2';
+
+    btn.dataset.state = next;
+    btn.textContent = next === '0'
+      ? (day.getTime() <= today.getTime() ? 'o' : '') // <-- dùng day, không phải d
+      : (next === '1' ? '½' : '✓');
+    btn.classList.toggle('mark-half', next==='1');
+    btn.classList.toggle('mark-full', next==='2');
+
+    if(next==='1') countVal += 0.5;
+    if(next==='2') countVal += 1;
+  });
+
+  // from/to
+  const firstMark = Array.from(tr.querySelectorAll('.cell-mark')).find(b=>b.dataset.state!=='0');
+  const lastMark  = Array.from(tr.querySelectorAll('.cell-mark')).reverse().find(b=>b.dataset.state!=='0');
+  tdFrom.textContent = firstMark ? firstMark.title : '';
+  tdTo.textContent   = lastMark  ? lastMark.title  : '';
+
+  // count
+  tr.querySelector('.count-badge').textContent = stripZero(countVal);
+};
+      return tr;
+    }
+
+    function renderBody(days, soDongTrong = 15){
+      const tbody = $('#tbody');
+      tbody.innerHTML = '';
+
+      // NV active
+      for (const manv of activeNV){
+        const tr = buildRow(days);
+        const inpMa  = tr.querySelector('td:nth-child(3) input');
+        const inpTen = tr.querySelector('td:nth-child(4) input');
+        if (inpMa)  inpMa.value  = manv;
+        if (inpTen) inpTen.value = nhanSuMap.get(manv) || '';
+        applyTicksFromCache(tr, manv);
+        tbody.appendChild(tr);
+      }
+      // X dòng trống
+      for (let i = 0; i < soDongTrong; i++) tbody.appendChild(buildRow(days));
+    }
+
+    function applyTicksFromCache(tr, manv){ tr.applyFromCache?.(manv); }
+
+    // ===== Lưu chấm công (full/half) =====
+    async function saveToChamCong(){
+      const {year, month} = getYearMonth();
+      const tu = `${year}-${pad(month)}-01`;
+      const den = new Date(year, month, 1);
+      const denStr = `${den.getFullYear()}-${pad(den.getMonth()+1)}-01`;
+      const thangText = `${pad(month)}/${year}`;
+
+      const rows = Array.from(document.querySelectorAll('#tbody tr'));
+      const byManv = new Map();
+
+      rows.forEach(tr=>{
+        const manv = tr.querySelector('td:nth-child(3) input')?.value.trim();
+        if(!manv) return;
+        const marks = tr.querySelectorAll('.cell-mark');
+        const arr = [];
+        marks.forEach((btn, idx)=>{
+          const st = btn.dataset.state;
+          if(st==='0') return;
+          const d = currentDays[idx];
+          arr.push({ manv, ngay: isoDate(d), thang: thangText, loai: (st==='2' ? 'full' : 'half') });
+        });
+        byManv.set(manv, arr);
+      });
+
+      if(byManv.size===0){ alert('Chưa có mã NV nào.'); return; }
+
+      for (const [manv, arrRaw] of byManv.entries()){
+        const rank = v => v.loai === 'full' ? 2 : 1;
+        const mapByDay = new Map();
+        for (const r of arrRaw) { const old = mapByDay.get(r.ngay); if (!old || rank(r) > rank(old)) mapByDay.set(r.ngay, r); }
+        const arr = [...mapByDay.values()];
+
+        const del = await supabase
+          .from('chamcong')
+          .delete()
+          .eq('manv', manv)
+          .gte('ngay', tu).lt('ngay', denStr)
+          .in('loai', ['full','half']);
+        if (del.error) { alert(`Lỗi xoá ${manv}: ${del.error.message}`); return; }
+
+        if (arr.length){
+          const ins = await supabase.from('chamcong').insert(arr);
+          if (ins.error) { alert(`Lỗi ghi ${manv}: ${ins.error.message}`); return; }
+        }
+      }
+
+      await loadChamCongThang();
+      document.querySelectorAll('#tbody tr').forEach(tr=>{
+        const manv = tr.querySelector('td:nth-child(3) input')?.value.trim();
+        if(manv) applyTicksFromCache(tr, manv);
+      });
+      const t = new Date().toISOString().slice(0,10);
+      localStorage.setItem('cc_done_' + t, String(Date.now()));
+      window.top?.postMessage({ type: 'CC_DONE' }, '*');
+      
+      alert('Đã lưu chấm công.');
+    }
+
+    // ===== Lưu Ứng/Thưởng =====
+    async function saveUngThuong(){
+      const m = $('#modalUT');
+      const manv = (m.dataset.manv||'').trim();
+      if(!manv){ alert('Chưa chọn mã NV'); return; }
+
+      const ngay   = $('#m_ngay').value;
+      const loai   = $('#m_loai').value;   // 'ung' | 'thuong'
+      let   sotien = Number($('#m_tien').value||0);
+      if (loai==='ung' && sotien>0) sotien = -sotien;
+      const ghichu = $('#m_ghichu').value || '';
+
+      const {year, month} = getYearMonth();
+      const thangText = `${pad(month)}/${year}`;
+
+      const { error } = await supabase
+        .from('chamcong')
+        .insert([{ manv, ngay, thang: thangText, loai, sotien, ghichu }]);
+
+      if(error){ alert('Lỗi lưu Ứng/Thưởng: ' + error.message); return; }
+      m.classList.remove('open');
+      await loadChamCongThang();
+      alert('Đã lưu.');
+    }
+
+    // Toggle
+    const toggle = $('#toggleMode'), lblMode = $('#lblMode');
+    const syncToggleUI = ()=>{
+      toggle.checked = (markMode === MODE.UP_TO_TODAY);
+      lblMode.textContent = toggle.checked ? 'đến hôm nay' : 'chỉ hôm nay';
+      lblMode.style.color = toggle.checked ? '#16a34a' : '#ff3b30'; // xanh / đỏ
+    };
+    toggle.addEventListener('change', ()=>{
+      markMode = toggle.checked ? MODE.UP_TO_TODAY : MODE.ONLY_TODAY;
+      syncToggleUI();
+      renderAll();
+    });
+    syncToggleUI();
+
+    // Render tổng
+    function renderAll(){
+      const {year, month} = getYearMonth();
+      currentDays = getDaysOfMonth(year, month);
+      $('#subtitle').textContent = `Tháng ${pad(month)}/${year}`;
+      renderHeader(currentDays);
+      renderBody(currentDays, 5);
+      document.querySelectorAll('#tbody tr').forEach(tr=>{
+        const manv = tr.querySelector('td:nth-child(3) input')?.value.trim();
+        if(manv) applyTicksFromCache(tr, manv);
+      });
+    }
+
+    // Events
+    $('#chonThang').value = `${today.getFullYear()}-${pad(today.getMonth()+1)}`;
+    $('#chonThang').addEventListener('change', async ()=>{ await loadChamCongThang(); renderAll(); });
+    $('#btnLuu').addEventListener('click', saveToChamCong);
+    $('#m_huy').addEventListener('click', ()=>$('#modalUT').classList.remove('open'));
+    $('#m_luu').addEventListener('click', saveUngThuong);
+
+    // First load
+    await loadNhanSu();
+    await loadChamCongThang();
+    renderAll();
+  </script>
+</body>
+</html>

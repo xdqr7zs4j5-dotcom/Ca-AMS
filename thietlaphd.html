@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Thiết lập – Loại hóa đơn</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; margin:0; background:#f2f2f7; color:#000; }
+    h2 { padding:16px; margin:0; font-size:20px; font-weight:600; }
+    .hintbar{
+         display:flex;
+         align-items:center;
+         justify-content:space-between;
+         gap:12px;
+         padding:0 16px 10px;
+        }
+        .hint-text{
+            flex:1 1 auto;   /* cho phép chiếm rộng nhưng vẫn co lại */
+            min-width:0;     /* tránh đẩy khối bên phải xuống do overflow */
+            color:#666;
+            font-size:12px;
+        }
+        .actions{
+            flex:0 0 auto;   /* kích thước cố định theo nội dung */
+            display:flex;
+            gap:8px;
+            white-space:nowrap; /* KHÔNG cho xuống dòng */
+        }
+        @media (max-width: 900px){
+        .hintbar{ flex-direction:column; align-items:flex-start; }
+        .actions{ align-self:flex-end; margin-top:8px; }
+    }
+    button { padding:8px 14px; border-radius:8px; border:none; font-weight:600; cursor:pointer; }
+    .btn-primary{background:#007aff;color:#fff;} .btn-secondary{background:#e5e5ea;color:#000;}
+
+    .list{ background:#fff; border:1px solid #d1d1d6; border-radius:12px; overflow:hidden; margin:0 16px 20px; }
+    .row{ display:flex; align-items:flex-start; gap:12px; padding:12px 16px; border-bottom:1px solid #e5e5ea; }
+    .row:last-child{ border-bottom:none; }
+    .row.deleted{ background:#ffe2e2; text-decoration:line-through; opacity:.65; }
+
+    .cell{ flex:1; display:flex; flex-direction:column; gap:6px; }
+    .label{ font-size:12px; color:#888; }
+    input,select{ border:none; border-bottom:1px solid #e5e5ea; font-size:16px; outline:none; padding:4px 0; background:#fff; }
+    input:focus,select:focus{ border-bottom-color:#007aff; }
+
+    .row-actions{ display:flex; flex-direction:column; gap:6px; }
+    .row-actions button{ padding:4px 8px; font-size:12px; border-radius:6px; }
+    .xoa{ background:#ff3b30; color:#fff; } .hoan-tac{ background:#34c759; color:#fff; display:none; }
+
+    .chips { font-size:12px; color:#666; display:flex; gap:6px; flex-wrap:wrap; }
+    .chip { border:1px solid #d1d1d6; border-radius:999px; padding:2px 8px; cursor:pointer; user-select:none; }
+    .chip.active { background:#007aff; color:#fff; border-color:#007aff; }
+
+  </style>
+</head>
+<body>
+    <h2>🧾 Thiết lập loại hóa đơn</h2>
+  <div class="hintbar">
+  <div class="hint-text">
+    <b>Phân loại (Loại hóa đơn):</b> mặc định chọn giá trị đầu tiên (theo thứ tự 123/ABC). Kiểm tra lại trước khi lưu.<br>
+    <b>Loại đơn giá:</b> tự gợi ý từ tên cột giá trong <code>sanpham</code> (vd: <code>dongia</code>, <code>dongia2</code>, <code>gianhapgoc</code>).<br>
+    <b>Fallback:</b> danh sách dự phòng, cách nhau bằng dấu phẩy (vd: <code>dongia,dongia2</code>).<br>
+    <b>Giao dịch kho:</b> chọn <code>nk</code> (nhập kho) hoặc <code>xk</code> (xuất kho) nếu loại HĐ có tác động kho.
+  </div>
+
+  <div class="actions">
+    <button class="btn-secondary" onclick="themDong()">+ Thêm dòng</button>
+    <button id="btnLuu" class="btn-primary" onclick="luuThayDoi()">💾 Lưu</button>
+  </div>
+</div>
+
+  <div class="list" id="listHD"></div>
+
+  <!-- gợi ý loaidongia -->
+  <datalist id="dsLoaiDonGia"></datalist>
+  <datalist id="dsFallback"></datalist>
+  <!-- gợi ý gd_kho (nếu bạn thích dùng input+list thay cho select) -->
+  <datalist id="dsGDKho">
+    <option value="nk"></option>
+    <option value="xk"></option>
+  </datalist>
+
+  <script type="module">
+    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+    const supabase = createClient(
+      'https://qvifxqsgjsvvdjfclyjm.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF2aWZ4cXNnanN2dmRqZmNseWptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQwMzc0MDcsImV4cCI6MjA2OTYxMzQwN30.egiHCr2zYRZyf6kwJk7xgcRYD5dqhU-n1H_Dnuo-jso'
+    );
+
+    const listHD = document.getElementById('listHD');
+    const btnLuu = document.getElementById('btnLuu');
+    const datalistGia = document.getElementById('dsLoaiDonGia');
+
+    let duLieuGoc = new Map();        // id -> row
+    let deletedIds = new Set();
+    let COT_GIA = [];                 // ["dongia","dongia2","gianhapgoc",...]
+
+    // === lấy tên cột giá từ bảng sanpham ===
+    async function taiCotGia() {
+      const { data, error } = await supabase.from('sanpham').select('*').limit(1);
+      if (error) { console.warn(error); return; }
+      const sample = (data && data[0]) || {};
+      const keys = Object.keys(sample);
+      // chỉ lấy cột bắt đầu bằng 'dongia' hoặc 'gia' + gianhapgoc
+      COT_GIA = keys.filter(k => /^(dongia|gia)/i.test(k));
+      datalistGia.innerHTML = COT_GIA.map(k => `<option value="${k}"></option>`).join('');
+      document.getElementById('dsFallback').innerHTML = datalistGia.innerHTML;
+    }
+
+    function taoDong(row = {}) {
+      const div = document.createElement('div');
+      div.className = 'row';
+      if (row.id) div.dataset.id = row.id;
+
+      div.innerHTML = `
+        <div class="cell">
+          <span class="label">Loại hóa đơn</span>
+          <input placeholder="VD: 1.ncc, 2.khách sỉ, 3.bán lẻ..." value="${row.loaihd || ''}">
+        </div>
+
+        <div class="cell">
+          <span class="label">Loại đơn giá</span>
+          <input placeholder="VD: dongia" list="dsLoaiDonGia" value="${row.loaidongia || ''}">
+          <div class="chips"></div>
+        </div>
+
+        <div class="cell">
+            <span class="label">Fallback (tùy chọn)</span>
+            <input placeholder="VD: dongia,dongia2" list="dsFallback" value="${row.fallback || ''}">
+            <div class="chips chips-fallback"></div>
+        </div>
+
+        <div class="cell" style="max-width:160px;">
+          <span class="label">Giao dịch kho</span>
+          <select>
+            <option value="" ${!row.gd_kho ? 'selected' : ''}>—</option>
+            <option value="nk" ${row.gd_kho === 'nk' ? 'selected' : ''}>nk</option>
+            <option value="xk" ${row.gd_kho === 'xk' ? 'selected' : ''}>xk</option>
+            <option value="kh" ${row.gd_kho === 'kh' ? 'selected' : ''}>kh</option>
+          </select>
+        </div>
+
+        <div class="row-actions">
+          <button class="xoa">Xóa</button>
+          <button class="hoan-tac">Hoàn tác</button>
+        </div>
+      `;
+      // ----- chips cho Fallback -----
+      const fallbackInput = div.querySelectorAll('input')[2];
+      const fbWrap = div.querySelector('.chips-fallback');
+
+      // render chips
+      function renderFbChips() {
+        fbWrap.innerHTML = '';
+        COT_GIA.forEach(k => {
+      const b = document.createElement('span');
+        b.className = 'chip';
+        b.textContent = k;
+
+       // active nếu đã có trong input
+      const setNow = new Set(
+      fallbackInput.value.split(',').map(s => s.trim()).filter(Boolean)
+      );
+      if (setNow.has(k)) b.classList.add('active');
+
+      b.onclick = () => {
+      const cur = new Set(
+        fallbackInput.value.split(',').map(s => s.trim()).filter(Boolean)
+      );
+      if (cur.has(k)) cur.delete(k); else cur.add(k);
+      fallbackInput.value = Array.from(cur).join(',');
+      renderFbChips();
+    };
+    fbWrap.appendChild(b);
+      });
+    }
+    renderFbChips();
+
+      // khi gõ tay xong (blur / input) thì sync trạng thái chips
+      fallbackInput.addEventListener('input', renderFbChips);
+      fallbackInput.addEventListener('blur', renderFbChips);
+
+
+      // chips gợi ý dưới input loaidongia
+      const chips = div.querySelector('.chips');
+      chips.textContent = COT_GIA.length ? `Gợi ý: ${COT_GIA.join(', ')}` : 'Chưa đọc được cột giá từ sanpham';
+
+      // cảnh báo nếu loaidongia không có trong list
+      const loaiInput = div.querySelectorAll('input')[1];
+      loaiInput.addEventListener('blur', () => {
+        const val = loaiInput.value.trim();
+        if (val && COT_GIA.length && !COT_GIA.includes(val)) {
+          loaiInput.style.borderBottomColor = '#ff3b30';
+          loaiInput.title = `Nên nằm trong: ${COT_GIA.join(', ')}`;
+        } else {
+          loaiInput.style.borderBottomColor = '';
+          loaiInput.title = '';
+        }
+      });
+
+      const btnXoa = div.querySelector('.xoa');
+      const btnUndo = div.querySelector('.hoan-tac');
+
+      btnXoa.onclick = () => {
+        if (!div.dataset.id) {
+          div.remove();
+        } else {
+          div.classList.add('deleted');
+          btnXoa.style.display = 'none';
+          btnUndo.style.display = 'block';
+          deletedIds.add(Number(div.dataset.id));
+        }
+      };
+
+      btnUndo.onclick = () => {
+        div.classList.remove('deleted');
+        btnXoa.style.display = 'block';
+        btnUndo.style.display = 'none';
+        if (div.dataset.id) deletedIds.delete(Number(div.dataset.id));
+      };
+
+      return div;
+    }
+
+    function themDong(){ listHD.appendChild(taoDong()); }
+
+    function layDuLieuHienTai() {
+      return [...listHD.querySelectorAll('.row')].map(div => {
+        const inputs = div.querySelectorAll('input');
+        const select = div.querySelector('select');
+        return {
+          id: div.dataset.id ? Number(div.dataset.id) : null,
+          loaihd: inputs[0].value.trim(),
+          loaidongia: inputs[1].value.trim(),
+          fallback: inputs[2].value.trim(),
+          gd_kho: (select.value || '').trim() || null,
+          deleted: div.classList.contains('deleted')
+        };
+      });
+    }
+
+    async function taiDuLieu() {
+      await taiCotGia(); // lấy danh sách cột giá
+      const { data, error } = await supabase.from('thietlap_hd').select('*').order('id');
+      if (error) return alert('❌ Lỗi tải: ' + error.message);
+
+      listHD.innerHTML = '';
+      duLieuGoc.clear();
+      deletedIds.clear();
+
+      (data || []).forEach(r => {
+        duLieuGoc.set(r.id, { ...r });
+        listHD.appendChild(taoDong(r));
+      });
+    }
+
+    async function luuThayDoi() {
+      const rows = layDuLieuHienTai();
+
+      for (const r of rows) {
+        if (!r.deleted && !r.loaihd) return alert('⚠️ Mỗi dòng cần nhập "Loại hóa đơn".');
+        if (!r.deleted && r.loaidongia && COT_GIA.length && !COT_GIA.includes(r.loaidongia)) {
+          return alert(`⚠️ "${r.loaidongia}" không khớp các cột giá: ${COT_GIA.join(', ')}`);
+        }
+        if (r.gd_kho && !['nk','xk','kh'].includes(r.gd_kho)) {
+          return alert('⚠️ không hợp lệ, vui lòng lựa chọn hoặc để trống.');
+        }
+      }
+
+      btnLuu.disabled = true;
+
+      // Xóa
+      if (deletedIds.size) {
+        const { error: delErr } = await supabase.from('thietlap_hd').delete().in('id', [...deletedIds]);
+        if (delErr) { btnLuu.disabled = false; return alert('❌ Lỗi xóa: ' + delErr.message); }
+      }
+
+      // Upsert (insert/update)
+      const upserts = [];
+      for (const r of rows) {
+        if (!r.deleted && r.fallback) {
+            const list = r.fallback.split(',').map(s => s.trim()).filter(Boolean);
+            const invalid = list.filter(x => !COT_GIA.includes(x));
+            if (invalid.length) {
+                return alert(`⚠️ Fallback có giá trị không hợp lệ: ${invalid.join(', ')}. Hợp lệ: ${COT_GIA.join(', ')}`);
+           }
+        }
+
+        if (r.deleted) continue;
+        if (!r.loaihd && !r.loaidongia && !r.fallback && !r.gd_kho) continue;
+
+        if (!r.id) {
+          upserts.push({ loaihd: r.loaihd, loaidongia: r.loaidongia || null, fallback: r.fallback || null, gd_kho: r.gd_kho });
+        } else {
+          const o = duLieuGoc.get(r.id) || {};
+          if (o.loaihd !== r.loaihd || (o.loaidongia||'') !== (r.loaidongia||'') || (o.fallback||'') !== (r.fallback||'') || (o.gd_kho||'') !== (r.gd_kho||'')) {
+            upserts.push({ id: r.id, loaihd: r.loaihd, loaidongia: r.loaidongia || null, fallback: r.fallback || null, gd_kho: r.gd_kho });
+          }
+        }
+      }
+
+      if (upserts.length) {
+        const { error: upErr } = await supabase.from('thietlap_hd').upsert(upserts, { onConflict: 'id' });
+        if (upErr) { btnLuu.disabled = false; return alert('❌ Lỗi lưu: ' + upErr.message); }
+      }
+
+      alert('✅ Đã lưu thay đổi');
+      await taiDuLieu();
+      btnLuu.disabled = false;
+    }
+
+    // expose
+    window.themDong = themDong;
+    window.luuThayDoi = luuThayDoi;
+
+    // init
+    taiDuLieu();
+  </script>
+</body>
+</html>

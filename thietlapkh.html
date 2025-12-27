@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Thiết lập – Khách hàng</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      background: #f2f2f7;
+      color: #000;
+    }
+    .topbar {
+     position: sticky; /* cố định khi cuộn */
+     top: 0;
+     background: #f2f2f7;
+     display: flex;
+     justify-content: space-between;
+     align-items: center;
+     padding: 10px 16px;
+     border-bottom: none;
+     z-index: 10;
+     }
+     .topbar h2 {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 600;
+    }
+    .actions {
+        display: flex;
+        gap: 8px;
+    }
+    button {
+        padding: 8px 14px;
+        border-radius: 8px;
+        border: none;
+        font-weight: 600;
+        cursor: pointer;
+    }
+    .btn-primary { background: #007aff; color: #fff; }
+    .btn-secondary { background: #e5e5ea; color: #000; }   
+    .list {
+      background: #fff;
+      border-radius: 12px;
+      overflow: hidden;
+      margin: 0 16px;
+      border: 1px solid #ccc;
+    }
+    .row {
+      display: flex;
+      align-items: center;
+      padding: 10px 16px;
+      border-bottom: 1px solid #ccc;
+    }
+    .row:last-child {
+      border-bottom: none;
+    }
+    .row.deleted {
+      background: #ffe2e2;
+      text-decoration: line-through;
+      opacity: 0.6;
+    }
+    .cell {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .label {
+      font-size: 12px;
+      color: #888;
+    }
+    input {
+      border: none;
+      font-size: 16px;
+      outline: none;
+      padding: 0;
+    }
+    .row-actions {
+      margin-left: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .row-actions button {
+      padding: 4px 8px;
+      font-size: 12px;
+      border-radius: 6px;
+    }
+    .xoa { background: #ff3b30; color: #fff; }
+    .hoan-tac { background: #34c759; color: #fff; display: none; }
+  </style>
+</head>
+<body>
+    <div class="topbar">
+    <h2>👥 Thiết lập tuyến khách hàng</h2>
+    <div class="actions">
+      <button class="btn-secondary" onclick="themDong()">+ Thêm dòng</button>
+      <button class="btn-primary" onclick="luuThayDoi()">💾 Lưu</button>
+    </div>
+  </div>
+  <div class="list" id="listKH"></div>
+
+  <script type="module">
+    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+    const supabase = createClient(
+      'https://qvifxqsgjsvvdjfclyjm.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF2aWZ4cXNnanN2dmRqZmNseWptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQwMzc0MDcsImV4cCI6MjA2OTYxMzQwN30.egiHCr2zYRZyf6kwJk7xgcRYD5dqhU-n1H_Dnuo-jso'
+    );
+
+    const listKH = document.getElementById('listKH');
+    let duLieuGoc = new Map();
+    let deletedIds = new Set();
+
+    function taoDong(row = {}) {
+      const div = document.createElement('div');
+      div.className = 'row';
+      if (row.id) div.dataset.id = row.id;
+
+      div.innerHTML = `
+        <div class="cell">
+          <span class="label">Tuyến giao hàng</span>
+          <input value="${row.tuyen_gh || ''}" />
+        </div>
+        <div class="row-actions">
+          <button class="xoa">Xóa</button>
+          <button class="hoan-tac">Hoàn tác</button>
+        </div>
+      `;
+
+      const btnXoa = div.querySelector('.xoa');
+      const btnUndo = div.querySelector('.hoan-tac');
+
+      btnXoa.onclick = () => {
+        if (!div.dataset.id) {
+          div.remove();
+        } else {
+          div.classList.add('deleted');
+          btnXoa.style.display = 'none';
+          btnUndo.style.display = 'block';
+          deletedIds.add(Number(div.dataset.id));
+        }
+      };
+
+      btnUndo.onclick = () => {
+        div.classList.remove('deleted');
+        btnXoa.style.display = 'block';
+        btnUndo.style.display = 'none';
+        if (div.dataset.id) deletedIds.delete(Number(div.dataset.id));
+      };
+
+      return div;
+    }
+
+    function themDong() {
+      listKH.appendChild(taoDong());
+    }
+
+    function layDuLieuHienTai() {
+      return [...listKH.querySelectorAll('.row')].map(div => ({
+        id: div.dataset.id ? Number(div.dataset.id) : null,
+        tuyen_gh: div.querySelector('input').value.trim(),
+        deleted: div.classList.contains('deleted')
+      }));
+    }
+
+    async function taiDuLieu() {
+      const { data, error } = await supabase.from('thietlap_kh').select('*').order('id');
+      if (error) return alert('Lỗi tải: ' + error.message);
+
+      listKH.innerHTML = '';
+      duLieuGoc.clear();
+      deletedIds.clear();
+
+      data.forEach(r => {
+        duLieuGoc.set(r.id, { ...r });
+        listKH.appendChild(taoDong(r));
+      });
+    }
+
+    async function luuThayDoi() {
+      const hienTai = layDuLieuHienTai();
+
+      // Xóa
+      if (deletedIds.size) {
+        const { error: delErr } = await supabase.from('thietlap_kh').delete().in('id', [...deletedIds]);
+        if (delErr) return alert('Lỗi xóa: ' + delErr.message);
+      }
+
+      // Thêm / cập nhật
+      const upserts = [];
+      for (const r of hienTai) {
+        if (r.deleted) continue;
+        if (!r.tuyen_gh) continue;
+
+        if (!r.id) {
+          upserts.push({ tuyen_gh: r.tuyen_gh });
+        } else {
+          const old = duLieuGoc.get(r.id);
+          if (!old || old.tuyen_gh !== r.tuyen_gh) {
+            upserts.push({ id: r.id, tuyen_gh: r.tuyen_gh });
+          }
+        }
+      }
+
+      if (upserts.length) {
+        const { error: upErr } = await supabase.from('thietlap_kh').upsert(upserts, { onConflict: 'id' });
+        if (upErr) return alert('Lỗi lưu: ' + upErr.message);
+      }
+
+      alert('✅ Đã lưu thay đổi');
+      taiDuLieu();
+    }
+
+    window.themDong = themDong;
+    window.luuThayDoi = luuThayDoi;
+
+    taiDuLieu();
+  </script>
+</body>
+</html>

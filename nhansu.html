@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Nhân sự – Tự tạo mã NV (+Sửa/Xóa)</title>
+  <style>
+    :root{
+      --bg:#f5f5f7; --card:#fff; --text:#111; --muted:#6b7280; --line:#e5e7eb;
+      --blue:#007aff; --red:#ff3b30; --green:#16a34a; --radius:14px; --shadow:0 6px 24px rgba(0,0,0,.06);
+      --safe-top: env(safe-area-inset-top); --safe-bottom: env(safe-area-inset-bottom);
+    }
+
+    /* === Layout tổng: full màn hình, chỉ bảng cuộn === */
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;background:var(--bg);color:var(--text);
+      font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial,sans-serif;
+      display:flex; flex-direction:column;
+      padding: max(12px, var(--safe-top)) 12px max(12px, var(--safe-bottom)) 12px; /* khoảng cách an toàn iOS */
+      gap:12px;
+    }
+
+    /* Vùng chứa chính: full width, không còn max-width */
+    .wrap{
+      display:flex; flex-direction:column; gap:12px;
+      flex:1 1 auto; min-height:0; /* rất quan trọng để con có thể cuộn */
+    }
+
+    /* Card chung */
+    .card{
+      background:var(--card); border:1px solid var(--line);
+      border-radius:var(--radius); box-shadow:var(--shadow);
+      padding:16px;
+    }
+
+    /* Card form: cố định chiều cao tự nhiên */
+    .card.form{flex:0 0 auto}
+
+    /* Card danh sách: chiếm phần còn lại, để bảng bên trong cuộn */
+    .card.list{flex:1 1 auto; min-height:0; display:flex; flex-direction:column; gap:8px}
+
+    h2{margin:0 0 12px}
+    .grid{display:grid; gap:12px; grid-template-columns: repeat(6, 1fr)}
+    .grid>div{display:flex; flex-direction:column; gap:6px}
+    .row-span-2{grid-column: span 3}
+    label{font-size:12px; color:var(--muted)}
+    input,select{height:40px; padding:8px 10px; border:1px solid var(--line); border-radius:10px; background:#fff; font-size:14px}
+    input[readonly]{background:#f9fafb; color:#6b7280}
+    .actions{display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; align-items:center}
+    .btn{height:40px; padding:0 14px; border-radius:12px; background:#f3f4f6; border:1px solid var(--line); cursor:pointer}
+    .btn.primary{background:var(--blue); border-color:var(--blue); color:#fff}
+    .btn.red{background:var(--red); border-color:var(--red); color:#fff}
+    .btn:active{transform:translateY(1px)}
+    .muted{color:var(--muted)}
+
+    /* Bảng + vùng cuộn riêng */
+    .list-title{display:flex; align-items:center; gap:8px}
+    .list-title .pill{margin-left:auto}
+    .pill{display:inline-flex; align-items:center; gap:6px; padding:2px 8px; border:1px solid var(--line); border-radius:999px; font-size:12px; color:#334155; background:#f8fafc}
+
+    .table-wrap{flex:1 1 auto; min-height:0; /* cho phép con cuộn */}
+    .table-scroll{
+      height:100%; overflow:auto; border:1px solid var(--line); border-radius:12px; background:#fff;
+    }
+
+    table{width:100%; border-collapse:collapse}
+    thead th{
+      position:sticky; top:0; z-index:1;
+      background:#f8fafc; color:#334155; font-weight:600; border-bottom:1px solid var(--line);
+    }
+    th,td{border-bottom:1px solid var(--line); padding:10px 12px; text-align:left; font-size:14px; background:#fff}
+    td:last-child .row-actions{display:flex; gap:8px; flex-wrap:wrap}
+    .right{text-align:right}
+
+    /* Masking: hover để hiện dữ liệu thật */
+    .secret {position: relative;display: inline-block;white-space: nowrap; min-width: 6ch;}
+    .secret::after {
+      content: attr(data-real); position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: flex-start; color: var(--text);
+      opacity: 0; pointer-events: none;
+    }
+    .secret:hover{ color: transparent; }
+    .secret:hover::after{ opacity: 1; }
+
+    /* Responsive: 2 hàng control gọn gàng trên mobile */
+    @media (max-width: 900px){
+      .grid{grid-template-columns: repeat(2, 1fr)}
+      .row-span-2{grid-column:auto}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <!-- Form -->
+    <div class="card form">
+      <h2>Thêm / Sửa nhân sự</h2>
+      <div class="grid">
+        <div>
+          <label>Mã NV (tự tạo khi thêm mới)</label>
+          <input id="manv" placeholder="Sẽ tạo tự động" readonly>
+        </div>
+
+        <div class="row-span-2">
+          <label>Họ tên *</label>
+          <input id="ten" placeholder="Nguyễn Văn A" autocomplete="off" data-step="1">
+        </div>
+
+        <div>
+          <label>Chức vụ</label>
+          <input id="chucvu" placeholder="Nhân viên / Tài xế..." data-step="2">
+        </div>
+
+        <div>
+          <label>Tình trạng *</label>
+          <select id="tinhtrang" data-step="6">
+            <option value="active">active</option>
+            <option value="suspend">suspend</option>
+          </select>
+        </div>
+
+        <div>
+          <label>Lương (tháng)</label>
+          <input id="luong" type="number" min="0" step="1000" placeholder="0" data-step="3">
+        </div>
+
+        <div>
+          <label>Công tiêu chuẩn (ngày)</label>
+          <input id="congtc" type="number" min="0" step="0.5" placeholder="26" data-step="4">
+        </div>
+
+        <div>
+          <label>Công nợ đầu kỳ</label>
+          <input id="cono" type="number" step="1000" placeholder="0" data-step="5">
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn"        id="btnReset" data-hotkey="ctrl+r" data-action="reset">Nhập mới</button>
+        <button class="btn primary" id="btnSave"  data-hotkey="ctrl+s" data-action="save">Lưu</button>
+        <button class="btn"        id="btnCancel" data-hotkey="esc"    data-action="cancel" style="display:none">Hủy</button>
+        <span class="muted" id="msg"></span>
+      </div>
+    </div>
+
+    <!-- Danh sách -->
+    <div class="card list">
+      <h2 class="list-title" style="margin:0">
+        Danh sách nhân sự
+        <span class="pill" id="demNV">0 nhân sự</span>
+      </h2>
+
+      <div class="table-wrap">
+        <div class="table-scroll">
+          <table id="tbl">
+            <thead>
+              <tr>
+                <th>Mã NV</th>
+                <th>Họ tên</th>
+                <th>TT</th>
+                <th class="right">Lương</th>
+                <th class="right">CôngTC</th>
+                <th class="right">Công nợ</th>
+                <th>Chức vụ</th>
+                <th>Hành động</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { supabase } from './supabase.config.js';
+    import { KeyboardManager } from './hotkeys.js';
+
+    // Hotkeys
+    const hk = new KeyboardManager((action) => {
+      if (action === 'save')   document.getElementById('btnSave')?.click();
+      if (action === 'reset')  document.getElementById('btnReset')?.click();
+      if (action === 'cancel') document.getElementById('btnCancel')?.click();
+    });
+
+    const $ = s => document.querySelector(s);
+    const msg = $('#msg');
+    const fmtVND = v => (Number(v||0)).toLocaleString('vi-VN');
+
+    let editingManv = null; // null = chế độ thêm mới
+
+    function setMsg(text, ok=true){
+      msg.textContent = text;
+      msg.style.color = ok ? '#16a34a' : '#dc2626';
+    }
+
+    function getForm(){
+      return {
+        ten: ($('#ten').value||'').trim(),
+        tinhtrang: $('#tinhtrang').value,
+        luong: $('#luong').value === '' ? null : Number($('#luong').value),
+        congtc: $('#congtc').value === '' ? null : Number($('#congtc').value),
+        cono: $('#cono').value === '' ? null : Number($('#cono').value),
+        chucvu: ($('#chucvu').value||'').trim() || null,
+      };
+    }
+
+    function setModeCreate(){
+      editingManv = null;
+      $('#btnSave').textContent = 'Lưu';
+      $('#btnCancel').style.display = 'none';
+      $('#manv').value = '';
+      setMsg('');
+    }
+
+    function setModeEdit(manv){
+      editingManv = manv;
+      $('#btnSave').textContent = 'Cập nhật';
+      $('#btnCancel').style.display = 'inline-block';
+      setMsg(`Đang sửa: ${manv}`, true);
+    }
+
+    async function saveNV(){
+      const f = getForm();
+      if(!f.ten){ setMsg('Vui lòng nhập Họ tên.', false); $('#ten').focus(); return; }
+
+      if(!editingManv){
+        const { data, error } = await supabase
+          .from('nhansu')
+          .insert([f])
+          .select('manv, ten')
+          .single();
+        if(error){ setMsg('Lỗi thêm mới: ' + (error.message || error), false); return; }
+        setMsg('Đã tạo nhân sự: ' + data.manv);
+      } else {
+        const { error } = await supabase
+          .from('nhansu')
+          .update(f)
+          .eq('manv', editingManv);
+        if(error){ setMsg('Lỗi cập nhật: ' + (error.message || error), false); return; }
+        setMsg('Đã cập nhật: ' + editingManv);
+      }
+
+      await loadTable();
+      resetForm();
+      setModeCreate();
+    }
+
+    function resetForm(){
+      $('#manv').value = '';
+      $('#ten').value = '';
+      $('#tinhtrang').value = 'active';
+      $('#luong').value = '';
+      $('#congtc').value = '';
+      $('#cono').value = '';
+      $('#chucvu').value = '';
+      $('#ten').focus();
+    }
+
+    function getThang(){
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = String(d.getMonth()+1).padStart(2,'0');
+      return `${y}-${m}`; // "YYYY-MM"
+    }
+
+    async function loadTable(){
+      const { data, error } = await supabase
+        .from('nhansu')
+        .select('manv, ten, tinhtrang, luong, congtc, cono, chucvu')
+        .order('tinhtrang', { ascending: true })
+        .order('manv', { ascending: true });
+
+      const esc = s => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+      const maskVND  = v => (v==null ? '' : `<span class="secret" data-real="${esc(fmtVND(v))}">****</span>`);
+      const maskText = v => (!v ? '' : `<span class="secret" data-real="${esc(v)}">****</span>`);
+
+      if(error){ setMsg('Lỗi tải danh sách: ' + (error.message || error), false); return; }
+
+      const tbody = $('#tbl tbody');
+      tbody.innerHTML = (data||[]).map(r=>`
+        <tr>
+          <td><a href="#" class="openLuong" data-manv="${r.manv||''}">${r.manv||''}</a></td>
+          <td>${esc(r.ten||'')}</td>
+          <td>${esc(r.tinhtrang||'')}</td>
+          <td class="right">${maskVND(r.luong)}</td>
+          <td class="right">${maskText(r.congtc)}</td>
+          <td class="right">${maskVND(r.cono)}</td>
+          <td>${maskText(r.chucvu)}</td>
+          <td>
+            <div class="row-actions">
+              <button class="btn" data-edit="${r.manv}">Sửa</button>
+              <button class="btn red" data-del="${r.manv}">Xóa</button>
+              <button class="btn" data-tra="${r.manv}">Trả nợ</button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+
+      // gán sự kiện hành động
+      tbody.querySelectorAll('[data-edit]').forEach(btn=>{
+        btn.addEventListener('click', ()=> startEdit(btn.getAttribute('data-edit')));
+      });
+      tbody.querySelectorAll('[data-del]').forEach(btn=>{
+        btn.addEventListener('click', ()=> deleteNV(btn.getAttribute('data-del')));
+      });
+      tbody.querySelectorAll('[data-tra]').forEach(btn=>{
+        btn.addEventListener('click', ()=> traNo(btn.getAttribute('data-tra')));
+      });
+      tbody.querySelectorAll('.openLuong').forEach(a=>{
+        a.addEventListener('click', (e)=>{
+          e.preventDefault();
+          const manv = a.getAttribute('data-manv');
+          const thang = getThang();
+          window.location.href = `./luong.html?manv=${encodeURIComponent(manv)}&thang=${encodeURIComponent(thang)}`;
+        });
+      });
+
+      $('#demNV').textContent = `${data?.length||0} nhân sự`;
+    }
+
+    async function startEdit(manv){
+      const { data, error } = await supabase
+        .from('nhansu')
+        .select('*')
+        .eq('manv', manv)
+        .single();
+      if(error){ setMsg('Không tải được nhân sự: ' + (error.message || error), false); return; }
+
+      $('#manv').value = data.manv;
+      $('#ten').value = data.ten || '';
+      $('#tinhtrang').value = data.tinhtrang || 'active';
+      $('#luong').value = data.luong ?? '';
+      $('#congtc').value = data.congtc ?? '';
+      $('#cono').value = data.cono ?? '';
+      $('#chucvu').value = data.chucvu ?? '';
+      setModeEdit(manv);
+    }
+
+    async function deleteNV(manv){
+      if(!confirm(`Xóa nhân sự ${manv}?`)) return;
+      const { error } = await supabase.from('nhansu').delete().eq('manv', manv);
+      if(error){ setMsg('Lỗi xóa: ' + (error.message || error), false); return; }
+      setMsg('Đã xóa: ' + manv);
+      await loadTable();
+      if(editingManv === manv){ resetForm(); setModeCreate(); }
+    }
+
+    async function traNo(manv){
+      const sotien = prompt("Nhập số tiền trả nợ cho " + manv + ":");
+      if(!sotien) return;
+
+      const tien = Number(sotien);
+      if(isNaN(tien) || tien <= 0){
+        setMsg("Số tiền không hợp lệ!", false);
+        return;
+      }
+
+      try {
+        const { data: ns, error: errNS } = await supabase
+          .from('nhansu')
+          .select('cono')
+          .eq('manv', manv)
+          .single();
+        if(errNS) throw errNS;
+
+        const conoMoi = (ns.cono||0) - tien;
+
+        const { error: errCC } = await supabase.from('chamcong').insert([{
+          manv: manv,
+          thang: new Date().toLocaleDateString('vi-VN', {month:'2-digit', year:'numeric'}).replace('/','/'),
+          ngay: new Date().toISOString().slice(0,10),
+          loai: 'tra',
+          sotien: -tien,
+          ghichu: 'Trả nợ'
+        }]);
+        if(errCC) throw errCC;
+
+        const { error: errUpd } = await supabase
+          .from('nhansu')
+          .update({ cono: conoMoi })
+          .eq('manv', manv);
+        if(errUpd) throw errUpd;
+
+        setMsg(`Đã trả ${tien.toLocaleString('vi-VN')} cho ${manv}`);
+        await loadTable();
+      } catch(err){
+        setMsg("Lỗi trả nợ: " + (err.message||err), false);
+      }
+    }
+
+    // ===== Events =====
+    $('#btnSave').addEventListener('click', saveNV);
+    $('#btnReset').addEventListener('click', ()=>{ resetForm(); setModeCreate(); });
+    $('#btnCancel').addEventListener('click', ()=>{ resetForm(); setModeCreate(); });
+    document.addEventListener('keydown', e=>{
+      if((e.ctrlKey || e.metaKey) && e.key === 'Enter') saveNV();
+    });
+
+    // ===== First load =====
+    await loadTable();
+  </script>
+</body>
+</html>

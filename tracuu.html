@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Tra cứu chi tiết đơn hàng</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      --bg:#f5f5f7; --card:#fff; --text:#111; --muted:#6b7280; --line:#e5e7eb;
+      --blue:#007aff; --radius:14px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0; display:flex; flex-direction:column; background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+
+    .wrap { padding:16px; display:flex; flex-direction:column; gap:12px; flex:1 1 auto; min-height:0; }
+    .title{margin:0 0 12px 0; font-size:20px; font-weight:800; letter-spacing:.2px}
+
+    .card{
+      background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+      box-shadow:0 1px 0 rgba(0,0,0,.03);
+    }
+
+    /* Bộ lọc dạng pill */
+    .filters{
+      display:flex; flex-wrap:wrap; gap:10px; padding:12px; align-items:center;
+    }
+    .pill{
+      display:flex; align-items:center; gap:8px;
+      padding:4px 8px; border:1px solid var(--line); border-radius:999px; background:#fff;
+    }
+    .pill label{font-size:12px; color:var(--muted)}
+    .pill input, .pill select{
+      border:none; outline:none; font-size:14px; background:transparent; min-height:24px;
+    }
+    .meta{
+      display:flex; gap:10px; align-items:center; color:var(--muted); font-size:13px;
+      margin-left:auto;
+    }
+    .chip{background:#eef2ff; color:#1e40af; padding:4px 10px; border-radius:999px; font-weight:600}
+
+    /* Bảng */
+    .table-wrap{margin-top:12px}
+    .table-wrapper{
+      border:1px solid var(--line); border-radius:12px; overflow:auto; max-height:100%; background:#fff;
+    }
+    table{width:100%; border-collapse:separate; border-spacing:0}
+    th, td{padding:10px 12px; text-align:center; border-bottom:1px solid var(--line); font-size:14px}
+    thead th{
+      position:sticky; top:0; z-index:2; background:#fafafa; font-weight:700; color:#111;
+      border-bottom:1px solid var(--line);
+    }
+    tbody tr:hover{background:#fafafa}
+    a.linkHD{color:#2563eb; text-decoration:none; font-weight:700}
+    a.linkHD:hover{text-decoration:underline}
+
+    .summary{margin-top:8px; display:flex; gap:8px; align-items:center; color:var(--muted); font-size:13px; padding-left:2px;}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+
+    <div class="card">
+      <div class="filters">
+        <div class="pill">
+          <label>Từ</label>
+          <input type="date" id="tuNgay">
+        </div>
+        <div class="pill">
+          <label>Đến</label>
+          <input type="date" id="denNgay">
+        </div>
+
+        <div class="pill">
+          <label>Số HĐ</label>
+          <input type="text" id="soHD" placeholder="nhập số HĐ...">
+        </div>
+        <div class="pill">
+          <label>Mã KH</label>
+          <input type="text" id="maKH" placeholder="nhập mã KH...">
+        </div>
+        <div class="pill">
+          <label>Tên SP</label>
+          <input type="text" id="tenSP" placeholder="nhập tên SP...">
+        </div>
+
+        <!-- Meta đếm -->
+        <div class="meta">
+          <span>Dòng:</span><span class="chip" id="demDong">0</span>
+          <span>| Tổng SL:</span><span class="chip" id="tongSL">0</span>
+          <span>| Tổng tiền:</span><span class="chip" id="tongTT">0 ₫</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-wrap card" style="margin-top:12px; flex:1 1 auto; min-height:0; padding:8px;">
+      <div class="table-wrapper">
+        <table id="bangCT">
+          <thead>
+            <tr>
+              <th style="min-width:120px">Số HĐ</th>
+              <th style="min-width:120px">Ngày</th>
+              <th style="min-width:100px">Mã KH</th>
+              <th style="min-width:220px">Tên SP</th>
+              <th style="min-width:100px">SL Thùng</th>
+              <th style="min-width:100px">Tổng SL</th>
+              <th style="min-width:100px">ĐVT</th>
+              <th style="min-width:140px">Đơn giá</th>
+              <th style="min-width:160px">Thành tiền</th>
+              <th style="min-width:200px">Ghi chú</th>
+            </tr>
+          </thead>
+          <tbody id="noiDungChiTiet">
+            <tr><td colspan="10">Đang tải dữ liệu...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="summary">
+      Gợi ý: Chọn khoảng ngày → gõ Số HĐ / Mã KH / Tên SP để lọc nhanh trên kết quả đã tải.
+    </div>
+  </div>
+
+  <script type="module">
+  import { supabase } from './supabase.config.js';
+
+  const $  = s => document.querySelector(s);
+  const $$ = s => Array.from(document.querySelectorAll(s));
+  const fmtVND = n => (Number(n)||0).toLocaleString("vi-VN") + " ₫";
+
+  // paging + state
+  const pageSizeDefault = 100;
+  let pageSize = pageSizeDefault;
+  let currentPage = 0;
+  let hasMore = true;
+  let loading = false;
+
+  // metadata totals (tính dần từ dữ liệu đã tải)
+  let metaRows = 0, metaSL = 0, metaTT = 0;
+
+  // ===== helpers =====
+  function resetMeta(){
+    metaRows = 0; metaSL = 0; metaTT = 0;
+    updateMeta(0,0,0);
+  }
+  function updateMeta(rows, sl, tt){
+    $("#demDong").textContent = rows;
+    $("#tongSL").textContent  = sl.toLocaleString("vi-VN");
+    $("#tongTT").textContent  = fmtVND(tt);
+  }
+  function addToMeta(rows, sl, tt){
+    metaRows += rows; metaSL += sl; metaTT += tt;
+    updateMeta(metaRows, metaSL, metaTT);
+  }
+
+  // ===== events: filters =====
+  $("#tuNgay").addEventListener("input", ()=> loadPage(true));
+  $("#denNgay").addEventListener("input", ()=> loadPage(true));
+  $("#soHD").addEventListener("input", debounce(()=> loadPage(true), 300));
+  $("#maKH").addEventListener("input", debounce(()=> loadPage(true), 300));
+  $("#tenSP").addEventListener("input", debounce(()=> loadPage(true), 300));
+
+  // debounce nhỏ để tránh spam query khi gõ
+  function debounce(fn, wait=250){
+    let t;
+    return (...a)=>{ clearTimeout(t); t = setTimeout(()=>fn(...a), wait); };
+  }
+
+  // Tạo query với các điều kiện lọc server-side
+  function buildBaseQuery() {
+    const tu  = $("#tuNgay").value;
+    const den = $("#denNgay").value;
+    const sohd = $("#soHD").value.trim();
+    const makh = $("#maKH").value.trim();
+    const tensp = $("#tenSP").value.trim();
+
+    let q = supabase
+      .from("chitiet")
+      .select("*")
+      .order("ngay", { ascending: false })
+      .order("sohd", { ascending: false });
+
+    // filter ngày range
+    if (tu) q = q.gte("ngay", tu);
+    if (den) q = q.lte("ngay", den);
+
+    // soHD, maKH: dùng ILIKE '%...%'
+    if (sohd) q = q.ilike("sohd", `%${sohd}%`);
+    if (makh) q = q.ilike("makh", `%${makh}%`);
+
+    // tensp: server-side contains (case-insensitive)
+    // LƯU Ý: đây là dạng đơn giản. Nếu DB có extension unaccent, bạn có thể dùng
+    // RPC hoặc function với unaccent để khớp không dấu.
+    if (tensp) q = q.ilike("tensp", `%${tensp}%`);
+
+    return q;
+  }
+
+  // Hàm tải 1 trang (append), reset=true để bắt đầu lại từ trang 0
+  async function loadPage(reset=false){
+    if (loading) return;
+    if (reset) {
+      currentPage = 0;
+      hasMore = true;
+      $("#noiDungChiTiet").innerHTML = "";
+      resetMeta();
+    }
+    if (!hasMore) return;
+
+    loading = true;
+    const from = currentPage * pageSize;
+    const to   = from + pageSize - 1;
+
+    const tbody = $("#noiDungChiTiet");
+    // nếu là trang đầu, hiển thị loading
+    if (currentPage === 0) {
+      tbody.innerHTML = "<tr><td colspan='10'>Đang tải dữ liệu...</td></tr>";
+    }
+
+    try {
+      const q = buildBaseQuery();
+      const { data, error } = await q.range(from, to);
+
+      if (error) {
+        tbody.innerHTML = `<tr><td colspan="10">❌ Lỗi tải dữ liệu: ${error.message}</td></tr>`;
+        hasMore = false;
+        loading = false;
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        if (currentPage === 0) {
+          tbody.innerHTML = "<tr><td colspan='10'>Không có dữ liệu phù hợp.</td></tr>";
+        }
+        hasMore = false;
+        loading = false;
+        return;
+      }
+
+      // nếu đang ở trang đầu và có dữ liệu, xóa message trước khi append
+      if (currentPage === 0) tbody.innerHTML = "";
+
+      appendRows(data);
+      currentPage++;
+      if (data.length < pageSize) hasMore = false;
+    } catch (err) {
+      tbody.innerHTML = `<tr><td colspan="10">❌ Lỗi: ${err.message}</td></tr>`;
+      hasMore = false;
+    } finally {
+      loading = false;
+    }
+  }
+
+  function appendRows(rows){
+    const tbody = $("#noiDungChiTiet");
+    for (const dong of rows){
+      const sl  = Number(dong.soluong || 0);
+      const dg  = Number(dong.dongia  || 0);
+      const tt  = sl * dg;
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td><a href="#" class="linkHD" data-sohd="${dong.sohd}">${dong.sohd}</a></td>
+        <td>${dong.ngay || ""}</td>
+        <td>${dong.makh || ""}</td>
+        <td style="text-align:left">${dong.tensp || ""}</td>
+        <td>${dong.slthung ?? ""}</td>
+        <td>${sl || ""}</td>
+        <td>${dong.dvt || ""}</td>
+        <td>${dg ? dg.toLocaleString("vi-VN") : ""}</td>
+        <td>${tt ? tt.toLocaleString("vi-VN") : "0"}</td>
+        <td style="text-align:left">${dong.ghichu || ""}</td>
+      `;
+      tbody.appendChild(tr);
+
+      const link = tr.querySelector(".linkHD");
+      if (link){
+        link.addEventListener("click", (e)=>{
+          e.preventDefault();
+          const so = e.currentTarget.dataset.sohd;
+          window.open(`formIn.html?sohd=${encodeURIComponent(so)}`, "_blank");
+        });
+      }
+    }
+
+    // cập nhật meta dần
+    const rowsCount = rows.length;
+    const slSum = rows.reduce((s, r) => s + (Number(r.soluong || 0)), 0);
+    const ttSum = rows.reduce((s, r) => s + (Number(r.soluong || 0) * Number(r.dongia || 0)), 0);
+    addToMeta(rowsCount, slSum, ttSum);
+  }
+
+  // bắt sự kiện scroll trên table-wrapper để load thêm khi gần đáy
+  const wrapper = document.querySelector(".table-wrapper");
+  wrapper.addEventListener("scroll", (e)=>{
+    const el = e.target;
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 80){ 
+      loadPage(false);
+    }
+  });
+
+  // Khởi tạo: tải trang đầu
+  window.addEventListener("DOMContentLoaded", ()=> loadPage(true));
+</script>
+
+</body>
+</html>

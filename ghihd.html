@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cá bán hàng</title>
+<style>
+  :root{
+    --bg:#f5f5f7; --card:#fff; --text:#111; --muted:#6b7280; --line:#e5e7eb;
+    --blue:#007aff; --green:#34c759; --red:#ff3b30;
+    --radius:16px; --shadow:0 1px 2px rgba(0,0,0,.05),0 6px 16px rgba(0,0,0,.06);
+    --inputBg:#f8f8fb; --inputBorder:#e6e7ee; --inputFocus:#c7d7ff;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:var(--text);overflow:hidden;}
+  .wrap{max-width:100%;margin:0 auto;padding:16px;height:100vh;display:flex;flex-direction:column;min-height:0;}
+
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;align-items:stretch;flex:0 0 auto;}
+  .nhap-sp{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:12px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);display:flex;flex-direction:column;height:100%;min-height:0}
+  .card-head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--line)}
+  .card h3{margin:0;font-size:16px}
+  .card-body{padding:12px 14px;display:flex;flex-direction:column;gap:8px;min-height:0}
+  #soHD{width:180px;font-weight:600;text-align:center}
+
+  .form-row{display:grid;grid-template-columns:150px 1fr;gap:8px;align-items:center}
+  .form-row label{color:var(--muted)}
+  input[type="text"],input[type="number"],input[type="date"],select{
+    width:100%;padding:10px 12px;border-radius:12px;border:1px solid var(--inputBorder);
+    background:var(--inputBg);outline:none;transition:.15s border-color,.15s box-shadow;
+  }
+  input:focus,select:focus{border-color:var(--inputFocus);box-shadow:0 0 0 3px rgba(0,122,255,.15)}
+  input[readonly],input[disabled]{opacity:.7}
+
+  .button-row{display:flex;gap:8px;margin-top:4px}
+  .btn{flex:1;padding:10px 8px;border:none;border-radius:12px;color:#fff;font-weight:600;cursor:pointer;box-shadow:var(--shadow)}
+  .btn.save{background:var(--green)} .btn.print{background:var(--blue)} .btn.delete{background:var(--red)}
+  .icon-btn{border:none;background:transparent;padding:6px 8px;border-radius:10px;cursor:pointer}
+  .icon-btn:hover{background:#f0f1f5}
+
+  #recentInvoices{display:flex;flex-direction:column;min-height:0}
+  #recentInvoices .card-body{flex:1;min-height:0;overflow:auto;padding-right:6px}
+  .recent-item{display:flex;align-items:center;justify-content:space-between;
+    gap:8px;padding:8px 6px;border-bottom:1px dashed var(--line);font-size:14px}
+  .recent-item .meta{color:var(--muted);font-size:12px}
+  .recent-print{border:1px solid var(--line);border-radius:10px;background:#eef2ff;padding:4px 8px;cursor:pointer}
+
+  .input-bar-wrap{margin-top:16px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+  .input-bar-head{padding:12px 14px;border-bottom:1px solid var(--line)}
+  .input-bar{display:grid;grid-template-columns:repeat(11,minmax(128px,1fr)) auto;gap:8px;padding:12px 14px;overflow:visible;}
+  .input-bar input,.input-bar select{border:1px solid var(--inputBorder);background:var(--inputBg);border-radius:12px;padding:10px 12px}
+  .input-bar button{padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:#f8fafc;cursor:pointer}
+  .input-bar #tenSP{
+    padding-block: 11px;   /* mặc định bạn đang ~10px */
+  }
+
+  table{width:100%;border-collapse:separate;border-spacing:0;margin-top:12px;background:var(--card);
+    border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
+  .table-scroll{flex:1 1 auto;min-height:0;overflow:auto;border:1px solid var(--line);border-radius:16px;background:var(--card);box-shadow:var(--shadow)}
+  #bangSP{width:100%;border-collapse:separate;border-spacing:0;margin:0;}
+  thead th{position:sticky;top:0;z-index:1;background:#fbfbfe;text-align:left;font-size:13px;color:var(--muted);
+    padding:10px 12px;border-bottom:1px solid var(--line)}
+  tbody td{padding:6px 10px;border-bottom:1px solid #f1f3f5}
+  tbody tr:last-child td{border-bottom:none}
+  td input,td select{width:100%;border:none;background:transparent;padding:8px 6px;outline:none}
+  td input:focus{box-shadow:inset 0 -2px 0 var(--blue)}
+  .td-actions{width:40px;text-align:right}
+
+  .ac-wrap{grid-column:span 2;position:relative;min-width:240px}
+  .ac-list{position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:9999;background:#fff;border:1px solid #e5e7eb;border-radius:10px;
+    box-shadow:0 8px 24px rgba(0,0,0,.08);max-height:280px;overflow:auto}
+  .ac-item{padding:10px 12px;cursor:pointer;line-height:1.3;}
+  .ac-item.active{background:#eef2ff;}
+  .ac-empty{padding:10px 12px;color:#6b7280;}
+  .ac-hl{font-weight:600;}
+  .gia-thap{background:#ffe5e5;color:#b91c1c;font-weight:600;}
+  .hidden{display:none!important;}
+  .switch{position:relative;display:inline-block;width:42px;height:24px}
+  .switch input{display:none}
+  .switch .slider{position:absolute;inset:0;border-radius:999px;background:#d1d5db;transition:.2s}
+  .switch .slider:before{content:"";position:absolute;height:20px;width:20px;left:2px;top:2px;border-radius:50%;background:#fff;transition:.2s}
+  .switch input:checked + .slider{background:#34c759}
+  .switch input:checked + .slider:before{transform:translateX(18px)}
+  .input-with-adorn{ position:relative; display:inline-block; }
+  .input-with-adorn > input{ padding-right:12px; }  /* mặc định */
+  .ma-gv-adorn{
+    position:absolute; right:10px; top:50%; transform:translateY(-50%);
+    color:#6b7280; font-size:12px; pointer-events:none; white-space:nowrap;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="grid">
+    <!-- 1 -->
+    <section class="card">
+      <div class="card-head"><h3>Hóa đơn</h3><input type="text" id="soHD" readonly></div>
+      <div class="card-body">
+        <div class="form-row"><label>Ngày</label><input type="date" id="ngayHD" data-step="1"></div>
+        <div class="form-row"><label>NV bán hàng</label><select id="tenNV" data-step="2"></select></div>
+        <div class="form-row"><label>Phân loại</label><select id="phanLoai" data-step="5"></select></div>
+        <div class="form-row"><label>Ghi chú</label><input type="text" id="ghiChu" data-step="3"></div>
+        <input type="hidden" id="thamChieu">
+        <div class="button-row">
+          <button id="luuHD" type="button" class="btn save">💾 Lưu</button>
+          <button id="luuVaIn" class="btn print">🖨️ In</button>
+          <button id="xoaHD" class="btn delete">❌ Xóa</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2 -->
+    <section class="card">
+      <div class="card-head"><h3>Thông tin thanh toán</h3></div>
+      <div class="card-body">
+        <div class="form-row"><label>Tổng tiền hàng</label><input type="number" id="tongHang" disabled></div>
+        <div class="form-row"><label>Chiết khấu</label><input type="number" id="chietKhau"></div>
+        <div class="form-row"><label>Thuế (%)</label><input type="number" id="thue"></div>
+        <div class="form-row"><label>Tiền thuế</label><input type="number" id="tienThue" disabled></div>
+        <div class="form-row"><label>Tổng thanh toán</label><input type="number" id="tongThanhToan" disabled></div>
+      </div>
+    </section>
+
+    <!-- 3 -->
+    <section class="card">
+      <div class="card-head"><h3>Thông tin khách hàng</h3><button id="themKH" type="button" class="icon-btn">➕</button></div>
+      <div class="card-body">
+        <div class="form-row"><label>Mã KH</label><input list="dsMaKH" id="maKH" data-step="4"><datalist id="dsMaKH"></datalist></div>
+        <div class="form-row"><label>Tên ĐV</label><input type="text" id="tenDV"></div>
+        <div class="form-row"><label>SĐT</label><input type="text" id="sdt"></div>
+        <div class="form-row"><label>MST</label><input type="text" id="mst"></div>
+        <div class="form-row"><label>Địa chỉ</label><input type="text" id="diaChi"></div>
+        <div class="form-row">
+  <label>Nợ cũ</label>
+  <div style="display:flex; gap:6px; align-items:center;">
+    <input type="text" id="noCu" inputmode="numeric" />
+  </div>
+</div>
+      </div>
+    </section>
+
+    <!-- 4 -->
+    <section class="card" id="recentInvoices">
+      <div class="card-head"><h3>Đơn hàng gần đây</h3></div>
+      <div class="card-body" id="recentList"></div>
+    </section>
+
+    <!-- 5 -->
+    <section class="card hidden" id="khuPhiPhanBo">
+      <div class="card-head"><h3>Phí phân bổ</h3></div>
+      <div class="card-body">
+        <div class="form-row"><label>Phí phân bổ</label><input type="number" id="phanBo"></div>
+        <div class="form-row"><label>Số lượng</label><input type="number" id="sl"></div>
+        <div class="form-row"><label>Tổng SL</label><input type="number" id="tongsl"></div>
+        <div class="form-row"><label>Dùng Tổng SL?</label>
+          <label class="switch">
+            <input type="checkbox" id="ppbUseTongSL">
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <section class="nhap-sp">
+    <section class="input-bar-wrap">
+      <div class="input-bar-head card-head"><h3 style="margin:0">Nhập sản phẩm</h3><button id="themSP" type="button" class="icon-btn">➕</button></div>
+        <div class="input-bar">
+          <input type="text" placeholder="Mã SP" id="maSP" readonly>
+        <div class="ac-wrap">
+          <input type="text" id="tenSP" placeholder="Tên SP" list="dsTenSP" data-step="6" data-hotkey="F2">
+          <div id="tenSP-list" class="ac-list" style="display:none"></div>
+        </div>
+        <datalist id="dsTenSP"></datalist>
+        <input type="text" placeholder="Ghi chú" id="ghiChuSP" data-hotkey="F3" data-enter-target="#donGia">
+        <input type="number" placeholder="Số lượng" id="soLuong" data-step="7">
+        <select id="dvt" data-step="8"></select>
+        <input type="number" placeholder="Tổng SL" id="tongSL">
+        <input type="number" placeholder="Đơn giá" id="donGia" data-step="9">
+        <input type="number" placeholder="Thành tiền" id="thanhTien" data-step="10" data-enter-action="addItem">
+      </div>
+    </section>
+
+    <div class="table-scroll">
+      <table id="bangSP" data-grid-nav="true">
+        <thead>
+          <tr>
+            <th>STT</th><th>Mã SP</th><th>Tên SP</th><th>Ghi chú</th>
+            <th>Số lượng</th><th>Đơn vị</th><th>Tổng SL</th><th>ĐVT</th>
+            <th>Đơn giá</th><th style="text-align:left">Thành tiền</th><th class="td-actions"></th>
+          </tr>
+        </thead>
+        <tbody id="bangSPBody"></tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<script type="module" src="hdganday.js"></script>
+<script type="module" src="xulihd.js"></script>
+<script type="module" src="xulikh.js"></script>
+<script type="module" src="thanhtoan.js"></script>
+<script type="module" src="xulisp.js"></script>
+
+  <!-- Keyboard Manager dùng chung -->
+  <script type="module" src="./hotkeys.js"></script>
+  <script type="module">
+    import { KeyboardManager } from './hotkeys.js';
+
+    // Khởi tạo hotkeys + Enter-next
+    document.addEventListener('DOMContentLoaded', () => {
+      new KeyboardManager({
+        onAction: (act) => {
+          if (act === 'saveHD')   return window.luuHoaDon?.();
+          if (act === 'printHD')  return window.luuVaIn?.();
+          if (act === 'deleteHD') return window.xoaHoaDon?.();
+          if (act === 'addItem')  return document.getElementById('themSP')?.click();
+          if (act === 'openAddKH') return document.getElementById('themKH')?.click();
+          
+        }
+      });
+    });
+  
+  // Canh chiều cao card gần đây = cao nhất của 3 card bên trái
+  function syncRecentHeight(){
+    const cards = Array.from(document.querySelectorAll('.grid > .card')).slice(0,3);
+    if (!cards.length) return;
+    const maxH = Math.max(...cards.map(c => c.getBoundingClientRect().height));
+    document.getElementById('recentInvoices').style.height = maxH + 'px';
+  }
+  window.addEventListener('load', syncRecentHeight);
+  window.addEventListener('resize', syncRecentHeight);
+  // Gọi lại khi bạn thay đổi nội dung các card bên trái (nếu có)
+
+  import { loaiHDReady } from './xulisp.js'; // để chờ nạp xong options phân loại
+
+const _norm = s => (s||'').normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase();
+
+function _isNhapKhoMode(){
+  // Ưu tiên query ?phanLoai=
+  const q = _norm(new URLSearchParams(location.search).get('phanLoai') || '');
+  if (q.includes('ncc') || q.includes('nk') || q.includes('nhap')) return true;
+
+  // Nếu không có query thì theo giá trị select hiện tại
+  const v = _norm(document.getElementById('phanLoai')?.value || '');
+  return v.includes('ncc') || v.includes('nk') || v.includes('nhap');
+}
+
+function _togglePPB(){
+  const show = _isNhapKhoMode();
+  document.getElementById('khuPhiPhanBo')?.classList.toggle('hidden', !show);
+  document.getElementById('recentInvoices')?.classList.toggle('hidden', show);
+  // căn lại chiều cao khi đổi layout
+  syncRecentHeight();
+}
+
+// chạy sau khi nạp xong danh sách phân loại
+document.addEventListener('DOMContentLoaded', async () => {
+  try { await loaiHDReady; } catch {}
+  _togglePPB();
+});
+
+// đổi phân loại bằng tay thì cập nhật luôn
+document.getElementById('phanLoai')?.addEventListener('change', _togglePPB);
+
+// ===== Tổng Số lượng & Tổng SL cho khung "Phí phân bổ" =====
+const parseNum = v => Number(String(v ?? '').replace(/[^\d.\-]/g,'')) || 0;
+
+function capNhatTongPPB(){
+  const tbody = document.getElementById('bangSPBody');
+  if (!tbody) return;
+
+  let sumSL = 0;
+  let sumTongSL = 0;
+
+  for (const tr of tbody.querySelectorAll('tr')){
+    // cột "Số lượng" (class .soLuong)
+    const elSL = tr.querySelector('.soLuong');
+    const valSL = elSL ? (('value' in elSL) ? elSL.value : elSL.textContent) : '0';
+    sumSL += parseNum(valSL);
+
+    // cột "Tổng SL" (class .tongSL)
+    const elTSL = tr.querySelector('.tongSL');
+    const valTSL = elTSL ? (('value' in elTSL) ? elTSL.value : elTSL.textContent) : '0';
+    sumTongSL += parseNum(valTSL);
+  }
+
+  const slBox = document.getElementById('sl');
+  const tongslBox = document.getElementById('tongsl');
+  if (slBox) slBox.value = sumSL;
+  if (tongslBox) tongslBox.value = sumTongSL;
+}
+
+// chạy khi trang sẵn sàng
+document.addEventListener('DOMContentLoaded', capNhatTongPPB);
+
+// mỗi khi chỉnh số lượng / tổng SL → cập nhật
+document.getElementById('bangSPBody')?.addEventListener('input', (e)=>{
+  if (!e.target.closest('tr')) return;
+  if (e.target.classList.contains('soLuong') || e.target.classList.contains('tongSL')) {
+    capNhatTongPPB();
+  }
+});
+
+// thêm/xoá dòng → cập nhật
+const _tbody = document.getElementById('bangSPBody');
+if (_tbody){
+  new MutationObserver(()=> capNhatTongPPB())
+    .observe(_tbody, { childList: true });
+}
+
+// nếu bạn có hàm tự tính "Tổng SL" khi đổi DVT/số lượng,
+// sau khi set giá trị nhớ gọi:
+window.capNhatTongPPB = capNhatTongPPB; // để nơi khác có thể gọi lại
+
+function _refreshPPBModeUI(){
+  const useTong = document.getElementById('ppbUseTongSL')?.checked;
+  const slBox     = document.getElementById('sl');
+  const tongslBox = document.getElementById('tongsl');
+  if (!slBox || !tongslBox) return;
+
+  // chỉ làm mờ ô không dùng, vẫn cho xem giá trị
+  slBox.toggleAttribute('disabled',  !!useTong);
+  tongslBox.toggleAttribute('disabled', !useTong);
+
+  slBox.style.opacity     = useTong ? .6 : 1;
+  tongslBox.style.opacity = useTong ? 1 : .6;
+}
+document.getElementById('ppbUseTongSL')?.addEventListener('change', _refreshPPBModeUI);
+document.addEventListener('DOMContentLoaded', _refreshPPBModeUI);
+
+
+</script>
+</body>
+</html>
+

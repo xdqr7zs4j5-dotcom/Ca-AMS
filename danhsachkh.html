@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Khách hàng</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      --bg:#f5f5f7; --card:#fff; --text:#111; --muted:#6b7280; --line:#e5e7eb;
+      --blue:#007aff; --red:#ff3b30; --radius:14px; --shadow:0 6px 24px rgba(0,0,0,.06);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0; display:flex; flex-direction:column;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:var(--text)}
+
+    .appbar{position:sticky; top:0; z-index:50;background:rgba(245,245,247,.78);backdrop-filter:saturate(180%) blur(16px);border-bottom:1px solid var(--line)}
+    .appbar-inner{padding:12px 16px}
+    .title{margin:0; font-size:18px; font-weight:800; letter-spacing:.2px}
+
+    .wrap { padding:16px; display:flex; flex-direction:column; gap:12px; flex:1 1 auto; min-height:0; }
+    .card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow)}
+    .filters{display:flex; flex-wrap:wrap; gap:10px; padding:12px; align-items:center}
+    .pill{display:flex; align-items:center; gap:8px; padding:4px 8px; border:1px solid var(--line); border-radius:999px; background:#fff}
+    .pill label{font-size:12px; color:var(--muted)}
+    .pill input,.pill select{border:none; outline:none; font-size:14px; background:transparent; min-height:24px}
+    .pill select{min-width:180px; appearance:none; padding-right:18px;
+      background:linear-gradient(45deg,transparent 50%,var(--muted) 50%) right 8px center/8px 8px no-repeat}
+    .pill .btn{border:none; background:var(--blue); color:#fff; padding:8px 12px; border-radius:999px; font-weight:600; cursor:pointer}
+    .pill .btn:active{opacity:.85}
+
+    .meta{margin-left:auto; display:flex; gap:10px; align-items:center; color:var(--muted); font-size:13px}
+    .chip{background:#eef2ff; color:#1e40af; padding:4px 10px; border-radius:999px; font-weight:700}
+
+    .table-card { flex:1 1 auto; min-height:0; padding:8px; }
+    .table-wrap{overflow:auto; border-radius:12px; border:1px solid var(--line); background:#fff; height:100%}
+    table{width:100%; border-collapse:separate; border-spacing:0}
+    thead th{position:sticky; top:0; z-index:1; background:#fafafa; border-bottom:1px solid var(--line); font-size:13px; font-weight:700; color:#374151; text-align:left; padding:10px 12px}
+    tbody td{border-bottom:1px solid var(--line); padding:10px 12px; vertical-align:middle; font-size:14px}
+    tbody tr:hover{background:#fafbff}
+    .cell-check{width:42px}
+    .num{text-align:right; font-variant-numeric:tabular-nums}
+
+    input.ios-check{appearance:none; -webkit-appearance:none; outline:none; margin:0; width:20px; height:20px; border-radius:6px; border:1.5px solid #cfd5df; background:#fff; display:inline-grid; place-content:center; cursor:pointer; transition:all .15s}
+    input.ios-check:hover{border-color:#b8beca}
+    input.ios-check:checked{background:var(--blue); border-color:var(--blue)}
+    input.ios-check:checked::after{content:""; width:10px; height:6px; border:2px solid #fff; border-top:0; border-left:0; transform:rotate(45deg) translateY(-1px)}
+
+    .status-dot {width:14px; height:14px; border-radius:50%; display:inline-block;}
+    .status-dot.red { background: var(--red); }
+    .status-dot.green { background: #34c759; }
+
+    @media (max-width: 900px){
+      th:nth-child(4), td:nth-child(4),
+      th:nth-child(6), td:nth-child(6){display:none;}
+    }
+  </style>
+</head>
+<body>
+
+  <div class="wrap">
+    <!-- Hàng lọc -->
+    <div class="card">
+      <div class="filters">
+        <div class="pill">
+          <label>Hành động</label>
+          <select id="chonHanhDong">
+            <option value="">— Chọn —</option>
+            <option value="xoa">Xóa đã chọn</option>
+            <option value="xuat_all">Xuất Excel — tất cả</option>
+            <option value="xuat_sel">Xuất Excel — đã chọn</option>
+          </select>
+        </div>
+
+        <div class="pill" style="min-width:260px; flex:1">
+          <label>Tìm</label>
+          <input id="timKH" type="text" placeholder="Tìm theo tên khách hàng…" style="width:100%">
+        </div>
+
+        <div class="pill">
+          <button id="btnThemKH" class="btn">➕ Thêm khách hàng</button>
+        </div>
+
+        <div class="meta">
+          <span>Kết quả:</span><span class="chip" id="demKetQua">0</span>
+          <span>| Đã chọn:</span><span class="chip" id="demChon">0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bảng -->
+    <div class="card table-card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th class="cell-check"><input id="chkAll" type="checkbox" class="ios-check"></th>
+              <th>Mã KH</th>
+              <th></th>
+              <th>Tên KH</th>
+              <th>Địa chỉ</th>
+              <th>SĐT</th>
+              <th>Mã số thuế / CCCD</th>
+              <th>Tên đơn vị</th>
+              <th class="num">Công nợ</th>
+            </tr>
+          </thead>
+          <tbody id="noiDungBang"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { supabase } from './supabase.config.js';
+
+    let danhSachKH = [], dsHienThi = [];
+    const $  = s => document.querySelector(s);
+    const $$ = s => document.querySelectorAll(s);
+    const fmtVND = new Intl.NumberFormat('vi-VN');
+    const isoToday = () => new Date().toISOString().slice(0,10);
+
+// Lấy dư cuối theo từng KH tính đến denNgay (chọn bản ghi gần nhất <= denNgay)
+async function napDuCuoiKh(denNgay = isoToday()){
+  // Lấy makh, du_cuoi, den_ngay từ view công nợ KH
+  const { data, error } = await supabase
+    .from('v_bc_congno_kh')
+    .select('makh, du_cuoi, den_ngay')
+    .lte('den_ngay', denNgay);
+
+  if(error){ 
+    console.warn('Lỗi tải công nợ:', error.message);
+    return new Map(); 
+  }
+  // Giữ bản ghi có den_ngay mới nhất cho mỗi makh
+  const map = new Map();
+  for(const r of (data || [])){
+    const k = r.makh; if(!k) continue;
+    const cur = map.get(k);
+    if(!cur || new Date(r.den_ngay) > new Date(cur.den_ngay)){
+      map.set(k, { du_cuoi: Number(r.du_cuoi || 0), den_ngay: r.den_ngay });
+    }
+  }
+  return map;
+}
+
+    async function taiKhachHang() {
+      const { data, error } = await supabase
+        .from('khachhang')
+        .select('*')
+        .eq('daxoa', false);
+
+      if (error) { 
+        alert("Lỗi tải dữ liệu: " + error.message); 
+        return; 
+      }
+
+      if (!data) {
+        danhSachKH = [];
+        dsHienThi = [];
+        renderBang([]);
+        return;
+      }
+
+      const thieuTT = [], duTT = [];
+      data.forEach(kh => {
+        if (kh.diachi && kh.mst && kh.tendv) duTT.push(kh);
+        else thieuTT.push(kh);
+      });
+
+      thieuTT.sort((a,b) => (a.tenkh || '').localeCompare(b.tenkh || ''));
+      duTT.sort((a,b) => (a.tenkh || '').localeCompare(b.tenkh || ''));
+
+      danhSachKH = [...thieuTT, ...duTT];
+
+      const mapCN = await napDuCuoiKh(isoToday());
+      for (const kh of danhSachKH){
+        const rec = mapCN.get(kh.makh);
+        kh.du_cuoi = Number(rec?.du_cuoi || 0);   // gán dư cuối (mặc định 0 nếu không có)
+        }
+      
+      dsHienThi = danhSachKH;
+      renderBang(dsHienThi);
+    }
+
+    function isBlank(v){
+      if (v === null || v === undefined) return true;
+      const s = String(v).trim();
+      return s === "" || s.toUpperCase() === "EMPTY" || s.toUpperCase() === "NULL";
+    }
+    function mstHienThi(kh){
+      return isBlank(kh.mst) ? (kh.cccd || "") : kh.mst;
+    }
+
+    function taoRow(kh){
+      const duThongTin = (kh.diachi && ( !isBlank(kh.mst) || !isBlank(kh.cccd) ) && kh.tendv);
+      const colorClass = duThongTin ? "green" : "red";
+      return `
+    <tr>
+      <td class="cell-check"><input type="checkbox" class="chk ios-check" data-makh="${kh.makh || ''}"></td>
+      <td>${kh.makh || ''}</td>
+      <td>
+        <span class="status-dot ${colorClass}" 
+              data-makh="${kh.makh || ''}" 
+              title="Click để sửa khách hàng"></span>
+      </td>
+      <td>${kh.tenkh || ''}</td>
+      <td>${kh.diachi || ''}</td>
+      <td>${kh.sdt || ''}</td>
+      <td>${mstHienThi(kh)}</td>
+      <td>${kh.tendv || ''}</td>
+      <td class="num">${fmtVND.format(Number(kh.du_cuoi || 0))}</td>
+    </tr>
+  `;
+    }
+
+    function renderBang(data){
+      const tbody = $("#noiDungBang");
+      tbody.innerHTML = data.map(taoRow).join("");
+      $("#demKetQua").textContent = data.length;
+
+      // events cho checkbox
+      $$("#noiDungBang .chk").forEach(cb => cb.addEventListener("change", capNhatDem));
+
+      // click chấm trạng thái -> mở form sửa
+      $$("#noiDungBang .status-dot").forEach(dot => {
+        dot.addEventListener("click", () => {
+          const makh = dot.dataset.makh;
+          if(makh){
+            window.open(`nhapkh.html?makh=${encodeURIComponent(makh)}`,
+                        "_blank","width=700,height=640");
+          }
+        });
+      });
+
+      const master = $("#chkAll"); 
+      master.checked = false; 
+      master.indeterminate = false;
+      capNhatDem();
+    }
+
+    function capNhatDem(){
+      const chon = $$("#noiDungBang .chk:checked").length;
+      $("#demChon").textContent = chon;
+      const total = $$("#noiDungBang .chk").length;
+      const master = $("#chkAll");
+      if(!total){ master.checked=false; master.indeterminate=false; return; }
+      if(chon===0){ master.checked=false; master.indeterminate=false; }
+      else if(chon===total){ master.checked=true; master.indeterminate=false; }
+      else { master.checked=false; master.indeterminate=true; }
+    }
+
+    function locVaHienThi(){
+      const kw = $("#timKH").value.trim().toLowerCase();
+      dsHienThi = danhSachKH.filter(kh => (kh.tenkh || '').toLowerCase().includes(kw));
+      renderBang(dsHienThi);
+    }
+
+    async function xoaKhachHang(){
+      const items = Array.from($$("#noiDungBang .chk:checked"));
+      if(!items.length) return alert("Vui lòng chọn khách hàng cần xoá.");
+      if(!confirm("Bạn có chắc chắn muốn xoá những khách hàng đã chọn?")) return;
+      for (const cb of items){
+        const makh = cb.dataset.makh; if(!makh) continue;
+        const { error } = await supabase.from("khachhang").update({ daxoa:true }).eq("makh", makh);
+        if(error){ alert("Lỗi xoá "+makh+": "+error.message); break; }
+      }
+      await taiKhachHang();
+    }
+
+    function suaKhachHangTuDanhSach(){
+      const items = Array.from($$("#noiDungBang .chk:checked"));
+      if(!items.length) return alert("Vui lòng chọn 1 khách hàng để sửa.");
+      if(items.length>1) return alert("Chỉ có thể sửa 1 khách hàng mỗi lần.");
+      const makh = items[0].dataset.makh;
+      window.open(`nhapkh.html?makh=${encodeURIComponent(makh)}`,"_blank","width=700,height=640");
+    }
+
+    // ===== Xuất Excel (CSV UTF-8) =====
+    function toCSVCell(v){
+      if (v === null || v === undefined) return "";
+      const s = String(v).replace(/\r?\n/g, " ");
+      // nếu có dấu phẩy/ngoặc kép -> quote và escape "
+      if (/[",]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+      return s;
+    }
+
+    function buildCSVRows(list){
+      const header = [
+        "Mã KH","Trạng thái","Tên KH","Địa chỉ","SĐT","Mã số thuế","Tên đơn vị","Công nợ"
+      ];
+      const rows = [header];
+      for (const kh of list){
+        const du = (kh.diachi && kh.mst && kh.tendv);
+        rows.push([
+          kh.makh || "",
+          (kh.diachi && ( !isBlank(kh.mst) || !isBlank(kh.cccd) ) && kh.tendv) ? "Đủ thông tin" : "Thiếu thông tin",
+          kh.tenkh || "",
+          kh.diachi || "",
+          kh.sdt || "",
+          mstHienThi(kh),       // 👈 dùng giá trị hiển thị
+          kh.tendv || "",
+          (kh.du_cuoi ?? "")
+        ]);
+      }
+      return rows;
+    }
+
+    function downloadCSV(fileName, rows){
+      const bom = "\uFEFF"; // BOM để Excel nhận UTF-8
+      const csv = rows.map(r => r.map(toCSVCell).join(",")).join("\r\n");
+      const blob = new Blob([bom + csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function timeStampName(prefix){
+      const d = new Date();
+      const pad = n => String(n).padStart(2,"0");
+      const name = `${prefix}_${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}.csv`;
+      return name;
+    }
+
+    function xuatExcel(tuyChon = "all"){
+      let list = [];
+      if (tuyChon === "sel"){
+        const ids = Array.from($$("#noiDungBang .chk:checked")).map(cb => cb.dataset.makh);
+        if (!ids.length){ alert("Chưa chọn dòng nào."); return; }
+        const map = new Map(danhSachKH.map(k => [k.makh, k]));
+        list = ids.map(id => map.get(id)).filter(Boolean);
+      } else {
+        list = dsHienThi.length ? dsHienThi : danhSachKH;
+      }
+      const rows = buildCSVRows(list);
+      downloadCSV(timeStampName("khachhang"), rows);
+    }
+
+    // Events
+    window.addEventListener("DOMContentLoaded", ()=>{
+      taiKhachHang();
+      $("#timKH").addEventListener("input", locVaHienThi);
+      $("#btnThemKH").addEventListener("click", ()=> window.open("nhapkh.html","_blank","width=700,height=640"));
+      $("#chonHanhDong").addEventListener("change", function(){
+        if(this.value==="xoa") xoaKhachHang();
+        if(this.value==="sua") suaKhachHangTuDanhSach();
+        if(this.value==="xuat_all") xuatExcel("all");
+        if(this.value==="xuat_sel") xuatExcel("sel");
+        this.value="";
+      });
+      $("#chkAll").addEventListener("change", e=>{
+        $$("#noiDungBang .chk").forEach(c=>c.checked=e.target.checked);
+        capNhatDem();
+      });
+    });
+
+    // reload từ cửa sổ con
+    window.addEventListener("message", (e)=>{ if(e.data?.hanhDong==="taiLaiKH") taiKhachHang(); });
+  </script>
+</body>
+</html>

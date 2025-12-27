@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0a84ff" />
+
+  <!-- CSP -->
+  <!-- DEV ONLY -->
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src 'self' 'unsafe-inline' 'unsafe-eval'
+             http://localhost:5173 ws://localhost:5173
+             https://cdn.jsdelivr.net
+             https://esm.sh
+             https://unpkg.com;
+  style-src  'self' 'unsafe-inline' https://cdn.jsdelivr.net;
+  img-src    'self' data: blob:;
+  font-src   'self' data: https://cdn.jsdelivr.net;
+  connect-src 'self'
+              http://localhost:5173 ws://localhost:5173
+              https: http: wss: ws: https://*.supabase.co;
+  worker-src 'self' blob:;
+  manifest-src 'self';
+">
+  <title>Cá AMS Desktop</title>
+
+  <!-- PWA manifest & icons -->
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
+  <link rel="apple-touch-icon" href="./icons/icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png">
+
+  <style>
+    :root{
+      --bg:#f5f5f7; --card:#fff; --text:#111; --muted:#6b7280;
+      --hover:#f6f7fb; --active:#eef2ff; --activeText:#1e40af;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+
+    /* Splash */
+    #splash{position:fixed;inset:0;z-index:9999;background:#000;display:flex;align-items:center;justify-content:center;transition:opacity .6s ease,visibility .6s ease;padding-top:var(--safe-top);padding-bottom:var(--safe-bottom)}
+    #splash.hide{opacity:0;visibility:hidden}
+    #splash iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+    #splash .hint{position:absolute;left:50%;transform:translateX(-50%);bottom:16px;background:rgba(255,255,255,.75);color:#111;padding:6px 10px;border-radius:10px;font-size:12px;user-select:none}
+    #splash.saver .hint{background:rgba(255,255,255,.85)}
+    @media (prefers-reduced-motion: reduce){#splash{transition:none}}
+
+    /* Layout */
+    .wrap{display:grid;grid-template-columns:280px 1fr;gap:16px;height:100vh;padding:16px;padding-top:calc(16px + var(--safe-top));padding-bottom:calc(16px + var(--safe-bottom));transition:grid-template-columns .25s}
+    .collapsed .wrap{grid-template-columns:72px 1fr}
+
+    /* Sidebar */
+    .sidebar{background:var(--card);border-radius:18px;padding:14px;overflow:hidden;transition:padding .2s,width .25s;margin-bottom:30px}
+    .collapsed .sidebar{padding:10px}
+    .sb-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+    .sb-title{font-weight:700;cursor:pointer;padding:6px 10px;border-radius:8px;user-select:none}
+    .sb-title:hover{background:var(--hover)}
+    .back-btn,.toggle{border:0;background:transparent;cursor:pointer;color:var(--muted);padding:6px 10px;border-radius:10px;font-size:14px}
+    .back-btn:hover,.toggle:hover{background:#f3f4f6}
+    .back-btn{display:none}
+    .collapsed .sb-title,.collapsed .back-btn{display:none}
+    .collapsed .sb-head{justify-content:center}
+    .list{display:flex;flex-direction:column;gap:8px}
+    .item{display:flex;align-items:center;gap:10px;width:100%;text-align:left;cursor:pointer;padding:12px 14px;border-radius:12px;border:0;background:transparent;font-weight:600;color:var(--text)}
+    .item:hover{background:var(--hover)}
+    .item.active{background:var(--active);color:var(--activeText)}
+    .item .ic{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;font-size:18px;flex:0 0 28px}
+    .item .txt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .collapsed .item{justify-content:center;padding:10px}
+    .collapsed .item .txt{display:none}
+    .collapsed .item .ic{display:none}
+    .collapsed .item.keep-icon .ic{display:inline-flex}
+
+    /* Content */
+    .content{height:100%;margin-top:-15.5px}
+    iframe#view{width:100%;height:100%;border:0;background:var(--card);border-radius:18px}
+    .content.hr iframe{margin-top:0!important;border-radius:18px}
+
+    /* Reopen */
+    .reopen{position:fixed;left:14px;top:14px;z-index:50;display:none;align-items:center;gap:8px;padding:10px 12px;border-radius:14px;border:1px solid #e5e7eb;background:#fff;cursor:pointer}
+
+    .notice-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9998;
+    }
+    #ccNotice.popup {
+      position: relative;
+      background: #fff5f5;
+      border: 1px solid #fee2e2;
+      border-left: 6px solid #ff3b30;
+      border-radius: 16px;
+      padding: 20px 24px;
+      max-width: 380px;
+      box-shadow: 0 8px 40px rgba(0,0,0,.25);
+      text-align: center;
+      line-height: 1.5;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    #ccNotice .line1 {
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    #ccNotice .line2 {
+      color: #111;
+      font-size: 15px;
+    }
+  </style>
+  <!-- Toàn bộ JS ở file ngoài để khớp CSP -->
+  <script type="module" src="./app.js" defer></script>
+</head>
+<body>
+<body>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js', { scope: '/' });
+}
+</script>
+  <!-- Splash -->
+  <div id="splash" aria-live="polite">
+    <iframe id="splashPlayer" src="./splash.html" title="Cá Splash" tabindex="-1" aria-hidden="true"></iframe>
+    <div class="hint" id="splashHint">Nhấn để vào nhanh</div>
+  </div>
+
+  <!-- Nút mở lại menu (hiện khi ở chế độ collapsed) -->
+  <button id="btnReopen" class="reopen">☰ Mở menu</button>
+
+  <div class="wrap">
+    <aside class="sidebar" id="sidebar">
+      <div class="sb-head">
+        <div class="sb-title" id="sbTitle">Trang chủ</div>
+        <div>
+          <button id="btnBack" class="back-btn">Quay lại</button>
+          <button id="btnToggle" class="toggle" title="Thu gọn">⇤</button>
+        </div>
+        <button id="btnInstall" hidden>Cài đặt Cá AMS</button>
+      </div>
+      <nav id="menu" class="list"></nav>
+    </aside>
+    <main class="content">
+      <div class="notice-overlay" id="ccOverlay">
+        <div id="ccNotice" class="popup">
+          <div class="line1">
+            <b>🔔 Chưa chấm công hôm nay.</b>
+          </div>
+          <div class="line2">
+            <span class="muted">Đi đến 
+              <u id="gotoChamCong" style="cursor:pointer;color:#007aff;">Chấm công</u>.
+            </span>
+          </div>
+        </div>
+      </div>
+      <iframe id="view" src="./begin.html" title="view"></iframe>
+    </main>
+  </div>
+  <noscript>Ứng dụng cần bật JavaScript để hoạt động.</noscript>
+  <script>
+  const overlay = document.getElementById('ccOverlay');
+  overlay.onclick = () => overlay.remove();
+
+  // Khi click chữ "Chấm công" → mở chamcong.html
+  document.getElementById('gotoChamCong').onclick = (e) => {
+    e.stopPropagation(); // không đóng overlay
+    document.getElementById('view').src = './chamcong.html';
+    overlay.remove(); // tắt popup sau khi mở
+  };
+</script>
+</body>
+</html>

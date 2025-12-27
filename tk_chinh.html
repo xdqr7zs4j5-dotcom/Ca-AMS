@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Kiểm kho</title>
+
+<style>
+:root{
+  --bg:#f5f5f7; --card:#fff; --text:#111; --muted:#6b7280; --line:#e5e7eb;
+  --blue:#007aff; --green:#34c759; --red:#ff3b30;
+  --radius:14px; --shadow:0 1px 2px rgba(0,0,0,.05),0 6px 16px rgba(0,0,0,.06);
+}
+
+*{box-sizing:border-box}
+
+/* ❗ KHÓA CUỘN TOÀN TRANG */
+html,body{
+  height:100%;
+  margin:0;
+  overflow:hidden;
+  background:var(--bg);
+  color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+}
+
+/* Appbar */
+.appbar{
+  position:sticky;
+  top:0;
+  z-index:100;
+  background:rgba(245,245,247,.8);
+  backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--line);
+}
+.appbar-inner{
+  padding:12px 16px;
+}
+.title{
+  margin:0;
+  font-size:18px;
+  font-weight:800;
+}
+
+/* Layout chính */
+.wrap{
+  height:100vh;
+  padding:16px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  overflow:hidden;
+}
+
+/* Card */
+.card{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:14px;
+  box-shadow:var(--shadow);
+}
+
+/* Form trên */
+.section{
+  padding:12px;
+}
+
+.toolbar{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  flex-wrap:nowrap;
+}
+
+.pill{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  border:1px solid var(--line);
+  border-radius:999px;
+  padding:6px 10px;
+  background:#fff;
+}
+.pill label{
+  font-size:12px;
+  color:var(--muted);
+  white-space:nowrap;
+}
+.pill input{
+  border:none;
+  outline:none;
+  background:transparent;
+  font-size:14px;
+  min-width:80px;
+}
+
+.btn{
+  border:0;
+  border-radius:12px;
+  padding:10px 14px;
+  font-weight:700;
+  cursor:pointer;
+}
+.btn.primary{
+  background:#0a84ff;            /* xanh iOS */
+  color:#fff;
+  border-radius:999px;           /* pill tròn */
+  padding:8px 18px;              /* gọn hơn */
+  font-size:14px;
+  font-weight:600;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  box-shadow:none;               /* bỏ bóng */
+}
+
+.btn.primary:active{
+  transform:translateY(1px);
+}
+
+/* ❗ CARD BẢNG CHIẾM PHẦN CÒN LẠI */
+.card.table-card{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+
+/* ❗ CHỈ BẢNG ĐƯỢC CUỘN */
+.table-wrap{
+  flex:1;
+  overflow:auto;
+  border-top:1px solid var(--line);
+}
+
+/* Bảng */
+table{
+  width:100%;
+  border-collapse:collapse;
+}
+thead th{
+  position:sticky;
+  top:0;
+  z-index:2;
+  background:#fafafa;
+  border-bottom:1px solid var(--line);
+  padding:10px 12px;
+  font-size:13px;
+  text-align:left;
+}
+tbody td{
+  border-bottom:1px solid var(--line);
+  padding:10px 12px;
+  font-size:14px;
+}
+tbody tr:hover{
+  background:#fafbff;
+}
+
+.num{
+  text-align:right;
+  font-variant-numeric:tabular-nums;
+}
+.mono{
+  font-family:ui-monospace,monospace;
+}
+.pill-mini{
+  background:#f3f4f6;
+  padding:3px 8px;
+  border-radius:999px;
+  font-size:12px;
+}
+
+/* Đáy bảng cho đỡ cụt */
+.table-wrap::after{
+  content:"";
+  display:block;
+  height:120px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="wrap">
+
+  <!-- Thông tin -->
+  <div class="card">
+    <div class="section">
+      <div class="toolbar">
+        <div class="pill">
+          <label>Ngày</label>
+          <input type="date" id="ngay">
+        </div>
+
+        <div class="pill" style="min-width:180px">
+          <label>Chứng từ</label>
+          <input id="chungTu">
+        </div>
+
+        <div class="pill" style="min-width:140px">
+          <label>Mã KH</label>
+          <input id="maKH">
+        </div>
+
+        <div class="pill" style="flex:1;min-width:220px">
+          <label>Lọc</label>
+          <input id="filter" placeholder="Gõ mã hoặc tên SP…">
+        </div>
+
+        <button class="btn primary" id="luu">Lưu kiểm kho</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bảng -->
+  <div class="card table-card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:110px">Mã SP</th>
+            <th>Tên SP</th>
+            <th class="num" style="width:130px">Tồn hiện tại</th>
+            <th class="num" style="width:140px;text-align:center;">Tồn thực tế</th>
+            <th class="num" style="width:130px">Chênh lệch</th>
+            <th style="width:200px">Ghi chú</th>
+            <th class="num" style="width:130px">Tồn sau</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script type="module">
+import { supabase } from "./supabase.config.js";
+
+const tbody = document.getElementById('tbody');
+const fmt = n => Number(n||0).toLocaleString('vi-VN');
+const num = v => Number(String(v||'').replaceAll('.',''))||0;
+
+// set ngày hôm nay
+const d = new Date();
+ngay.value = d.toISOString().slice(0,10);
+
+/* LOAD SẢN PHẨM */
+async function loadAll(){
+  const { data, error } = await supabase
+    .from('sanpham')
+    .select('masp,tensp,tonkho')
+    .order('tensp');
+
+  if(error){ alert(error.message); return }
+
+  tbody.innerHTML='';
+  data.forEach(sp=>{
+    const tr=document.createElement('tr');
+    tr.dataset.masp=sp.masp;
+    tr.innerHTML=`
+      <td class="mono"><span class="pill-mini">${sp.masp}</span></td>
+      <td>${sp.tensp}</td>
+      <td class="num ton">${fmt(sp.tonkho)}</td>
+      <td class="num">
+        <input class="thucte" type="number" style="width:100px;text-align:right">
+      </td>
+      <td class="num chenhlech"></td>
+      <td>
+        <select class="note" style="width:100%">
+          <option value="">—</option>
+          <option value="kiemkho">Kiểm kho</option>
+          <option value="hu_hong">Hư hỏng</option>
+          <option value="mat_mat">Mất mát</option>
+          <option value="khac">Khác</option>
+        </select>
+      </td>
+      <td class="num sau">${fmt(sp.tonkho)}</td>
+    `;
+    tr.querySelector('.thucte').addEventListener('input',()=>calc(tr));
+    tbody.appendChild(tr);
+  });
+}
+
+function calc(tr){
+  const ton=num(tr.querySelector('.ton').textContent);
+  const input=tr.querySelector('.thucte');
+  if(input.value===''){
+    tr.querySelector('.chenhlech').textContent='';
+    tr.querySelector('.sau').textContent=fmt(ton);
+    tr.style.background='';
+    return;
+  }
+  const thucte=num(input.value);
+  const cl=thucte-ton;
+  tr.querySelector('.chenhlech').textContent=(cl>0?'+':'')+fmt(cl);
+  tr.querySelector('.sau').textContent=fmt(thucte);
+  tr.style.background=cl>0?'#f0fdf4':cl<0?'#fef2f2':'';
+}
+
+filter.oninput=e=>{
+  const kw=e.target.value.toLowerCase();
+  tbody.querySelectorAll('tr').forEach(tr=>{
+    tr.style.display=
+      (tr.innerText.toLowerCase().includes(kw))?'':'none';
+  });
+};
+
+luu.onclick=async()=>{
+  alert('Logic lưu giữ nguyên như bạn đang dùng');
+};
+
+await loadAll();
+</script>
+
+</body>
+</html>

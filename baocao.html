@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Báo cáo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      --bg:#f5f5f7; --card:#fff; --text:#111; --muted:#6b7280; --line:#e5e7eb;
+      --blue:#007aff; --radius:14px; --shadow:0 6px 24px rgba(0,0,0,.06);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; display:flex; flex-direction:column; background:var(--bg);
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif; color:var(--text);
+    }
+
+    .wrap { padding:16px; display:flex; flex-direction:column; gap:12px; flex:1 1 auto; min-height:0; }
+    .card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow)}
+    .filters{display:flex; flex-wrap:wrap; gap:10px; padding:12px; align-items:center}
+    .pill{display:flex; align-items:center; gap:8px; padding:4px 8px; border:1px solid var(--line);
+      border-radius:999px; background:#fff}
+    .pill label{font-size:12px; color:var(--muted)}
+    .pill input,.pill select{border:none; outline:none; font-size:14px; background:transparent; min-height:24px}
+    .pill select{min-width:180px; appearance:none; padding-right:18px;
+      background:linear-gradient(45deg,transparent 50%,var(--muted) 50%) right 8px center/8px 8px no-repeat}
+    .pill .btn{border:none; background:var(--blue); color:#fff; padding:8px 12px; border-radius:999px; font-weight:600; cursor:pointer}
+    .pill .btn:active{opacity:.85}
+    .meta{ margin-left:auto; display:flex; gap:10px; align-items:center; color:var(--muted); font-size:13px }
+    .chip{background:#eef2ff; color:#1e40af; padding:4px 10px; border-radius:999px; font-weight:700}
+
+    .kpis{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; padding:10px}
+    .kpi{background:#fff; border:1px solid var(--line); border-radius:12px; padding:12px}
+    .kpi h4{margin:0 0 4px; font-size:12px; color:var(--muted)}
+    .kpi .v{font-size:18px; font-weight:800}
+    .kpi .sub{font-size:12px; color:var(--muted)}
+
+    .table-card { flex:1 1 auto; min-height:0; padding:8px; }
+    .table-wrap{overflow:auto; border-radius:12px; border:1px solid var(--line); background:#fff; height:100%}
+    table{width:100%; border-collapse:separate; border-spacing:0}
+    thead th{position:sticky; top:0; z-index:1; background:#fafafa; border-bottom:1px solid var(--line);
+      font-size:13px; font-weight:700; color:#374151; text-align:left; padding:10px 12px}
+    th.num{ text-align:right; }
+    tbody td{border-bottom:1px solid var(--line); padding:10px 12px; vertical-align:middle; font-size:14px}
+    tbody tr:hover{background:#fafbff}
+    .num{text-align:right; font-variant-numeric:tabular-nums}
+    .badge{display:inline-block; padding:2px 8px; border:1px solid var(--line); border-radius:999px; background:#fff}
+
+    .tools{display:flex; gap:8px; padding:8px 12px}
+    .ghost{background:#fff; border:1px solid var(--line); border-radius:999px; padding:8px 12px; cursor:pointer}
+    .ghost:active{opacity:.85}
+
+    @media (max-width: 900px){ .kpis{grid-template-columns:repeat(2,1fr)} }
+    @media (max-width: 520px){ .kpis{grid-template-columns:1fr} }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="filters">
+        <div class="pill">
+          <label>Báo cáo</label>
+          <select id="view">
+            <option value="v_bc_doanhthu_ngay" selected>Doanh thu • theo ngày</option>
+            <option value="v_bc_doanhthu_thang">Doanh thu • theo tháng</option>
+            <option value="v_bc_doanhthu_nam">Doanh thu • theo năm</option>
+            <option value="v_bc_top_sanpham">Sản phẩm</option>
+            <option value="v_bc_top_khachhang">Khách hàng</option>
+            <option value="v_bc_congno_kh">Công nợ khách hàng</option>
+            <option value="v_bc_congno_ncc">Công nợ nhà cung cấp</option>
+          </select>
+        </div>
+
+        <div class="pill">
+          <label>Từ ngày</label>
+          <input type="date" id="from">
+        </div>
+        <div class="pill">
+          <label>Đến ngày</label>
+          <input type="date" id="to">
+        </div>
+
+        <div class="pill" style="min-width:260px; flex:1">
+          <label>Tìm</label>
+          <input id="q" type="text" placeholder="Tìm theo mọi cột…" style="width:100%">
+        </div>
+
+        <div class="pill"><button class="btn" id="btnLoad">Tải dữ liệu</button></div>
+        <div class="pill"><button class="btn" id="btnReset">Hôm nay</button></div>
+
+        <div class="meta">
+          <span>Kết quả:</span><span class="chip" id="count">0</span>
+        </div>
+      </div>
+
+      <!-- KPI: giữ nguyên 4 ô & id cũ để tương thích -->
+      <div class="kpis">
+        <div class="kpi"><h4 id="k_h1">Tổng giá trị</h4><div class="v" id="k_tong">—</div><div class="sub" id="k_count">— dòng</div></div>
+        <div class="kpi"><h4 id="k_h2">Trung bình</h4><div class="v" id="k_avg">—</div><div class="sub">Trong khoảng đã chọn</div></div>
+        <div class="kpi"><h4 id="k_h3">Lớn nhất</h4><div class="v" id="k_max">—</div><div class="sub">Trong khoảng đã chọn</div></div>
+        <div class="kpi"><h4 id="k_h4">Nhỏ nhất</h4><div class="v" id="k_min">—</div><div class="sub">Trong khoảng đã chọn</div></div>
+      </div>
+
+      <div class="tools">
+        <button class="ghost" id="btnCSV">Xuất CSV</button>
+        <button class="ghost" id="btnPrint">In</button>
+      </div>
+    </div>
+
+    <div class="card table-card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr id="theadRow"></tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+  import { supabase } from './supabase.config.js';
+
+  // ====== URL params -> UI (view, range, from, to, top)
+  const params = new URLSearchParams(location.search);
+  function applyQueryToUI(){
+    const v = params.get('view');
+    const r = params.get('range');
+    const f = params.get('from');
+    const t = params.get('to');
+
+    if (v && document.querySelector(`#view option[value="${v}"]`)) {
+      document.getElementById('view').value = v;
+    }
+    const fromEl = document.getElementById('from');
+    const toEl   = document.getElementById('to');
+    if (r) {
+      const today = new Date();
+      const iso = d => d.toISOString().slice(0,10);
+      if (r === 'today') {
+        fromEl.value = iso(today);
+        toEl.value   = iso(today);
+      } else if (r === 'thismonth') {
+        fromEl.value = iso(new Date(today.getFullYear(), today.getMonth(), 1));
+        toEl.value   = iso(today);
+      } else if (r === 'thisyear') {
+        fromEl.value = iso(new Date(today.getFullYear(), 0, 1));
+        toEl.value   = iso(today);
+      }
+    }
+    if (f) fromEl.value = f;
+    if (t) toEl.value   = t;
+
+    const topN = Number(params.get('top') || 0);
+    if (topN > 0) window.__TOP_N__ = topN;
+  }
+  applyQueryToUI();
+
+  // ====== ngày mặc định (nếu chưa set bởi URL)
+  (function initDates(){
+    const today = new Date();
+    const iso = d => d.toISOString().slice(0,10);
+    if (!document.getElementById('from').value) {
+      document.getElementById('from').value =
+        iso(new Date(today.getFullYear(), today.getMonth(), 1));
+    }
+    if (!document.getElementById('to').value) {
+      document.getElementById('to').value = iso(today);
+    }
+  })();
+
+  // ====== map header & bảng nguồn
+  const HEADER_MAPS = {
+    v_bc_doanhthu_ngay: {
+      ngay:"Ngày", masp:"Mã SP", tensp:"Tên sản phẩm",
+      soluong:"Số lượng", doanhthu:"Doanh thu", giavon:"Giá vốn", profit: "Lợi nhuận"
+    },
+    v_bc_doanhthu_thang: { nam:"Năm", thang:"Tháng", soluong:"Số lượng", doanhthu:"Doanh thu", giavon:"Giá vốn", profit: "Lợi nhuận" },
+    v_bc_doanhthu_nam:   { nam:"Năm", soluong:"Số lượng", doanhthu:"Doanh thu", giavon:"Giá vốn", profit: "Lợi nhuận" },
+    v_bc_top_sanpham:    { masp:"Mã SP", tensp:"Tên sản phẩm", soluong:"Số lượng", doanhthu:"Doanh thu", giavon:"Giá vốn", loinhuan:"Lợi nhuận" },
+    v_bc_top_khachhang:  { makh:"Mã KH", tenkh:"Khách hàng", soluong:"Số HĐ", doanhthu:"Doanh thu", giavon:"Giá vốn", loinhuan:"Lợi nhuận" },
+    v_bc_congno_kh:  { makh:"Mã KH", tenkh:"Khách hàng", den_ngay:"Đến ngày", du_dau:"Dư đầu" ,
+                    phat_sinh:"Phát sinh", thanh_toan:"Thanh toán", du_cuoi:"Dư cuối"},
+    v_bc_congno_ncc: { makh:"Mã NCC", tenkh:"Nhà cung cấp", den_ngay:"Đến ngày", du_dau:"Dư đầu" ,
+                    phat_sinh:"Phát sinh", thanh_toan:"Thanh toán", du_cuoi:"Dư cuối"}
+  };
+  const SOURCE_TABLE = {
+    v_bc_congno_kh:  'v_bc_congno_kh',
+    v_bc_congno_ncc: 'v_bc_congno_kh'  // cùng nguồn, lọc theo 'tuyen'
+  };
+
+  const ORDER_COLUMNS = {
+    v_bc_congno_kh:  ["makh","tenkh","den_ngay","du_dau","phat_sinh","thanh_toan","du_cuoi"],
+    v_bc_congno_ncc: ["makh","tenkh","den_ngay","du_dau","phat_sinh","thanh_toan","du_cuoi"]
+  };
+
+  const HIDDEN_KEYS = new Set(['tuyen','sohd','phanloai']);
+  const MONEY_KEYS = new Set([
+    "doanhthu","giavon","loinhuan","profit","tong","giatri","congno","no",
+    "no_dau","du_no","phai_thu","phai_tra","da_thu","da_tra","thanhtien",
+    "amount","sum","total","phat_sinh","thanh_toan","du_cuoi","du_dau"
+  ]);
+  const QTY_KEYS = new Set(["soluong","so_luong","sl","slthung","tongsl"]);
+
+  const PREFERRED_NUM_COL = {
+    v_bc_congno_kh: "du_cuoi",
+    v_bc_congno_ncc: "du_cuoi"
+  };
+
+  const titleize = k => {
+    const DICT = {ngay:"Ngày", thang:"Tháng", nam:"Năm", masp:"Mã SP", tensp:"Tên sản phẩm", makh:"Mã KH", tenkh:"Khách hàng"};
+    if (DICT[k]) return DICT[k];
+    return k.replace(/_/g,' ').replace(/\w\S*/g, s => s[0].toUpperCase()+s.slice(1));
+  };
+  const fmtDate = v => { const d = new Date(v); return isNaN(+d) ? (v ?? "") : d.toLocaleDateString('vi-VN'); };
+
+  // ====== gộp & xếp hạng (TOP)
+  const AGGREGATE_BY = {
+    v_bc_top_sanpham:  { key:"masp", keep:["masp","tensp"], sums:["soluong","doanhthu","giavon","loinhuan"], sortKey:"doanhthu" },
+    v_bc_top_khachhang:{ key:"makh", keep:["makh","tenkh"], sums:["soluong","doanhthu","giavon","loinhuan"], sortKey:"doanhthu",countInvoices:true }
+  };
+  function aggregateRows(rows, cfg){
+    if(!cfg || !rows?.length) return rows;
+    const map = new Map();
+    for(const r of rows){
+      const k = r[cfg.key]; if(k==null) continue;
+      if(!map.has(k)){
+        const base = {};
+        cfg.keep.forEach(c => base[c] = r[c]);
+        cfg.sums.forEach(c => base[c] = Number(r[c] || 0));
+        if (cfg.countInvoices) base.soluong = 1;
+        map.set(k, base);
+      }else{
+        const acc = map.get(k);
+        cfg.sums.forEach(c => acc[c] = Number(acc[c] || 0) + Number(r[c] || 0));
+        if (cfg.countInvoices) acc.soluong = (acc.soluong||0) + 1;
+      }
+    }
+    const out = Array.from(map.values());
+    const sortKey = cfg.sortKey || "doanhthu";
+    out.sort((a,b)=> (Number(b[sortKey]||0) - Number(a[sortKey]||0)));
+    return out;
+  }
+
+  // ====== trạng thái & phân trang
+  let RAW=[], NUM_COL=null, VIEW="";
+  const DEBT_VIEWS = new Set(['v_bc_congno_kh','v_bc_congno_ncc']);
+
+  const PAGE_SIZE = 500; // điều chỉnh tùy ý (500–1000)
+  const state = {
+    offset: 0,
+    total: 0,
+    loading: false,
+    done: false
+  };
+
+  const tableWrap = document.querySelector('.table-wrap');
+  const theadRow = document.getElementById('theadRow');
+  const tbody = document.getElementById('tbody');
+
+  // ====== helpers KPI
+  const setAny = (ids, val) => { for(const id of ids){ const el=document.getElementById(id); if(el){ el.textContent=val; return; } } };
+  function updateKpiTitles(view){
+    const h1 = document.getElementById('k_h1');
+    const h2 = document.getElementById('k_h2');
+    const h3 = document.getElementById('k_h3');
+    const h4 = document.getElementById('k_h4');
+    if (!h1||!h2||!h3||!h4) return;
+    if (DEBT_VIEWS.has(view)){
+      h1.textContent = 'Tổng giá trị';
+      h2.textContent = 'Trung bình';
+      h3.textContent = 'Lớn nhất';
+      h4.textContent = 'Nhỏ nhất';
+    } else {
+      h1.textContent = 'Tổng doanh thu';
+      h2.textContent = 'Tổng giá vốn';
+      h3.textContent = 'Tổng lợi nhuận';
+      h4.textContent = 'Tổng số lượng';
+    }
+  }
+
+  // ====== sự kiện UI
+  document.getElementById('btnLoad').addEventListener('click', loadData);
+  document.getElementById('btnReset').addEventListener('click', ()=>{
+    const to = document.getElementById('to').value;
+    document.getElementById('from').value = to;
+    document.getElementById('q').value = "";
+    loadData();
+  });
+  document.getElementById('q').addEventListener('input', ()=>{ const r=getRows(); renderTable(r, true); computeKPI(r); });
+  document.getElementById('btnCSV').addEventListener('click', async ()=>{
+    // đảm bảo đã nạp hết trước khi xuất
+    if (!state.done) await fetchAllPages();
+    downloadCSV(getRows());
+  });
+  document.getElementById('btnPrint').addEventListener('click', ()=> window.print());
+  document.getElementById('view').addEventListener('change', loadData);
+
+  // Infinite scroll: nạp thêm khi kéo gần cuối
+  tableWrap.addEventListener('scroll', async ()=>{
+    if (state.loading || state.done) return;
+    const nearBottom = tableWrap.scrollTop + tableWrap.clientHeight >= tableWrap.scrollHeight - 120;
+    if (nearBottom) await fetchNextPage();
+  });
+
+  // ====== tải dữ liệu (reset + nạp trang đầu)
+  async function loadData(){
+    VIEW = document.getElementById('view').value;
+    updateKpiTitles(VIEW);
+
+    RAW = [];
+    NUM_COL = null;
+    state.offset = 0;
+    state.total = 0;
+    state.loading = false;
+    state.done = false;
+
+    // reset bảng & counter
+    document.getElementById('count').textContent = '0';
+    theadRow.innerHTML = "";
+    tbody.innerHTML = "";
+
+    // nạp trang đầu
+    await fetchNextPage(true);
+  }
+
+  // Query builder theo VIEW (lọc NCC server-side nếu có thể)
+  function buildBaseQuery(){
+  const table = SOURCE_TABLE[VIEW] || VIEW;
+  let q = supabase.from(table).select('*', { count: 'exact' });
+
+  if (VIEW === 'v_bc_congno_ncc') q = q.eq('tuyen', 'NCC');
+  // KH giữ client-side nếu dữ liệu 'tuyen' không chuẩn, còn nếu chuẩn có thể: q = q.neq('tuyen','NCC');
+
+  // 🔹 Lọc ngày server-side cho công nợ (nếu có from/to)
+  const from = document.getElementById('from').value;
+  const to   = document.getElementById('to').value;
+  if ((VIEW === 'v_bc_congno_kh' || VIEW === 'v_bc_congno_ncc') && from && to) {
+    q = q.gte('den_ngay', from).lte('den_ngay', to);
+  }
+
+  return q;
+}
+
+  // Nạp 1 trang
+  async function fetchNextPage(isFirst=false){
+    if (state.loading || state.done) return;
+    state.loading = true;
+
+    try{
+      const from = state.offset;
+      const to   = state.offset + PAGE_SIZE - 1;
+
+      let q = buildBaseQuery().range(from, to);
+      const { data, error, count } = await q;
+      if (error) throw error;
+
+      if (isFirst) {
+        state.total = count ?? 0;
+      }
+      if (!data || data.length === 0) {
+        state.done = true;
+      } else {
+        RAW = RAW.concat(data);
+        state.offset += data.length;
+
+        // cập nhật đếm tổng (theo server)
+        const totalForChip = state.total || RAW.length;
+        document.getElementById('count').textContent = totalForChip.toLocaleString('vi-VN');
+
+        // đoán cột số cho KPI công nợ ngay khi có data đầu
+        if (!NUM_COL) NUM_COL = guessNumericColumn(RAW);
+
+        // render lại theo bộ lọc hiện tại
+        const rows = getRows();
+        renderTable(rows, isFirst /*rebuildHeader*/);
+        computeKPI(rows);
+
+        // nếu server báo count <= đã nạp thì kết thúc
+        if (state.offset >= (state.total || state.offset)) state.done = true;
+      }
+    }catch(err){
+      alert("Lỗi tải dữ liệu: " + err.message);
+      state.done = true;
+    }finally{
+      state.loading = false;
+    }
+  }
+
+  // Nạp hết tất cả trang (dùng cho Export CSV)
+  async function fetchAllPages(){
+    while(!state.done){
+      await fetchNextPage(false);
+    }
+  }
+
+  const VIEW_TUYEN_FILTER = {
+    v_bc_congno_ncc: (r) => String(r.tuyen || '').toLowerCase() === 'ncc',
+    v_bc_congno_kh:  (r) => String(r.tuyen || '').toLowerCase() !== 'ncc'
+  };
+
+  function getRows(){
+    let rows = RAW.slice();
+    if (VIEW_TUYEN_FILTER[VIEW]) rows = rows.filter(VIEW_TUYEN_FILTER[VIEW]);
+    if(!rows.length) return rows;
+
+    const keys = Object.keys(rows[0]);
+    const keyNgay = keys.find(k => /ngay|date/i.test(k));
+    const keyThang= keys.find(k => /^thang$/i.test(k));
+    const keyNam  = keys.find(k => /^nam$/i.test(k));
+
+    const from = document.getElementById('from').value;
+    const to   = document.getElementById('to').value;
+
+    // Công nợ: LỌC theo from/to rồi sort
+if (VIEW === 'v_bc_congno_kh' || VIEW === 'v_bc_congno_ncc') {
+  const from = document.getElementById('from').value;
+  const to   = document.getElementById('to').value;
+
+  if (from && to) {
+    const f = new Date(from);
+    const t = new Date(to + "T23:59:59");
+    rows = rows.filter(r => {
+      // view trả 'den_ngay'; fallback 'ngay' nếu cần
+      const d = new Date(r.den_ngay ?? r.ngay);
+      return isNaN(+d) ? true : (d >= f && d <= t);
+    });
+  }
+
+  rows.sort((a,b)=>{
+    const byName = String(a.tenkh ?? '').localeCompare(String(b.tenkh ?? ''), 'vi', {numeric:true, sensitivity:'base'});
+    if (byName !== 0) return byName;
+    const byCode = String(a.makh ?? '').localeCompare(String(b.makh ?? ''), 'vi', {numeric:true, sensitivity:'base'});
+    if (byCode !== 0) return byCode;
+    const da = new Date(a.den_ngay ?? a.ngay ?? 0);
+    const db = new Date(b.den_ngay ?? b.ngay ?? 0);
+    return da - db;
+  });
+  return applySearch(rows);
+}
+
+    // --- lọc theo from/to ---
+if (keyNgay && from && to) {
+  const f = new Date(from), t = new Date(to + "T23:59:59");
+  rows = rows.filter(r => { const d = new Date(r[keyNgay]); return isNaN(+d) ? true : (d >= f && d <= t); });
+
+} else if (keyThang && from && to) {
+  // HỖ TRỢ 2 TRƯỜNG HỢP:
+  // (A) thang là chuỗi ngày 'YYYY-MM-01' (không cần 'nam')
+  // (B) nam là số năm, thang là số tháng 1..12
+  const f = new Date(from), t = new Date(to);
+  const fM = new Date(f.getFullYear(), f.getMonth(), 1);
+  const tM = new Date(t.getFullYear(), t.getMonth(), 1);
+
+  const getMonthDate = (r) => {
+    const v = r[keyThang];
+
+    // (A) 'YYYY-MM' hoặc 'YYYY-MM-01'
+    if (typeof v === 'string' && /^\d{4}-\d{2}(-\d{2})?$/.test(v)) {
+      const d = new Date(v);
+      return isNaN(+d) ? null : new Date(d.getFullYear(), d.getMonth(), 1);
+    }
+
+    // (B) số: nam + thang
+    const y = Number(r[keyNam]);
+    const m = Number(v);
+    if (!Number.isNaN(y) && !Number.isNaN(m)) return new Date(y, m - 1, 1);
+
+    return null; // không biết → giữ lại (không lọc)
+  };
+
+  rows = rows.filter(r => {
+    const d = getMonthDate(r);
+    return d ? (d >= fM && d <= tM) : true;
+  });
+}
+
+    // gộp & xếp hạng cho view TOP
+    const aggCfg = AGGREGATE_BY[VIEW];
+    if (aggCfg) {
+      rows = aggregateRows(rows, aggCfg);
+      if (window.__TOP_N__ > 0) rows = rows.slice(0, window.__TOP_N__);
+    }
+
+    // sort theo ngày (nếu có)
+    if (!aggCfg && keyNgay) rows.sort((a,b)=> new Date(a[keyNgay]) - new Date(b[keyNgay]));
+
+    return applySearch(rows);
+  }
+
+  function applySearch(rows){
+    const q = document.getElementById('q').value.trim().toLowerCase();
+    if(!q) return rows;
+    return rows.filter(r => Object.values(r).some(v => String(v ?? "").toLowerCase().includes(q)));
+  }
+
+  function computeKPI(rows){
+    const moneyFmt = new Intl.NumberFormat('vi-VN');
+    const numFmt   = new Intl.NumberFormat('vi-VN');
+
+    // số dòng hiện tại theo bộ lọc
+    setAny(['k_count','k_rows'], `${rows.length.toLocaleString('vi-VN')} dòng`);
+
+    if (!rows.length){
+      setAny(['k_tong','k_dt'], '—');
+      setAny(['k_avg','k_gv'],  '—');
+      setAny(['k_max','k_ln'],  '—');
+      setAny(['k_min','k_sl'],  '—');
+      return;
+    }
+
+    if (DEBT_VIEWS.has(VIEW)){
+      if (!NUM_COL){
+        setAny(['k_tong','k_dt'], '—');
+        setAny(['k_avg','k_gv'],  '—');
+        setAny(['k_max','k_ln'],  '—');
+        setAny(['k_min','k_sl'],  '—');
+        return;
+      }
+      const arr = rows.map(r => Number(r[NUM_COL]) || 0);
+      const total = arr.reduce((a,b)=>a+b,0);
+      setAny(['k_tong','k_dt'], moneyFmt.format(total));
+      setAny(['k_avg','k_gv'],  moneyFmt.format(total / (arr.length||1)));
+      setAny(['k_max','k_ln'],  moneyFmt.format(Math.max(...arr)));
+      setAny(['k_min','k_sl'],  moneyFmt.format(Math.min(...arr)));
+    } else {
+      const pickKey = (arr, candidates) =>
+        candidates.find(k => arr.some(r => r && Object.prototype.hasOwnProperty.call(r, k)));
+
+      const REVENUE_KEYS = ["doanhthu","doanh_thu","revenue"];
+      const COGS_KEYS    = ["giavon","gia_von","cogs","cost"];
+      const PROFIT_KEYS  = ["loinhuan","loi_nhuan","profit"];
+
+      const kDT = pickKey(rows, REVENUE_KEYS);
+      const kGV = pickKey(rows, COGS_KEYS);
+      const kLN = pickKey(rows, PROFIT_KEYS);
+
+      const sumKey = (arr, key) => arr.reduce((s, r) => s + (Number(r?.[key]) || 0), 0);
+
+      const tongDT = kDT ? sumKey(rows, kDT) : null;
+      const tongGV = kGV ? sumKey(rows, kGV) : null;
+      const tongLN = kLN ? sumKey(rows, kLN) : null;
+
+      const QTY_PRIORITY = ['soluong','tongsl','sl','slthung','so_luong'];
+      const qtyKey = QTY_PRIORITY.find(k => rows.some(r => r && r.hasOwnProperty(k)));
+      const tongSL = qtyKey ? sumKey(rows, qtyKey) : null;
+
+      setAny(['k_tong','k_dt'], (tongDT==null) ? '—' : moneyFmt.format(tongDT));
+      setAny(['k_avg','k_gv'],  (tongGV==null) ? '—' : moneyFmt.format(tongGV));
+      setAny(['k_max','k_ln'],  (tongLN==null) ? '—' : moneyFmt.format(tongLN));
+      setAny(['k_min','k_sl'],  (tongSL==null) ? '—' : numFmt.format(tongSL));
+    }
+  }
+
+  function guessNumericColumn(rows){
+    if(!rows.length) return null;
+    if (PREFERRED_NUM_COL[VIEW] && Object.keys(rows[0]).includes(PREFERRED_NUM_COL[VIEW])) {
+      return PREFERRED_NUM_COL[VIEW];
+    }
+    const keys = Object.keys(rows[0]);
+    const prefer = ["doanhthu","thanhtien","giavon","loinhuan","giatri","congno",
+                    "du_cuoi","phai_thu","phai_tra","sum","total"];
+    for(const p of prefer){ if(keys.includes(p)) return p; }
+    let best=null, bestSum=-Infinity;
+    for(const k of keys){ const s = rows.reduce((a,r)=> a + (+r[k]||0), 0); if(s>bestSum){ best=k; bestSum=s; } }
+    return best;
+  }
+
+  function renderTable(rows, rebuildHeader=false){
+    // Nếu lần đầu hoặc yêu cầu rebuild header, dựng lại thead theo dữ liệu hiện có
+    if (rebuildHeader || !theadRow.childElementCount) {
+      theadRow.innerHTML = "";
+      tbody.innerHTML = "";
+      if(!rows.length){ theadRow.innerHTML = "<th>Không có dữ liệu</th>"; return; }
+
+      let cols = Object.keys(rows[0]).filter(k => !HIDDEN_KEYS.has(k));
+      if (ORDER_COLUMNS[VIEW]) {
+        const order = ORDER_COLUMNS[VIEW].filter(c => !HIDDEN_KEYS.has(c));
+        cols = order.filter(c => cols.includes(c))
+                    .concat(cols.filter(c => !order.includes(c)));
+      }
+      const headMap = HEADER_MAPS[VIEW] || {};
+      cols.forEach(k=>{
+        const th = document.createElement('th');
+        th.textContent = headMap[k] || titleize(k);
+        if (MONEY_KEYS.has(k.toLowerCase()) || QTY_KEYS.has(k.toLowerCase()) || typeof rows[0][k] === "number")
+          th.classList.add("num");
+        theadRow.appendChild(th);
+      });
+      // lưu cols vào DOM để dùng khi append
+      theadRow.dataset._cols = JSON.stringify(cols);
+    }
+
+    // render body toàn bộ (đơn giản & an toàn cho lọc/tìm). Với tập rất lớn có thể tối ưu thành append-diff.
+    const cols = JSON.parse(theadRow.dataset._cols || "[]");
+    tbody.innerHTML = "";
+    const money = new Intl.NumberFormat('vi-VN');
+    const frag = document.createDocumentFragment();
+    rows.forEach(r=>{
+      const tr = document.createElement('tr');
+      cols.forEach(k=>{
+        const td = document.createElement('td');
+        let v = r[k];
+
+        if (/ngay|date/i.test(k) || k === "den_ngay") v = fmtDate(v);
+
+        if (MONEY_KEYS.has(k.toLowerCase())) {
+          td.classList.add('num');
+          td.innerHTML = `<span class="badge">${money.format(+v||0)}</span>`;
+        } else if (QTY_KEYS.has(k.toLowerCase()) || typeof v === "number") {
+          td.classList.add('num');
+          td.textContent = (Number(v)||0).toLocaleString('vi-VN');
+        } else {
+          td.textContent = v ?? "";
+        }
+        tr.appendChild(td);
+      });
+      frag.appendChild(tr);
+    });
+    tbody.appendChild(frag);
+  }
+
+  function downloadCSV(rows){
+    if(!rows?.length){ alert("Không có dữ liệu để xuất."); return; }
+    // giữ thứ tự cột như header đang hiển thị
+    const cols = JSON.parse(theadRow.dataset._cols || "[]");
+    const esc = v => `"${String(v ?? "").replace(/"/g,'""')}"`;
+    const head = cols.map(c => esc((HEADER_MAPS[VIEW]?.[c]) || titleize(c))).join(",");
+    const body = rows.map(r => cols.map(c => esc(r[c])).join(",")).join("\n");
+    const blob = new Blob([head + "\n" + body], {type:"text/csv;charset=utf-8"});
+    const url = URL.createObjectURL(blob);
+    const a = Object.assign(document.createElement("a"), {href:url, download:`${VIEW}.csv`});
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  }
+
+  // ====== tải lần đầu
+  await loadData();
+</script>
+</body>
+</html>

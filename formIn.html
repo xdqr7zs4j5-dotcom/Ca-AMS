@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>In Hóa Đơn</title>
+<style>
+  body { font-family: Arial, sans-serif; font-size: 15px; margin: 0; padding: 16px; }
+  h2 { text-align: center; }
+  .header { display: flex; justify-content: space-between; margin-bottom: 10px; }
+  .info-table, .product-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  .info-table td { padding: 4px 8px; }
+  .product-table th, .product-table td {
+    border: 1px solid #000;
+    padding: 4px 6px;
+    text-align: left;
+  }
+  .product-table th { background: #f0f0f0; }
+  tfoot td { font-weight: bold; }
+  .page { page-break-after: always; }
+  .page:last-child { page-break-after: auto; }
+
+  /* === Sửa lỗi in lặp footer === */
+  @media print {
+    thead { display: table-row-group; }   /* coi như dòng bình thường, không lặp */
+    tfoot { display: table-row-group; }   /* không lặp footer */
+    thead tr, tfoot tr, .product-table tr {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- MẪU IN ĐƠN LẺ -->
+<div id="singleRoot" style="display:none">
+  <div class="header">
+    <div id="ctyHeader"></div>
+    <div style="text-align: right;">
+      Ngày: <span id="ngayHD"></span><br />
+      Số HĐ: <span id="soHD"></span><br />
+      <span id="ghiChuDon" style="display:none"></span>
+    </div>
+  </div>
+
+  <h2>HÓA ĐƠN BÁN HÀNG</h2>
+
+  <table class="info-table">
+    <tr>
+      <td style="display:flex; justify-content:space-between; align-items:center;">
+        <span><strong>Khách hàng:</strong> <span id="maKH"></span></span>
+        <span id="noCu"></span>
+      </td>
+    </tr>
+    <tr><td><strong>Địa chỉ:</strong> <span id="diaChi"></span></td></tr>
+    <tr><td><strong>Số điện thoại:</strong> <span id="sdt"></span></td></tr>
+  </table>
+
+  <table class="product-table">
+    <thead>
+      <tr>
+        <th>STT</th>
+        <th>Tên SP</th>
+        <th>SL</th>
+        <th>Tổng SL</th>
+        <th style="text-align:right">Đơn giá</th>
+        <th style="text-align:right">Thành tiền</th>
+        <th style="text-align:center">Ghi chú</th>
+      </tr>
+    </thead>
+    <tbody id="bangSP"></tbody>
+    <tfoot>
+      <tr id="rowTongHang">
+        <td colspan="4"></td>
+        <td style="text-align:right">Tổng tiền hàng:</td>
+        <td style="text-align:right" id="ftTongHang"></td>
+        <td></td>
+      </tr>
+      <tr id="rowChietKhau">
+        <td colspan="4"></td>
+        <td style="text-align:right">Chiết khấu:</td>
+        <td style="text-align:right" id="ftChietKhau"></td>
+        <td></td>
+      </tr>
+      <tr id="rowThue">
+        <td colspan="4"></td>
+        <td style="text-align:right">Thuế GTGT:</td>
+        <td style="text-align:right"><span id="ftThue"></span>%</td>
+        <td></td>
+      </tr>
+      <tr id="rowTienThue">
+        <td colspan="4"></td>
+        <td style="text-align:right">Tiền thuế:</td>
+        <td style="text-align:right" id="ftTienThue"></td>
+        <td></td>
+      </tr>
+      <tr id="rowTongTT">
+        <td colspan="4"></td>
+        <td style="text-align:right">Tổng thanh toán:</td>
+        <td style="text-align:right" id="ftTongTT"></td>
+        <td></td>
+      </tr>
+    </tfoot>
+  </table>
+</div>
+
+<!-- VÙNG IN HÀNG LOẠT -->
+<div id="printRoot" style="display:none"></div>
+
+<script type="module">
+import { supabase } from "./supabase.config.js";
+
+const qs = new URLSearchParams(location.search);
+const fmt = n => (Number(n)||0).toLocaleString("vi-VN");
+
+// ---------------------
+// Parse URL
+// ---------------------
+function parseInput() {
+  const mode = (qs.get("mode") || "single").toLowerCase();
+  if (mode === "multi") {
+    let raw = qs.get("sohdlist");
+    if (!raw) throw new Error("Thiếu danh sách số HĐ");
+    try { raw = JSON.parse(raw); } catch {}
+    const list = Array.isArray(raw) ? raw : String(raw).split(",");
+    const cleaned = list.map(s => String(s||"").trim()).filter(Boolean);
+    if (!cleaned.length) throw new Error("Danh sách số HĐ trống");
+    return { mode:"multi", list: cleaned };
+  }
+  const sohd = (qs.get("sohd") || "").trim();
+  if (!sohd) throw new Error("Thiếu số hóa đơn");
+  return { mode:"single", list:[sohd] };
+}
+
+// ---------------------
+// Lấy dữ liệu
+// ---------------------
+async function fetchHoaDonFull(sohd) {
+  const { data: hoadon, error: errHD } =
+    await supabase.from("hoadon").select("*").eq("sohd", sohd).single();
+  if (errHD || !hoadon) throw new Error(`Không tìm được HĐ ${sohd}`);
+
+  const { data: khach } =
+    await supabase.from("khachhang").select("*").eq("makh", hoadon.makh).single();
+
+  const { data: chitiet, error: errCT } =
+    await supabase.from("chitiet")
+      .select("*")
+      .eq("sohd", sohd)
+      .order('slthung', { nullsFirst:false, ascending:true })
+      .order('masp', { ascending:true });
+  if (errCT || !chitiet) throw new Error(`Không có chi tiết HĐ ${sohd}`);
+
+  return { hoadon, khach, chitiet };
+}
+
+async function getCtyHeaderHTML() {
+  try {
+    const { data, error } = await supabase
+      .from("taikhoan")
+      .select("name, stk, sdt_dn, dc_dn, luuy")
+      .order("id",{ascending:false}).limit(1).single();
+    if (!error && data) {
+      return `<strong>${data.name||""}</strong><br>
+              SĐT: ${(data.sdt_dn??"")}<br>
+              STK: ${(data.stk??"")}<br>
+              Địa chỉ: ${data.dc_dn||""}<br>
+              Lưu ý: ${data.luuy||""}`;
+    }
+  } catch {}
+  return `<strong>CÔNG TY</strong><br>SDT:<br>STK:`;
+}
+
+// ---------------------
+// Render multi page
+// ---------------------
+function renderOnePage({ hoadon, khach, chitiet }, ctyHTML, noCu = 0) {
+  const ck   = Number(hoadon.chietkhau||0);
+  const thue = Number(hoadon.thue||0);
+  const tienThue = ((hoadon.tongtien - ck) * thue) / 100;
+  const tongTT   = (hoadon.tongtien - ck + tienThue);
+
+  const showCK   = ck !== 0;
+  const showThue = thue !== 0;
+  const showTienThue = tienThue !== 0;
+  const showTongHang = (showCK || showThue || showTienThue);
+
+  const rows = chitiet.map((sp, i) => `
+    <tr>
+      <td>${i+1}</td>
+      <td>${sp.tensp}<br><small>${sp.ghichu ? `// ${sp.ghichu} //` : ""}</small></td>
+      <td>${sp.slthung||""}</td>
+      <td>${(sp.soluong||0)} ${sp.dvt||""}</td>
+      <td style="text-align:right">${fmt(sp.dongia||0)}</td>
+      <td style="text-align:right">${fmt((sp.dongia||0)*(sp.soluong||0))}</td>
+      <td></td>
+    </tr>`).join("");
+
+  return `
+  <section class="page">
+    <div class="header">
+      <div>${ctyHTML}</div>
+      <div style="text-align:right">
+        Ngày: ${hoadon.ngay||""}<br>
+        Số HĐ: ${hoadon.sohd||""}<br>
+        ${hoadon.ghichu ? `<span>Ghi chú: ${hoadon.ghichu}</span>` : ""}
+      </div>
+    </div>
+
+    <h2>HÓA ĐƠN BÁN HÀNG</h2>
+
+    <table class="info-table">
+      <tr>
+        <td>
+          <strong>Khách hàng:</strong> ${hoadon.makh||""}
+          <div style="float:right">
+           <span>Nợ cũ: ${fmt(noCu)}</span>
+          </div>
+        </td>
+      </tr>
+      <tr><td><strong>Địa chỉ:</strong> ${khach?.diachi||""}</td></tr>
+      <tr><td><strong>Số điện thoại:</strong> ${khach?.sdt||""}</td></tr>
+    </table>
+
+    <table class="product-table">
+      <thead>
+        <tr>
+          <th>STT</th><th>Tên SP</th><th>SL</th><th>Tổng SL</th>
+          <th style="text-align:right">Đơn giá</th>
+          <th style="text-align:right">Thành tiền</th>
+          <th style="text-align:center">Ghi chú</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+      <tfoot>
+  ${showTongHang ? `
+  <tr><td colspan="4"></td><td style="text-align:right">Tổng tiền hàng:</td>
+      <td style="text-align:right">${fmt(hoadon.tongtien||0)}</td><td></td></tr>` : ``}
+  ${showCK ? `
+  <tr><td colspan="4"></td><td style="text-align:right">Chiết khấu:</td>
+      <td style="text-align:right">${fmt(ck)}</td><td></td></tr>` : ``}
+  ${showThue ? `
+  <tr><td colspan="4"></td><td style="text-align:right">Thuế GTGT:</td>
+      <td style="text-align:right">${thue}%</td><td></td></tr>` : ``}
+  ${showTienThue ? `
+  <tr><td colspan="4"></td><td style="text-align:right">Tiền thuế:</td>
+      <td style="text-align:right">${fmt(tienThue)}</td><td></td></tr>` : ``}
+  <tr><td colspan="4"></td><td style="text-align:right">Tổng thanh toán:</td>
+      <td style="text-align:right">${fmt(tongTT)}</td><td></td></tr>
+</tfoot>
+    </table>
+  </section>`;
+}
+
+// ---------------------
+// In đơn lẻ (giữ nguyên logic cũ)
+// ---------------------
+async function taiThongTinTaiKhoan() {
+  document.getElementById("ctyHeader").innerHTML = await getCtyHeaderHTML();
+}
+
+async function taiDuLieuIn_DONLE(sohd) {
+  document.getElementById("soHD").textContent = sohd;
+
+  const { hoadon, khach, chitiet } = await fetchHoaDonFull(sohd);
+
+  // LẤY NỢ CŨ (du_dau) CHO CHÍNH HÓA ĐƠN NÀY
+const { data: noCuData, error: eNoCu } = await supabase
+  .from("v_bc_congno_kh")
+  .select("du_dau")
+  .eq("makh", hoadon.makh)
+  .eq("sohd", hoadon.sohd)         // bám đúng số HĐ
+  .maybeSingle();                  // trả về 0 hoặc 1 hàng
+
+const noCu = noCuData?.du_dau ?? 0;
+document.getElementById("noCu").textContent = `Nợ cũ: ${fmt(noCu)}`;
+
+  // Ghi chú
+  const ghiChuEl = document.getElementById("ghiChuDon");
+  const gc = (hoadon?.ghichu ?? "").toString().trim();
+  if (gc) { ghiChuEl.textContent = "Ghi chú: " + gc; ghiChuEl.style.display = "inline"; }
+
+  // Khách hàng
+  document.getElementById("maKH").textContent = hoadon.makh || "";
+  document.getElementById("diaChi").textContent = khach?.diachi || "";
+  document.getElementById("sdt").textContent = khach?.sdt || "";
+
+  // Thông tin đơn
+  document.getElementById("ngayHD").textContent = hoadon.ngay || "";
+  document.getElementById("ftTongHang").textContent = fmt(hoadon.tongtien || 0);
+  document.getElementById("ftChietKhau").textContent = fmt(hoadon.chietkhau || 0);
+  document.getElementById("ftThue").textContent = hoadon.thue || 0;
+  const tienThue = ((hoadon.tongtien - (hoadon.chietkhau||0)) * (hoadon.thue || 0)) / 100;
+  document.getElementById("ftTienThue").textContent = fmt(tienThue);
+  const tongTT = (hoadon.tongtien - (hoadon.chietkhau||0) + tienThue);
+  document.getElementById("ftTongTT").textContent = fmt(tongTT);
+
+  // Ẩn dòng nếu 0
+  const allZero =
+  ((hoadon.chietkhau||0) === 0) &&
+  ((hoadon.thue||0) === 0) &&
+  (tienThue === 0);
+
+  if (allZero) document.getElementById("rowTongHang").style.display = "none";
+
+  if ((hoadon.chietkhau || 0) === 0) document.getElementById("rowChietKhau").style.display = "none";
+  if ((hoadon.thue || 0) === 0)      document.getElementById("rowThue").style.display      = "none";
+  if (tienThue === 0)                document.getElementById("rowTienThue").style.display  = "none";
+
+  // Sản phẩm
+  const tbody = document.getElementById("bangSP");
+  tbody.innerHTML = chitiet.map((sp, i) => `
+    <tr>
+      <td>${i + 1}</td>
+      <td>${sp.tensp}<br/><small>${sp.ghichu ? `// ${sp.ghichu} //` : ""}</small></td>
+      <td>${sp.slthung  || ""}</td>
+      <td>${(sp.soluong || 0)} ${sp.dvt || ""}</td>
+      <td style="text-align:right">${fmt(sp.dongia || 0)}</td>
+      <td style="text-align:right">${fmt((sp.dongia || 0) * (sp.soluong || 0))}</td>
+      <td></td>
+    </tr>`).join("");
+
+  setTimeout(() => window.print(), 300);
+  window.onafterprint = () => window.close();
+}
+
+// ---------------------
+// Khởi động
+// ---------------------
+document.addEventListener("DOMContentLoaded", async () => {
+  try {
+    const info = parseInput();
+    if (info.mode === "multi") {
+      const ctyHTML = await getCtyHeaderHTML();
+      let html = "";
+      for (const sohd of info.list) {
+        const full = await fetchHoaDonFull(sohd);
+        const { data: noCuData } = await supabase
+          .from("v_bc_congno_kh")
+          .select("du_dau")
+          .eq("makh", full.hoadon.makh)
+          .eq("sohd", full.hoadon.sohd)
+          .maybeSingle();
+        const noCu = noCuData?.du_dau ?? 0;
+        html += renderOnePage(full, ctyHTML, noCu);
+      }
+      document.getElementById("printRoot").innerHTML = html;
+      document.getElementById("printRoot").style.display = "block";
+      setTimeout(() => window.print(), 300);
+      window.onafterprint = () => window.close();
+    } else {
+      document.getElementById("singleRoot").style.display = "block";
+      await taiThongTinTaiKhoan();
+      await taiDuLieuIn_DONLE(info.list[0]);
+    }
+  } catch (e) {
+    alert(e.message || "Thiếu số hóa đơn");
+  }
+});
+</script>
+</body>
+</html>

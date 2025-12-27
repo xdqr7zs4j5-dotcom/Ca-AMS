@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Dashboard (KPI • KH • Sản phẩm • Ghi chú – localStorage)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      --bg:#f5f5f7; --card:#fff; --text:#111; --muted:#6b7280; --line:#e5e7eb;
+      --blue:#007aff; --red:#ff3b30; --green:#34c759; --yellow:#f59e0b;
+      --radius:14px; --shadow:0 6px 24px rgba(0,0,0,.06);
+
+      /* === Chiều cao từng card (desktop) === */
+      --gap:8px;                  /* khoảng cách giữa card */
+      --pad:16px 8px 0px 8px;     /* padding ngoài của .wrap */
+      --h-kpi:   16vh;            /* 📈 Doanh thu & Trạng thái */
+      --h-kh:    28vh;            /* 👥 Khách hàng */
+      --h-sp:    10vh;            /* 📦 Sửa nhanh SP */
+      --h-notes: 40vh;            /* 📝 Ghi chú nhanh */
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; background:var(--bg);
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:var(--text);
+      overflow:hidden; /* Màn hình không cuộn */
+    }
+
+    /* Grid 4 hàng */
+    .wrap{
+      height:calc(100vh - 2*var(--pad));
+      padding:var(--pad);
+      display:grid;
+      grid-template-rows: var(--h-kpi) var(--h-kh) var(--h-sp) var(--h-notes);
+      gap:var(--gap);
+      overflow:hidden;
+    }
+
+    .card{
+      background:var(--card); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow);
+      display:flex; flex-direction:column; min-height:0; overflow:hidden;
+    }
+
+    /* Thanh tiêu đề + điều khiển trên cùng 1 hàng */
+    .section-bar{
+      display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+      padding:12px 14px; border-bottom:1px solid var(--line);
+      flex:0 0 auto;
+    }
+    .section-bar .title{ font-weight:800; margin-right:auto }
+
+    .section{padding:12px}
+    .card-body{flex:1 1 auto; min-height:0; overflow:auto}
+    .card-body::-webkit-scrollbar{ width:8px; height:8px }
+    .card-body::-webkit-scrollbar-thumb{ background:#d1d5db; border-radius:999px }
+    .card-body::-webkit-scrollbar-track{ background:transparent }
+
+    /* KPI */
+    .kpi-wrap{display:grid; grid-template-columns:repeat(3,1fr); gap:12px; padding:12px}
+    .kpi{border:1px solid var(--line); border-radius:12px; padding:14px}
+    .kpi .label{font-size:12px; color:var(--muted)}
+    .kpi .value{font-size:28px; font-weight:800; margin-top:6px}
+    .chips{display:flex; gap:6px; flex-wrap:wrap; margin-top:8px}
+    .chip-mini{font-size:12px; padding:4px 8px; border-radius:999px; color:#fff}
+    .chip-mini.red{background:var(--red)}
+    .chip-mini.yellow{background:var(--yellow)}
+    .chip-mini.green{background:var(--green)}
+
+    /* Inputs & buttons */
+    .pill{display:flex; align-items:center; gap:8px; padding:6px 10px; border:1px solid var(--line); border-radius:999px; background:#fff}
+    .pill label{font-size:12px; color:var(--muted); white-space:nowrap}
+    .pill input,.pill select,.pill textarea{flex: 1; border:none; outline:none; font-size:14px; background:transparent; min-height:24px;width: 100%;  }
+    .btn{border:none; background:var(--blue); color:#fff; padding:8px 12px; border-radius:999px; font-weight:600; cursor:pointer}
+    .btn:active{opacity:.85}
+    .btn-ghost{background:#fff; color:#1f2937; border:1px solid var(--line);
+      padding:8px 12px; border-radius:999px; font-weight:600; cursor:pointer; box-shadow:0 1px 0 rgba(0,0,0,.02)}
+    .btn-ghost:hover{background:#f8fafc}
+    .btn-ghost.primary{color:var(--blue); border-color:#dbeafe}
+    .btn-ghost.small{padding:6px 10px; font-weight:600}
+
+    /* Dùng cho thanh công cụ: cho input tự giãn khi hẹp */
+    .toolbar-grow{ flex:1 1 260px; min-width:240px }
+
+    /* Đơn gần đây */
+    .orders{display:grid; gap:10px}
+    .order{display:flex; justify-content:space-between; gap:12px; align-items:center;
+           border:1px solid var(--line); border-radius:12px; padding:10px; background:#fff}
+    .meta{color:var(--muted); font-size:12px; padding-left:12px;}
+    .pay{display:flex; gap:8px; align-items:center}
+    .money{height:34px; padding:6px 10px; border:1px solid var(--line); border-radius:10px; min-width:160px; text-align:right}
+    .status-btn{border:0; border-radius:999px; padding:4px 10px; font-size:12px; color:#fff; cursor:pointer}
+    .status-btn.chua{background:var(--red)}
+    .status-btn.dang{background:var(--yellow)}
+    .status-btn.da{background:var(--green)}
+    .status-btn:disabled{opacity:.65; cursor:wait}
+
+    /* Bảng chung (ghi chú dùng lại) */
+    .table-wrap{height:100%; overflow:auto; border-radius:12px; border:1px solid var(--line); background:#fff}
+    table{width:100%; border-collapse:separate; border-spacing:0}
+    thead th{position:sticky; top:0; z-index:1; background:#fafafa; border-bottom:1px solid var(--line); font-size:13px; font-weight:700; color:#374151; text-align:left; padding:10px 12px}
+    tbody td{border-bottom:1px solid var(--line); padding:10px 12px; vertical-align:middle; font-size:14px}
+    tbody tr:hover{background:#fafbff}
+    .right{text-align:right}
+    /* === Ghi chú dạng 3 cột, mỗi ghi chú 1 hàng === */
+    .notes-grid{
+      display:grid;
+      grid-template-columns:repeat(3, minmax(0,1fr));
+      gap:10px;
+    }
+    .note-row{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      border:1px solid var(--line);
+      border-radius:12px;
+      background:#fff;
+      padding:10px 12px;
+      min-height:44px;
+    }
+    .note-time{
+      font-size:13px;
+      color:#374151;
+      font-weight:600;
+      white-space:nowrap;
+      flex-shrink:0;
+    }
+    .note-content{
+      flex:1;
+      font-size:14px;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+    .note-actions button{
+      white-space:nowrap;
+    }
+    /* Mobile */
+    @media (max-width: 900px){
+      :root{
+        --h-kpi: 28vh;
+        --h-kh:  30vh;
+        --h-sp:  22vh;
+        --h-notes: calc(100vh - 2*var(--pad) - 3*var(--gap) - var(--h-kpi) - var(--h-kh) - var(--h-sp));
+      }
+      .kpi-wrap{grid-template-columns:1fr}
+    }
+    @media (max-width: 1200px){
+      .notes-grid{ grid-template-columns:repeat(2, minmax(0,1fr)); }
+    }
+    @media (max-width: 700px){
+      .notes-grid{ grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <!-- 1) Doanh thu + trạng thái -->
+    <div class="card">
+      <div class="card-body">
+        <div class="kpi-wrap">
+          <div class="kpi">
+            <div class="label">Hôm nay</div>
+            <div class="value" id="revToday">0</div>
+            <div class="chips">
+              <span class="chip-mini red">Chưa <b id="stTodayChua">0</b></span>
+              <span class="chip-mini yellow">Đang <b id="stTodayDang">0</b></span>
+              <span class="chip-mini green">Đã <b id="stTodayDa">0</b></span>
+            </div>
+          </div>
+          <div class="kpi">
+            <div class="label">Hôm qua</div>
+            <div class="value" id="revYesterday">0</div>
+            <div class="chips">
+              <span class="chip-mini red">Chưa <b id="stYestChua">0</b></span>
+              <span class="chip-mini yellow">Đang <b id="stYestDang">0</b></span>
+              <span class="chip-mini green">Đã <b id="stYestDa">0</b></span>
+            </div>
+          </div>
+          <div class="kpi">
+            <div class="label">Tháng này</div>
+            <div class="value" id="revMonth">0</div>
+            <div class="chips">
+              <span class="chip-mini red">Chưa <b id="stMonthChua">0</b></span>
+              <span class="chip-mini yellow">Đang <b id="stMonthDang">0</b></span>
+              <span class="chip-mini green">Đã <b id="stMonthDa">0</b></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2) Khách hàng -->
+    <div class="card">
+      <div class="section-bar">
+        <div class="title">👥 Khách hàng</div>
+
+        <div class="pill toolbar-grow">
+          <label>Tìm KH</label>
+          <input id="qKH" list="dsKH" placeholder="Nhập mã hoặc tên…" style="width:100%">
+          <datalist id="dsKH"></datalist>
+        </div>
+
+        <div class="pill"><label>Công nợ</label><span id="khCongNo" style="font-weight:700">0</span></div>
+        <button id="btnViewKH" class="btn-ghost primary">Xem KH</button>
+        <button id="btnAllOrders" class="btn-ghost primary">Đơn gần đây</button>
+      </div>
+
+      <div class="card-body" style="padding-top:8px">
+        <div class="section meta">Đơn gần đây của <b id="khNameLabel">—</b></div>
+        <div id="khOrders" class="orders" style="margin-top:8px"></div>
+      </div>
+    </div>
+
+    <!-- 3) Sửa nhanh SP -->
+    <div class="card">
+      <div class="section-bar">
+        <div class="title">📦 Sản phẩm</div>
+
+        <div class="pill toolbar-grow">
+          <label>Tên/Mã SP</label>
+          <input id="qSP" list="dsSP" placeholder="Nhập tên hoặc mã…" style="width:100%">
+          <datalist id="dsSP"></datalist>
+        </div>
+
+        <div class="pill" style="min-width:180px">
+          <label>Đơn giá</label>
+          <input id="spDonGia" placeholder="0" style="width:100%; text-align:right">
+        </div>
+
+        <div class="pill" style="min-width:200px">
+          <label>Quy cách</label>
+          <input id="spQuyCach" placeholder="VD: 24 gói/thùng" style="width:100%">
+        </div>
+
+        <button id="btnSaveSP" class="btn-ghost primary">Lưu</button>
+      </div>
+
+      <div class="card-body" style="padding-top:0">
+        <div class="section meta" id="spMeta" style="padding-top:8px">—</div>
+      </div>
+    </div>
+
+    <!-- 4) Ghi chú nhanh (localStorage) -->
+    <div class="card">
+      <div class="section-bar">
+        <div class="title">📝 Ghi chú</div>
+
+        <div class="pill toolbar-grow">
+          <input id="noteInput" placeholder="Nhập ghi chú">
+        </div>
+
+        <button id="btnAddNote" class="btn-ghost primary" title="Ctrl/Cmd + Enter để lưu">Lưu</button>
+        <button id="btnExportNotes" class="btn-ghost small">Xuất</button>
+        <button id="btnClearNotes" class="btn-ghost small" title="Xoá tất cả">Xoá hết</button>
+      </div>
+
+      <div class="card-body" style="padding:12px">
+        <div class="notes-grid" id="notesGrid"></div>
+      </div>
+    </div>
+  </div>
+  <script type="module">
+    import { supabase } from './supabase.config.js'; // vẫn dùng cho KPI/KH/SP
+
+    const $ = s=>document.querySelector(s);
+    const moneyVN = n => (Number(n)||0).toLocaleString('vi-VN');
+    const parseMoneyVN = s => {
+      const cleaned = String(s??'').trim().replace(/\s/g,'').replace(/[^\d,.-]/g,'').replace(/\./g,'').replace(/,/,'.');
+      const v = Number(cleaned); return Number.isFinite(v)?v:0;
+    };
+    function bindMoneyInput(el){
+      if(!el) return;
+      const fmt = ()=>{ const v=parseMoneyVN(el.value); el.value = v?moneyVN(v):''; };
+      el.addEventListener('input', ()=>{ fmt(); el.setSelectionRange(el.value.length, el.value.length); });
+      el.addEventListener('blur', fmt); fmt();
+    }
+
+    const todayStr = (d=new Date()) => d.toISOString().slice(0,10);
+    const addDays = (date, n)=>{ const d=new Date(date); d.setDate(d.getDate()+n); return d; };
+    function monthRange(d=new Date()){ const y=d.getFullYear(), m=d.getMonth(); const s=new Date(y,m,1), e=new Date(y,m+1,1); return {start:s.toISOString().slice(0,10), end:e.toISOString().slice(0,10)}; }
+
+    // ===== 1) Doanh thu từ VIEW =====
+    async function loadRevenue(){
+      const today = todayStr();
+      const yesterday = todayStr(addDays(new Date(), -1));
+      const ym = new Date().toISOString().slice(0,7); // "YYYY-MM"
+
+      async function getDay(ngay){
+        const { data, error } = await supabase.from('v_bc_doanhthu_ngay').select('*').eq('ngay', ngay).limit(1);
+        if (error){ console.error(error); return {sum:0,cnt:0}; }
+        const row = (data||[])[0] || {};
+        const sum = Number(row.doanhthu ?? row.tong ?? row.tongtien ?? row.sum ?? 0);
+        const cnt = Number(row.so_don ?? row.count ?? row.sodon ?? 0);
+        return { sum, cnt };
+      }
+      function rangeFromYM(ym){
+        const [y,m] = ym.split('-').map(Number);
+        const s = new Date(y, m-1, 1);
+        const e = new Date(y, m,   1);
+        const fmt = d => d.toISOString().slice(0,10);
+        return { start: fmt(s), end: fmt(e) };
+      }
+      async function getMonth(ym){
+        let { data, error } = await supabase
+          .from('v_bc_doanhthu_thang')
+          .select('doanhthu, giavon, profit')
+          .eq('label', ym)
+          .limit(1);
+        if (error) console.error('[getMonth] view_thang error:', error);
+        let row = (data || [])[0];
+
+        if (!row) {
+          const { start, end } = rangeFromYM(ym);
+          const r2 = await supabase
+            .from('v_bc_doanhthu_ngay')
+            .select('doanhthu, giavon, profit')
+            .gte('ngay', start)
+            .lt('ngay', end);
+          if (r2.error) {
+            console.error('[getMonth] fallback error:', r2.error);
+            return { sum:0, giavon:0, profit:0, cnt:0 };
+          }
+          const list = r2.data || [];
+          const sum    = list.reduce((a,x)=>a + Number(x.doanhthu||0), 0);
+          const giavon = list.reduce((a,x)=>a + Number(x.giavon||0),    0);
+          const profit = list.reduce((a,x)=>a + Number(x.profit||0),    0);
+          return { sum, giavon, profit, cnt: list.length };
+        }
+        return {
+          sum:    Number(row.doanhthu || 0),
+          giavon: Number(row.giavon   || 0),
+          profit: Number(row.profit   || 0),
+          cnt: 0
+        };
+      }
+
+      const [t, y, m] = await Promise.all([ getDay(today), getDay(yesterday), getMonth(ym) ]);
+      $('#revToday').textContent = moneyVN(t.sum);
+      $('#revYesterday').textContent = moneyVN(y.sum);
+      $('#revMonth').textContent = moneyVN(m.sum);
+    }
+
+    // ===== 2) Trạng thái =====
+    async function statusCountsRange(startIncl, endExcl){
+      const qBase = { count:'exact', head:true };
+      const chua = supabase.from('hoadon').select('*', qBase).gte('ngay', startIncl).lt('ngay', endExcl).or('tinhtrang.is.null,tinhtrang.eq.chua,tinhtrang.eq.');
+      const dang = supabase.from('hoadon').select('*', qBase).gte('ngay', startIncl).lt('ngay', endExcl).eq('tinhtrang','dang');
+      const da   = supabase.from('hoadon').select('*', qBase).gte('ngay', startIncl).lt('ngay', endExcl).eq('tinhtrang','da');
+      const [c1,c2,c3] = await Promise.all([chua,dang,da]);
+      return { chua:c1.count||0, dang:c2.count||0, da:c3.count||0 };
+    }
+    async function loadStatuses(){
+      const today = todayStr();
+      const tStart = today, tEnd = todayStr(addDays(new Date(today), 1));
+      const yStart = todayStr(addDays(new Date(), -1)), yEnd = today;
+      const { start:mStart, end:mEnd } = monthRange();
+
+      const [stT, stY, stM] = await Promise.all([
+        statusCountsRange(tStart, tEnd),
+        statusCountsRange(yStart, yEnd),
+        statusCountsRange(mStart, mEnd),
+      ]);
+
+      $('#stTodayChua').textContent = stT.chua; $('#stTodayDang').textContent = stT.dang; $('#stTodayDa').textContent = stT.da;
+      $('#stYestChua').textContent  = stY.chua; $('#stYestDang').textContent  = stY.dang; $('#stYestDa').textContent  = stY.da;
+      $('#stMonthChua').textContent = stM.chua; $('#stMonthDang').textContent = stM.dang; $('#stMonthDa').textContent = stM.da;
+    }
+
+    // ===== 3) KH + đơn gần đây (giữ nguyên Supabase) =====
+    const khCache = new Map();
+    async function loadKHList(){
+      const { data, error } = await supabase.from('khachhang').select('makh,tenkh');
+      if (error){ console.error(error); return; }
+      const dl = document.createElement('datalist'); dl.id='dsKH';
+      (data||[]).forEach(k=>{
+        khCache.set(k.makh, k);
+        const opt = document.createElement('option'); opt.value = `${k.makh} — ${k.tenkh}`; dl.appendChild(opt);
+      });
+      const old = document.getElementById('dsKH'); if(old) old.remove();
+      document.body.appendChild(dl);
+      $('#qKH').setAttribute('list','dsKH');
+    }
+
+    async function onPickKH(){
+      const raw = $('#qKH').value.trim(); if (!raw) return;
+      const makh = raw.split('—')[0].trim();
+      const kh = khCache.get(makh);
+      $('#khNameLabel').textContent = kh ? kh.tenkh : '—';
+
+      const { data, error } = await supabase
+        .from('hoadon')
+        .select('sohd, ngay, tongtien, thanhtoan, tinhtrang')
+        .eq('makh', makh)
+        .order('ngay', { ascending:false })
+        .limit(8);
+      if (error){ console.error(error); return; }
+
+      const box = $('#khOrders'); box.innerHTML='';
+      (data||[]).forEach(h=>{
+        const div = document.createElement('div'); div.className='order';
+        const curr = (h.tinhtrang || 'chua');
+        const tag = `<button class="status-btn ${curr}" data-status="${curr}" data-sohd="${h.sohd}" title="Nhấp để chuyển trạng thái">${curr}</button>`;
+        div.innerHTML = `
+          <div>
+            <div><b>${h.sohd}</b> • ${moneyVN(h.tongtien)} đ</div>
+            <div class="meta">${h.ngay} ${tag}</div>
+          </div>
+          <div class="pay">
+            <input type="text" class="money" placeholder="Đã thanh toán" value="${moneyVN(Number(h.thanhtoan||0))}" data-sum="${Number(h.tongtien||0)}" id="pay-${h.sohd}">
+            <button class="btn-ghost primary" data-act="pay" data-sohd="${h.sohd}">Thanh toán</button>
+            <button class="btn-ghost" data-act="edit" data-sohd="${h.sohd}">Sửa</button>
+            <button class="btn-ghost" data-act="print" data-sohd="${h.sohd}">In</button>
+          </div>`;
+        box.appendChild(div);
+        bindMoneyInput(div.querySelector(`#pay-${h.sohd}`));
+      });
+    }
+
+    $('#qKH').addEventListener('change', onPickKH);
+    $('#btnAllOrders').addEventListener('click', ()=> parent?.document?.getElementById('view')?.setAttribute('src','danhsachxk.html'));
+    $('#btnViewKH').addEventListener('click', ()=> parent?.document?.getElementById('view')?.setAttribute('src','danhsachkh.html'));
+
+    document.getElementById('khOrders')?.addEventListener('click', async (e)=>{
+      const btn = e.target.closest('button'); if(!btn) return;
+
+      const setChip = (chip, status, ip, paid)=>{
+        if(ip) ip.value = moneyVN(paid);
+        chip.dataset.status = status; chip.textContent = status;
+        chip.classList.remove('chua','dang','da'); chip.classList.add(status);
+      };
+
+      // toggle chip
+      if (btn.classList.contains('status-btn')){
+        const sohd = btn.dataset.sohd;
+        const item = btn.closest('.order');
+        const ip = item.querySelector(`#${window.CSS?.escape ? CSS.escape(`pay-${sohd}`) : `pay-${sohd}`}`);
+        const tong = Number(ip?.dataset.sum || 0);
+        const curr = (btn.dataset.status || 'chua').toLowerCase();
+        const nextStatus = (curr === 'da') ? 'chua' : 'da';
+        const nextPaid = (nextStatus === 'da') ? tong : 0;
+        try{
+          btn.disabled = true;
+          const { error } = await supabase.from('hoadon')
+            .update({ thanhtoan: nextPaid, tinhtrang: nextStatus })
+            .eq('sohd', sohd);
+          if (error) throw error;
+          setChip(btn, nextStatus, ip, nextPaid);
+        }catch(err){ console.error(err); alert('Cập nhật thất bại'); }
+        finally{ btn.disabled = false; }
+        return;
+      }
+
+      // pay / edit / print
+      const sohd = btn.dataset.sohd;
+      if (btn.dataset.act==='pay'){
+        const ip = document.getElementById(`pay-${sohd}`);
+        const amt = parseMoneyVN(ip.value), sum = Number(ip.dataset.sum||0);
+        const nextStatus = amt >= sum ? 'da' : (amt>0 ? 'dang' : 'chua');
+        try{
+          btn.disabled = true;
+          const { error } = await supabase.from('hoadon')
+            .update({ thanhtoan: amt, tinhtrang: nextStatus })
+            .eq('sohd', sohd);
+          if (error) throw error;
+          const chip = btn.closest('.order').querySelector('.status-btn');
+          if (chip) { chip.dataset.status = nextStatus; chip.textContent = nextStatus; chip.classList.remove('chua','dang','da'); chip.classList.add(nextStatus); }
+          ip.value = moneyVN(amt);
+          alert('Đã cập nhật thanh toán');
+        }catch(err){ console.error(err); alert('Cập nhật thanh toán thất bại'); }
+        finally{ btn.disabled = false; }
+        return;
+      }
+      if (btn.dataset.act==='edit'){ parent?.document?.getElementById('view')?.setAttribute('src', `ghihd.html?sohd=${encodeURIComponent(sohd)}`); return; }
+      if (btn.dataset.act==='print'){ parent?.document?.getElementById('view')?.setAttribute('src', `formin.html?sohd=${encodeURIComponent(sohd)}`); return; }
+    });
+
+    // ===== 4) SP nhanh (giữ nguyên Supabase) =====
+    const spCache = new Map(); let spPicked=null;
+    async function loadSPList(){
+      const { data, error } = await supabase.from('sanpham').select('masp,tensp,tonkho,dvt,dongia,quycach');
+      if (error){ console.error(error); return; }
+      const dl = document.createElement('datalist'); dl.id='dsSP';
+      spCache.clear();
+      (data||[]).forEach(sp=>{
+        spCache.set((sp.tensp||'').toLowerCase(), sp);
+        spCache.set((sp.masp||'').toLowerCase(), sp);
+        const opt = document.createElement('option'); opt.value = sp.tensp; dl.appendChild(opt);
+      });
+      const old = document.getElementById('dsSP'); if(old) old.remove();
+      document.body.appendChild(dl);
+      $('#qSP').setAttribute('list','dsSP');
+    }
+    function bindSP(sp){
+      spPicked = sp;
+      $('#spDonGia').value = moneyVN(Number(sp?.dongia||0));
+      $('#spQuyCach').value = sp?.quycach || '';
+      $('#spMeta').textContent = sp ? `Mã: ${sp.masp} • ĐVT: ${sp.dvt||'-'}` : '—';
+    }
+    $('#qSP').addEventListener('change', ()=>{
+      const q = $('#qSP').value.trim().toLowerCase();
+      bindSP(spCache.get(q)||null);
+    });
+    $('#btnSaveSP').addEventListener('click', async ()=>{
+      if(!spPicked){ alert('Chọn sản phẩm trước'); return; }
+      const payload = { dongia: parseMoneyVN($('#spDonGia').value||0), quycach: $('#spQuyCach').value.trim() };
+      const { error } = await supabase.from('sanpham').update(payload).eq('masp', spPicked.masp);
+      if (error){ console.error(error); alert('Lưu thất bại'); return; }
+      alert('Đã lưu sản phẩm!');
+    });
+
+    // ===== 5) GHI CHÚ NHANH – localStorage =====
+    const NOTES_KEY = 'ca_notes_v1'; // đổi version nếu muốn reset format
+    const fmtTimeVN = (ts) => {
+      const d = ts ? new Date(ts) : new Date();
+      return d.toLocaleString('vi-VN', {
+        hour: '2-digit', minute: '2-digit',
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour12: false
+      }).replace(',', '');
+    };
+    const uuid = () => (crypto?.randomUUID ? crypto.randomUUID() :
+      'xxxxxx'.replace(/x/g, ()=> (Math.random()*36|0).toString(36)));
+
+    function getNotes(){
+      try{ return JSON.parse(localStorage.getItem(NOTES_KEY) || '[]'); }
+      catch{ return []; }
+    }
+    function setNotes(list){
+      localStorage.setItem(NOTES_KEY, JSON.stringify(list));
+    }
+
+    function renderNotes(){
+  const data = getNotes().sort((a,b)=> new Date(b.created_at) - new Date(a.created_at));
+  const grid = document.getElementById('notesGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  data.forEach(n=>{
+    const row = document.createElement('div');
+    row.className = 'note-row';
+    row.innerHTML = `
+      <div class="note-time">${fmtTimeVN(n.created_at)}</div>
+      <div class="note-content">${String(n.content||'')
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+      <div class="note-actions">
+        <button class="btn-ghost small" data-del="${n.id}">Xoá</button>
+      </div>
+    `;
+    grid.appendChild(row);
+  });
+
+  grid.onclick = (e)=>{
+    const btn = e.target.closest('button[data-del]');
+    if(!btn) return;
+    const id = btn.dataset.del;
+    const list = getNotes().filter(x=>x.id!==id);
+    setNotes(list);
+    renderNotes();
+  };
+}
+
+    function addNote(){
+      const ip = document.getElementById('noteInput');
+      const content = (ip?.value||'').trim();
+      if (!content){ ip?.focus(); return; }
+      const list = getNotes();
+      list.push({ id: uuid(), content, created_at: new Date().toISOString() });
+      setNotes(list);
+      ip.value = '';
+      ip.focus();
+      renderNotes();
+    }
+
+    function exportNotes(){
+      const blob = new Blob([localStorage.getItem(NOTES_KEY) || '[]'], { type:'application/json;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const ts = new Date().toISOString().replace(/[:.]/g,'-');
+      a.href = url; a.download = `notes-${ts}.json`;
+      document.body.appendChild(a); a.click();
+      setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 0);
+    }
+
+    function clearNotes(){
+      if(!confirm('Xoá TẤT CẢ ghi chú trên thiết bị này?')) return;
+      localStorage.removeItem(NOTES_KEY);
+      renderNotes();
+    }
+
+    // Bind sự kiện ghi chú
+    document.getElementById('btnAddNote')?.addEventListener('click', addNote);
+    document.getElementById('noteInput')?.addEventListener('keydown', (e)=>{
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') addNote();
+    });
+    document.getElementById('btnExportNotes')?.addEventListener('click', exportNotes);
+    document.getElementById('btnClearNotes')?.addEventListener('click', clearNotes);
+
+    // ===== INIT =====
+    (async function init(){
+      await Promise.all([
+        loadRevenue(),
+        loadStatuses(),
+        loadKHList(),
+        loadSPList()
+      ]);
+      renderNotes(); // localStorage
+    })();
+  </script>
+</body>
+</html>

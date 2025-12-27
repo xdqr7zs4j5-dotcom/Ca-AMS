@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <title>Hóa đơn bán hàng</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      --bg:#f5f5f7; --card:#fff; --text:#111; --muted:#6b7280; --line:#e5e7eb;
+      --blue:#007aff; --red:#ef4444; --green:#22c55e; --amber:#f59e0b;
+      --radius:14px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;display:flex;flex-direction:column;background:var(--bg);color:var(--text);
+         font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+
+    .wrap{padding:16px;display:flex;flex-direction:column;gap:12px;flex:1 1 auto;min-height:0}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:0 1px 0 rgba(0,0,0,.03)}
+
+    /* Filters */
+    .filters{display:flex;flex-wrap:wrap;gap:10px;padding:12px;align-items:center}
+    .pill{display:flex;align-items:center;gap:8px;padding:4px 8px;border:1px solid var(--line);border-radius:999px;background:#fff}
+    .pill label{font-size:12px;color:var(--muted)}
+    .pill input,.pill select{border:none;outline:none;font-size:14px;background:transparent;min-height:24px}
+    .pill select{min-width:140px;appearance:none;padding-right:18px;
+      background:linear-gradient(45deg,transparent 50%,var(--muted) 50%) right 8px center/8px 8px no-repeat}
+    .pill button{border:none;background:var(--blue);color:#fff;padding:8px 12px;border-radius:999px;font-weight:600;cursor:pointer}
+    .pill button:active{opacity:.85}
+
+    .meta{display:flex;gap:10px;align-items:center;color:var(--muted);font-size:13px;margin-left:auto}
+    .chip{background:#eef2ff;color:#1e40af;padding:4px 10px;border-radius:999px;font-weight:600}
+
+    /* Table */
+    .table-wrap{margin-top:12px}
+    .table-wrapper{border:1px solid var(--line);border-radius:12px;overflow:auto;max-height:100%;background:#fff}
+    table{width:100%;border-collapse:separate;border-spacing:0}
+    th,td{padding:10px 12px;text-align:center;border-bottom:1px solid var(--line);font-size:14px}
+    thead th{position:sticky;top:0;z-index:2;background:#fafafa;font-weight:700;color:#111;border-bottom:1px solid var(--line)}
+    tfoot td{position:sticky;bottom:0;z-index:1;background:#fbfbfb;font-weight:700;border-top:1px solid var(--line)}
+    tbody tr:hover{background:#fafafa}
+    @media (max-width:900px){ th:nth-child(5),td:nth-child(5){display:none} } /* Ẩn Mã KH trên mobile */
+
+    /* Checkbox iOS */
+    .chk{appearance:none;width:18px;height:18px;border:2px solid #cbd5e1;border-radius:6px;cursor:pointer;position:relative}
+    .chk:checked{border-color:var(--blue);background:var(--blue)}
+    .chk:checked::after{content:"";position:absolute;left:4px;top:0px;width:6px;height:10px;border:2px solid #fff;border-top:none;border-left:none;transform:rotate(45deg)}
+
+    /* Badge trạng thái thanh toán */
+    .tt-thanh-toan{border:none;border-radius:999px;padding:6px 12px;font-weight:600;cursor:pointer;text-align:center;appearance:none}
+    .tt-thanh-toan[value="chua"]{background:#f1f5f9;color:#0f172a}
+    .tt-thanh-toan[value="da"]  {background:#ecfdf5;color:#065f46}
+    .tt-thanh-toan[value="dang"]{background:#fffbeb;color:#92400e}
+
+    .btn-ghost{border:1px solid var(--line);background:#fff;padding:6px 10px;border-radius:10px;cursor:pointer}
+    .btn-ghost:active{opacity:.85}
+    .btn-icon{font-size:18px;line-height:0}
+    .btn-danger{border-color:#fecaca;color:#b91c1c}
+
+    .summary{margin-top:8px;display:flex;gap:8px;align-items:center;color:var(--muted);font-size:13px;padding-left:2px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <!-- Bộ lọc -->
+    <div class="card">
+      <div class="filters">
+        <div class="pill">
+          <label>Hành động</label>
+          <select id="chonHanhDong">
+            <option value="">— Chọn —</option>
+            <option value="in">In hàng loạt</option>
+            <option value="phathanh">Phát hành</option>
+            <option value="gopdon">Gộp đơn</option>
+            <option value="tachdon">Tách đơn</option>
+            <option value="thanhtoan">Thanh toán</option>
+            <option value="tra">Có hàng trả</option>
+            <option value="xoa">Xóa hóa đơn</option>
+          </select>
+        </div>
+        <div class="pill">
+          <label>Từ</label>
+          <input type="date" id="tuNgay">
+        </div>
+        <div class="pill">
+          <label>Đến</label>
+          <input type="date" id="denNgay">
+        </div>
+        <div class="pill">
+          <label>Mã KH</label>
+          <input type="text" id="maKH" placeholder="Nhập mã KH...">
+        </div>
+        <div class="pill">
+          <button id="btnLoc">🔍 Lọc</button>
+        </div>
+
+        <div class="meta">
+          <span>Đã chọn:</span><span class="chip" id="demChon">0</span>
+          <span>| Tổng:</span><span class="chip" id="tongTatCaTop">0 ₫</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bảng -->
+    <div class="table-wrap card" style="margin-top:12px;flex:1 1 auto;min-height:0;padding:8px;">
+      <div class="table-wrapper">
+        <table id="bangHD">
+          <thead>
+            <tr>
+              <th style="width:44px"><input id="chkAll" type="checkbox" class="chk"></th>
+              <th style="min-width:120px">Số HĐ</th>
+              <th style="min-width:200px">Ghi chú</th>
+              <th style="min-width:120px">Ngày</th>
+              <th style="min-width:100px">Mã KH</th>
+              <th style="min-width:140px">Tổng tiền</th>
+              <th style="min-width:160px">TT thanh toán</th>
+              <th style="min-width:160px">Thanh toán</th>
+              <th style="min-width:140px">Phát hành</th>
+              <th style="min-width:140px">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+          <tfoot>
+            <tr>
+              <td colspan="5" style="text-align:right">Tổng</td>
+              <td id="tongTatCa">0 ₫</td>
+              <td colspan="4"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <div class="summary">
+      Gợi ý: Chọn nhiều hoá đơn → dùng “Hành động” để In/Xoá/Phát hành/Đánh dấu đã thanh toán.
+    </div>
+  </div>
+
+  <script type="module">
+    import { supabase } from './supabase.config.js';
+    import { initGopTachDon } from './hd-gop-tach.js';
+
+    // ====== Helpers ======
+    const $ = s => document.querySelector(s);
+    const $$ = s => Array.from(document.querySelectorAll(s));
+    const fmtVND = n => (Number(n)||0).toLocaleString("vi-VN") + " ₫";
+    const toNumber = v => {
+      const s = String(v ?? "").replace(/\D/g, "");
+      return s ? parseInt(s, 10) : 0;
+    };
+    const debounce = (fn, delay=250) => { let t; return (...args) => { clearTimeout(t); t=setTimeout(()=>fn(...args),delay); }; };
+
+    let duLieuGoc = [];
+
+    // ====== State chọn ======
+    const chonSet = new Set(); // lưu danh sách sohd đã chọn (không mất khi vẽ lại)
+
+    function capNhatTongDaChon(){
+      let sum = 0;
+      $$("#bangHD tbody tr").forEach(tr => {
+        const cb = tr.querySelector(".chonHD");
+        if (cb?.checked){
+          sum += toNumber(tr.children[5].textContent); // cột "Tổng tiền"
+        }
+      });
+      $("#tongTatCaTop").textContent = fmtVND(sum);
+    }
+
+    function capNhatDemChon(){
+      $("#demChon").textContent = $$(".chonHD:checked").length; // theo các dòng đang hiển thị
+      capNhatTongDaChon();
+    }
+
+    function updateChkAllUI(){
+      const rows = $$(".chonHD");
+      $("#chkAll").checked = rows.length > 0 && rows.every(cb => cb.checked);
+    }
+
+    function syncCheckboxesFromSet(){
+      // khôi phục tick theo chonSet sau khi vẽ bảng
+      $$(".chonHD").forEach(cb => cb.checked = chonSet.has(cb.value));
+      capNhatDemChon();
+      updateChkAllUI();
+    }
+
+    function pruneChonSet(visibleData){
+      // chỉ giữ lại các sohd còn đang hiển thị (tránh lưu rác)
+      const visible = new Set(visibleData.map(hd => String(hd.sohd)));
+      for (const so of Array.from(chonSet)){
+        if (!visible.has(so)) chonSet.delete(so);
+      }
+    }
+
+    // ====== Nạp dữ liệu ======
+    async function taiTheoNgay(){
+      const tu = $("#tuNgay").value;
+      const den = $("#denNgay").value;
+
+      let query = supabase
+        .from("hoadon")
+        .select("*")
+        .or("phanloai.eq.xk,phanloai.is.null")   // chỉ xuất kho
+        .order("ngay", { ascending:false })
+        .order("sohd", { ascending:false });
+
+      if (tu)  query = query.gte("ngay", tu);
+      if (den) query = query.lte("ngay", den);
+
+      const { data, error } = await query;
+      if (error){ alert("Lỗi tải dữ liệu! " + error.message); return; }
+      duLieuGoc = data || [];
+    }
+
+    function locTheoBoLoc(){
+      const makh = $("#maKH").value.trim().toLowerCase();
+      let data = duLieuGoc;
+      if (makh){
+        data = data.filter(hd => (hd.makh||"").toLowerCase().includes(makh));
+      }
+      return data;
+    }
+
+    async function taiDanhSach(){
+      await taiTheoNgay();
+      const data = locTheoBoLoc();
+      veBang(data);
+    }
+
+    // ====== Vẽ bảng ======
+    function veBang(data){
+      const tbody = $("#bangHD tbody");
+      tbody.innerHTML = "";
+
+      // trước khi vẽ, dọn chonSet các HĐ không còn hiển thị
+      pruneChonSet(data);
+
+      let tong = 0;
+
+      data.forEach(hd => {
+        const tien = toNumber(hd.tongthanhtoan ?? hd.tongtien ?? 0);
+        tong += tien;
+
+        const tr = document.createElement("tr");
+        const tt = (hd.tinhtrang || "chua");         // chua | dang | da
+        const daPH = !!hd.phathanh;
+        const daThanhToanSo = toNumber(hd.thanhtoan);
+
+        tr.innerHTML = `
+          <td><input type="checkbox" class="chk chonHD" value="${hd.sohd}"></td>
+          <td style="text-align:left;font-weight:700">${hd.sohd || ""}</td>
+          <td style="text-align:left;color:var(--muted)">${hd.ghichu || ""}</td>
+          <td>${hd.ngay || ""}</td>
+          <td>${hd.makh || ""}</td>
+          <td style="font-weight:700">${fmtVND(tien)}</td>
+          <td>
+            <select class="tt-thanh-toan" value="${tt}">
+              <option value="chua">Chưa thanh toán</option>
+              <option value="dang">Đang xử lý</option>
+              <option value="da">Đã thanh toán</option>
+            </select>
+          </td>
+          <td>
+            <input class="thanh-toan" type="text"
+              value="${tt==='da' ? fmtVND(tien) : (daThanhToanSo ? fmtVND(daThanhToanSo) : '')}"
+              ${tt==='dang' ? '' : 'readonly'}
+              placeholder="${tt==='dang' ? 'Nhập số tiền đã trả' : ''}"
+              style="width:100%;border:1px solid var(--line);border-radius:10px;padding:8px 10px;text-align:right;background:#fff;"
+            />
+          </td>
+          <td class="phathanh-td" style="font-weight:600;${daPH?'color:#065f46':'color:#92400e'}">
+            ${daPH ? 'Đã phát hành' : 'Chưa phát hành'}
+          </td>
+          <td>
+            <div style="display:flex;gap:8px;justify-content:center">
+              <button class="btn-ghost btn-icon" data-view="${hd.sohd}" title="Xem">👁️</button>
+              <button class="btn-ghost btn-icon" data-print="${hd.sohd}" title="In">🖨️</button>
+              <button class="btn-ghost btn-icon btn-danger" data-del="${hd.sohd}" title="Xoá">🗑️</button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+
+        // init trạng thái + input
+        const select = tr.querySelector(".tt-thanh-toan");
+        const input  = tr.querySelector(".thanh-toan");
+        select.value = tt;
+        select.setAttribute("value", tt);
+
+        if (tt === "da"){
+          input.value = fmtVND(tien);
+          input.readOnly = true; input.placeholder = ""; input.style.color = "";
+        } else if (tt === "dang"){
+          input.readOnly = false;
+          input.placeholder = "Nhập số tiền đã trả";
+          if (daThanhToanSo) input.value = fmtVND(daThanhToanSo);
+        } else {
+          input.value = "";
+          input.readOnly = true; input.placeholder = ""; input.style.color = "";
+        }
+        if (daThanhToanSo > 0 && daThanhToanSo < tien){
+          input.style.color = "red"; input.title = "Thanh toán chưa đủ";
+        }
+
+        // đổi trạng thái
+        select.addEventListener("change", async () => {
+          const val = select.value;
+          select.setAttribute("value", val);
+          if (val === "da"){
+            input.value = fmtVND(tien);
+            input.readOnly = true; input.placeholder=""; input.style.color="";
+            await capNhatTT(hd.sohd, "da", tien);
+          } else if (val === "dang"){
+            input.value = ""; input.readOnly = false; input.placeholder = "Nhập số tiền đã trả";
+            await capNhatTT(hd.sohd, "dang", null);
+          } else {
+            input.value = ""; input.readOnly = true; input.placeholder = ""; input.style.color="";
+            await capNhatTT(hd.sohd, "chua", null);
+          }
+        });
+
+        // nhập số tiền khi đang xử lý
+        input.addEventListener("blur", async () => {
+          if (select.value === "dang"){
+            const so = toNumber(input.value);
+            await capNhatTT(hd.sohd, "dang", so);
+            if (so > 0 && so < tien){ input.style.color="red"; input.title="Thanh toán chưa đủ"; }
+            else { input.style.color=""; input.title=""; }
+            input.value = so ? fmtVND(so) : "";
+          }
+        });
+      });
+
+      $("#tongTatCa").textContent = fmtVND(tong);
+
+      // KHÔNG reset #chkAll ở đây nữa
+      // Khôi phục tick theo chonSet + cập nhật đếm
+      syncCheckboxesFromSet();
+    }
+
+    // ====== Hành động ======
+    function in1(sohd){ window.open(`formIn.html?sohd=${encodeURIComponent(sohd)}`, "_blank", "width=900,height=600"); }
+    function xem1(sohd){ window.open(`ghihd.html?sohd=${encodeURIComponent(sohd)}`, "_blank"); }
+
+    function inGopNhieu(ds){
+      if (!ds?.length) return alert("Chọn hoá đơn để in!");
+      const url = `formIn.html?mode=multi&sohdlist=${encodeURIComponent(JSON.stringify(ds))}`;
+      window.open(url, "_blank", "width=1100,height=700");
+    }
+
+    async function thanhToanNhieu(ds){
+      for (const sohd of ds){
+        const row  = $$("#bangHD tbody tr").find(r => r.children[1]?.textContent.trim() === sohd);
+        if (!row) continue;
+        const tien = toNumber(row.children[5].textContent);
+
+        const { error } = await supabase.from("hoadon")
+          .update({ tinhtrang:"da", thanhtoan:tien }).eq("sohd", sohd);
+        if (error) console.error("Lỗi cập nhật TT:", error.message);
+
+        // update UI
+        const select = row.querySelector(".tt-thanh-toan");
+        const input  = row.querySelector(".thanh-toan");
+        if (select){ select.value="da"; select.setAttribute("value","da"); }
+        if (input){ input.value=fmtVND(tien); input.readOnly=true; input.placeholder=""; input.style.color=""; }
+      }
+      alert("✅ Đã đánh dấu đã thanh toán!");
+    }
+
+    async function capNhatTT(sohd, tinhtrang, thanhtoan){
+      const { error } = await supabase.from("hoadon").update({ tinhtrang, thanhtoan }).eq("sohd", sohd);
+      if (error) console.error("❌ Lỗi cập nhật TT:", error.message);
+    }
+
+    function moformphathanh(dsSoHD){
+      const url = `formphathanh.html?sohdlist=${encodeURIComponent(JSON.stringify(dsSoHD))}`;
+      window.open(url, "_blank", "width=900,height=600");
+    }
+
+    function moformtra(dsSoHD){
+      const url = `formtra.html?sohdlist=${encodeURIComponent(JSON.stringify(dsSoHD))}`;
+      window.open(url, "_blank", "width=1000,height=700");
+    }
+
+    async function xoaNhieu(ds){
+      if (!ds?.length) return;
+      if (!confirm(`Bạn chắc muốn xóa ${ds.length} hóa đơn?`)) return;
+      const { error } = await supabase.from("hoadon").delete().in("sohd", ds);
+      if (error){ alert("❌ Lỗi xoá: " + error.message); return; }
+      // xoá xong thì dọn khỏi chonSet
+      ds.forEach(so => chonSet.delete(String(so)));
+      await taiDanhSach();
+      alert("🗑️ Đã xoá xong!");
+    }
+
+    function layDanhSachDaChon(){
+      // chỉ lấy các sohd đang tick ở phần đang hiển thị
+      return $$(".chonHD:checked").map(cb => cb.value);
+    }
+
+    // ====== Sự kiện giao diện ======
+    // Lọc
+    $("#btnLoc").addEventListener("click", async ()=>{
+      const data = locTheoBoLoc();
+      veBang(data);
+    });
+    $("#maKH").addEventListener("input", ()=>{
+      const data = locTheoBoLoc();
+      veBang(data);
+    });
+    const taiDanhSachDebounced = debounce(taiDanhSach, 180);
+    $("#tuNgay").addEventListener("input", taiDanhSachDebounced);
+    $("#denNgay").addEventListener("input", taiDanhSachDebounced);
+
+    // Hành động hàng loạt
+    $("#chonHanhDong").addEventListener("change", async (e)=>{
+      const action = e.target.value; e.target.value = "";
+      const ds = layDanhSachDaChon();
+      if (!ds.length){ alert("Vui lòng chọn hóa đơn!"); return; }
+
+      if (action === "in") inGopNhieu(ds);
+      else if (action === "phathanh") moformphathanh(ds);
+      else if (action === "thanhtoan") await thanhToanNhieu(ds);
+      else if (action === "tra") moformtra(ds);
+      else if (action === "xoa") await xoaNhieu(ds);
+    });
+
+    // Chọn tất cả (theo danh sách đang hiển thị)
+    $("#chkAll").addEventListener("change", (e)=>{
+      const checkAll = e.target.checked;
+      $$(".chonHD").forEach(cb => {
+        cb.checked = checkAll;
+        const so = cb.value;
+        if (checkAll) chonSet.add(so); else chonSet.delete(so);
+      });
+      capNhatDemChon();
+    });
+
+    // Chọn từng hóa đơn (dùng change để trạng thái đã ổn định)
+    document.addEventListener("change", (e)=>{
+      if (e.target.matches(".chonHD")) {
+        const so = e.target.value;
+        if (e.target.checked) chonSet.add(so); else chonSet.delete(so);
+        capNhatDemChon();
+        updateChkAllUI();
+      }
+    });
+
+    // Nút xem / in / xoá
+    document.addEventListener("click", (e)=>{
+      const v = e.target.getAttribute?.("data-view");
+      const p = e.target.getAttribute?.("data-print");
+      const d = e.target.getAttribute?.("data-del");
+      if (v) xem1(v);
+      if (p) in1(p);
+      if (d) xoaNhieu([d]);
+    });
+
+    // Nhận message từ form con
+    window.addEventListener("message", async (event) => {
+      const data = event.data;
+
+      if (data?.type === "hd-saved" && data.sohd){
+        // giữ nguyên chonSet (nếu sohd đang chọn thì không mất)
+        await taiDanhSach();
+        return;
+      }
+
+      if (data?.type === "phathanh-done" && Array.isArray(data.dsSoHD)){
+        for (const sohd of data.dsSoHD){
+          const row = $$("#bangHD tbody tr").find(r => r.children[1]?.textContent.trim() === sohd);
+          if (row){
+            const td = row.children[8];
+            td.textContent = "Đã phát hành";
+            td.style.color = "#065f46";
+            td.style.fontWeight = "700";
+          }
+          await supabase.from("hoadon").update({ phathanh: true }).eq("sohd", sohd);
+        }
+        return;
+      }
+    });
+
+    // (Tuỳ chọn) refresh khi quay lại tab — vẫn KHÔNG mất tick vì dùng chonSet
+    window.addEventListener("focus", taiDanhSach);
+
+    // ====== Tải lần đầu ======
+    initGopTachDon({ supabase });
+    taiDanhSach();
+  </script>
+</body>
+</html>
