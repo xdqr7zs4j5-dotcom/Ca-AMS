@@ -291,16 +291,6 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-// init
-if (!isMobile()) {
-  body.classList.add('collapsed');
-}
-view.src = './begin.html';
-renderMenu();
-renderMobileTabbar();
-attachFrameActivity(view);
-view.addEventListener('load', () => attachFrameActivity(view));
-
 // ===== Mobile Tabbar =====
 const MOBILE_TABS = [
   { text: 'Bán hàng', icon: '📝', url: './ghihd.html' },
@@ -336,14 +326,14 @@ function renderMobileTabbar() {
     b.addEventListener('click', () => {
       if (tab.mode === 'main') {
   // ☰ Khác → mở FULL MENU (sidebar mobile)
-  mode = 'main';
-  renderMenu();
+    mode = 'main';
+    renderMenu();
 
-  body.classList.add('menu-open'); // 🔥 DÒNG QUAN TRỌNG
+    body.classList.add('menu-open'); // 🔥 DÒNG QUAN TRỌNG
 
-  onKeyActivity();
-  return;
-}
+    onKeyActivity();
+      return;
+    }
 
       if (tab.url && view) {
         activeUrl = tab.url;
@@ -356,6 +346,16 @@ function renderMobileTabbar() {
     tabbar.appendChild(b);
   });
 }
+
+// init
+if (!isMobile()) {
+  body.classList.add('collapsed');
+}
+view.src = './begin.html';
+renderMenu();
+renderMobileTabbar();
+attachFrameActivity(view);
+view.addEventListener('load', () => attachFrameActivity(view));
 
 // ===== Splash khởi động =====
 showSplash('startup');

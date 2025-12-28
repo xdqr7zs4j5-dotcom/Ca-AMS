@@ -7,7 +7,6 @@ const CACHE_ASSETS = `ca-ams-assets-${VERSION}`;
 // Shell = KHUNG ỨNG DỤNG (KHÔNG phải begin.html)
 const SHELL_FILES = [
   '/index.html',
-  '/manifest.webmanifest',
 ];
 
 // Asset tĩnh, KHÔNG cache app.js theo kiểu cache-first
@@ -18,7 +17,6 @@ const STATIC_ASSETS = [
 
 // === BOOT FILES (cần để app khởi động offline) ===
 const BOOT_ASSETS = [
-  '/index.html',
   '/app.js',
   '/splash.html',
   '/manifest.webmanifest',
