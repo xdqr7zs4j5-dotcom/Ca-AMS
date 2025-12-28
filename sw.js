@@ -6,11 +6,8 @@ const CACHE_ASSETS = `ca-ams-assets-${VERSION}`;
 
 // Shell = KHUNG ỨNG DỤNG (KHÔNG phải begin.html)
 const SHELL_FILES = [
-  '/',
   '/index.html',
   '/manifest.webmanifest',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png'
 ];
 
 // Asset tĩnh, KHÔNG cache app.js theo kiểu cache-first

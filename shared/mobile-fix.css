@@ -1,0 +1,169 @@
+/* =====================================
+   MOBILE FIX – APPLY TO ALL HTML
+   Cá AMS – Mobile Safe Version
+   ===================================== */
+
+@media (max-width: 768px){
+
+  /* ===============================
+     0. NỀN TẢNG
+     =============================== */
+  body{
+    overflow:auto;
+    overflow-x:hidden;
+  }
+
+  .wrap{
+    height:auto;
+    min-height:100dvh;
+    padding-bottom:80px; /* chừa chỗ bottom bar */
+    overflow:visible !important;
+  }
+
+  .wrap > .card:first-child{
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--card);
+  }
+
+  /* đổ bóng nhẹ khi cuộn */
+  .wrap > .card:first-child{
+    box-shadow: 0 2px 12px rgba(0,0,0,.08);
+  }
+
+  /* bảng cuộn độc lập */
+  .card.table-card{
+    overflow: hidden;
+  }
+
+  .table-wrap{
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* ===============================
+     1. GRID DESKTOP → MOBILE
+     =============================== */
+  .grid{
+    grid-template-columns:1fr !important;
+    gap:12px;
+  }
+
+  /* ===============================
+     2. INPUT BAR (NHẬP SẢN PHẨM)
+     desktop 11 cột → mobile 2 cột
+     =============================== */
+  .input-bar{
+    grid-template-columns:1fr 1fr !important;
+  }
+
+  .ac-wrap{
+    grid-column:span 2;
+    min-width:0;
+  }
+
+  /* ===============================
+     3. TABLE → CARD
+     =============================== */
+  .table-scroll{
+    overflow:visible;
+    border:none;
+    box-shadow:none;
+    background:transparent;
+  }
+
+  table{
+    width:100%;
+    border:none;
+    border-collapse:collapse;
+    box-shadow:none;
+    background:transparent;
+  }
+
+  thead{
+    display:none;
+  }
+
+  tbody tr{
+    display:block;
+    background:#fff;
+    margin-bottom:12px;
+    padding:12px;
+    border-radius:14px;
+    box-shadow:0 1px 6px rgba(0,0,0,.06);
+  }
+
+  tbody td{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:6px 0;
+    border:none;
+    gap:12px;
+  }
+
+  tbody td::before{
+    content:attr(data-label);
+    font-size:12px;
+    color:#6b7280;
+    white-space:nowrap;
+    flex:0 0 38%;
+  }
+
+  /* ===============================
+     4. INPUT / SELECT MOBILE
+     =============================== */
+  input,
+  select{
+    width:100%;
+    min-width:0;
+    font-size:16px; /* tránh zoom iOS */
+  }
+
+  td input,
+  td select{
+    padding:8px 6px;
+  }
+
+  /* ===============================
+     5. CARD & FORM TINH CHỈNH
+     =============================== */
+  .card{
+    height:auto;
+  }
+
+  .form-row{
+    grid-template-columns:1fr;
+    gap:4px;
+  }
+
+  .form-row label{
+    font-size:12px;
+    color:#6b7280;
+  }
+
+}
+@media (max-width: 768px){
+
+  /* ===== FIX TOOLBAR (KIỂM KHO) ===== */
+  .toolbar{
+    flex-wrap: wrap !important;
+  }
+
+  .pill{
+    flex: 1 1 100%;
+    min-width: 0 !important;
+  }
+
+  .pill input{
+    width: 100%;
+  }
+
+  .toolbar .btn,
+  .toolbar button{
+    width:100%;
+    justify-content:center;
+  }
+
+}

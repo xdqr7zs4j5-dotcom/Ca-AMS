@@ -205,10 +205,18 @@ function makeItem(it, isActive, level) {
     if (it.mode === 'reports')  { mode='reports';  activeUrl = firstUrlOf(MENU_REPORTS);  if (activeUrl) view.src = activeUrl; renderMenu(); onKeyActivity(); return; }
     if (it.mode === 'hr')       { mode='hr';       activeUrl = firstUrlOf(MENU_HR);       if (activeUrl) view.src = activeUrl; document.querySelector('.content').classList.add('hr'); renderMenu(); onKeyActivity(); return; }
     if (it.url) {
-      activeUrl = it.url; view.src = it.url;
-      [...menu.children].forEach(el => el.classList.remove('active'));
-      b.classList.add('active'); onKeyActivity();
-    }
+  activeUrl = it.url;
+  view.src = it.url;
+
+  [...menu.children].forEach(el => el.classList.remove('active'));
+  b.classList.add('active');
+
+  if (isMobile()) {
+    body.classList.remove('menu-open'); // 👈 CHÍNH NÓ
+  }
+
+  onKeyActivity();
+}
   });
   return b;
 }
@@ -221,38 +229,133 @@ function renderTree(items, level = 0) {
 }
 function renderMenu() {
   menu.innerHTML = '';
+
   let title = 'Trang chủ';
-  if (mode === 'settings'){ title='Thiết lập'; renderTree(MENU_SETTINGS,0); }
-  else if (mode === 'reports'){ title='Báo cáo'; renderTree(MENU_REPORTS,0); }
-  else if (mode === 'hr'){ title='Nhân sự'; renderTree(MENU_HR,0); }
-  else { renderTree(MENU_MAIN,0); }
+
+  if (mode === 'settings'){
+    title='Thiết lập';
+    renderTree(MENU_SETTINGS,0);
+  }
+  else if (mode === 'reports'){
+    title='Báo cáo';
+    renderTree(MENU_REPORTS,0);
+  }
+  else if (mode === 'hr'){
+    title='Nhân sự';
+    renderTree(MENU_HR,0);
+  }
+  else {
+    renderTree(MENU_MAIN,0);
+  }
+
   sbTitle.textContent = title;
-  btnBack.style.display = (mode === 'main') ? 'none' : 'inline-block';
+  if (btnBack) btnBack.style.display = (mode === 'main') ? 'none' : 'inline-block';
 }
 
-btnBack.addEventListener('click', () => {
-  mode = 'main';
-  activeUrl = './begin.html';
-  view.src = activeUrl;
-  document.querySelector('.content').classList.remove('hr');
-  renderMenu();
-  onKeyActivity();
+if (sbTitle && btnBack) {
+  sbTitle.addEventListener('click', () => btnBack.click());
+}
+
+if (btnBack) {
+  btnBack.addEventListener('click', () => {
+    mode = 'main';
+    activeUrl = './begin.html';
+    view.src = activeUrl;
+    document.querySelector('.content')?.classList.remove('hr');
+    renderMenu();
+    onKeyActivity();
+  });
+}
+
+if (btnToggle) {
+  btnToggle.addEventListener('click', () => {
+    if (isMobile()) {
+      body.classList.toggle('menu-open');
+    } else {
+      body.classList.toggle('collapsed');
+    }
+    onKeyActivity();
+  });
+}
+
+if (btnReopen) {
+  btnReopen.addEventListener('click', () => {
+    body.classList.remove('collapsed');
+    onKeyActivity();
+  });
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && mode !== 'main' && btnBack) {
+    btnBack.click();
+  }
 });
-btnToggle.addEventListener('click', () => {
-  body.classList.toggle('collapsed');
-  btnToggle.title = body.classList.contains('collapsed') ? 'Mở rộng' : 'Thu gọn';
-  btnToggle.textContent = body.classList.contains('collapsed') ? '⇥' : '⇤';
-  onKeyActivity();
-});
-btnReopen.addEventListener('click', () => { body.classList.remove('collapsed'); onKeyActivity(); });
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && mode !== 'main') btnBack.click(); });
 
 // init
-body.classList.add('collapsed');
+if (!isMobile()) {
+  body.classList.add('collapsed');
+}
 view.src = './begin.html';
 renderMenu();
+renderMobileTabbar();
 attachFrameActivity(view);
 view.addEventListener('load', () => attachFrameActivity(view));
+
+// ===== Mobile Tabbar =====
+const MOBILE_TABS = [
+  { text: 'Bán hàng', icon: '📝', url: './ghihd.html' },
+  { text: 'Tra cứu',  icon: '🔎', url: './tracuu.html' },
+  { text: 'Hóa đơn',  icon: '📑', url: './danhsachxk.html' },
+  { text: 'Kiểm kho', icon: '📋', url: './tk_chinh.html' },
+  { text: 'Khác',     icon: '☰',  mode: 'main' }
+];
+
+function isMobile() {
+  return window.matchMedia('(max-width: 768px)').matches;
+}
+
+function renderMobileTabbar() {
+  const tabbar = document.getElementById('tabbar');
+  if (!tabbar || !isMobile()) return;
+
+  tabbar.innerHTML = '';
+
+  MOBILE_TABS.forEach(tab => {
+    const b = document.createElement('button');
+    b.className = 'item';
+
+    if (tab.url && view?.src?.includes(tab.url)) {
+      b.classList.add('active');
+    }
+
+    b.innerHTML = `
+      <span class="ic">${tab.icon}</span>
+      <span class="txt">${tab.text}</span>
+    `;
+
+    b.addEventListener('click', () => {
+      if (tab.mode === 'main') {
+  // ☰ Khác → mở FULL MENU (sidebar mobile)
+  mode = 'main';
+  renderMenu();
+
+  body.classList.add('menu-open'); // 🔥 DÒNG QUAN TRỌNG
+
+  onKeyActivity();
+  return;
+}
+
+      if (tab.url && view) {
+        activeUrl = tab.url;
+        view.src = tab.url;
+        renderMenu(); // sync sidebar state
+        onKeyActivity();
+      }
+    });
+
+    tabbar.appendChild(b);
+  });
+}
 
 // ===== Splash khởi động =====
 showSplash('startup');
@@ -331,6 +434,11 @@ showSplash('startup');
     if (e.data.type === 'CC_DONE' || e.data.type === 'CC_PING') {
       checkChamCongToday();
     }
+  });
+
+  window.addEventListener('resize', () => {
+    renderMenu();
+    renderMobileTabbar();
   });
 
   // nhận tín hiệu qua localStorage (khi chamcong.html setItem)
