@@ -171,42 +171,53 @@ async function luuHoaDon() {
     }
 
     // 3) Thu sản phẩm từ bảng và ghi bảng chitiet
-    const rows = document.querySelectorAll("#bangSP tbody tr");
-    const dsSP = [];
+    const rows = document.querySelectorAll("#bangSP tr");
+const dsSP = [];
+let lineNo = 1;
 
-    rows.forEach(row => {
-      const tensp   = getCellValue(row, '.tenSP');
-      const elMaSP  = row.querySelector('.maSP');
-      const masp    = elMaSP?.dataset?.masp || getCellValue(row, '.maSP');
-      const ghichu  = getCellValue(row, '.ghiChuSP');
-      const dvtGoc  = getCellValue(row, '.dvtGoc');
-      const dvt     = getCellValue(row, '.dvt');
-      const soluongText = getCellValue(row, '.soLuong');
-      const soluong = parseFloat(soluongText) || 0;
-      const slthung = (!soluongText || soluongText === "0") ? "" : `${soluongText} ${dvt}`;
-      const tongSL  = parseFloat(getCellValue(row, '.tongSL')) || 0;
-      const dongia  = parseMoneyVN(getCellValue(row, '.donGia'));
-      const thanhTien = tongSL * dongia;
+rows.forEach(row => {
+  if (row.querySelector("th")) return; // bỏ header
 
-      dsSP.push({
-        sohd, ngay, makh,
-        tensp, masp, ghichu,
-        soluong: tongSL,
-        slthung,
-        dvt: dvtGoc,
-        dongia,
-        thanhtien: thanhTien
-      });
-    });
+  const tensp   = getCellValue(row, '.tenSP');
+  const elMaSP  = row.querySelector('.maSP');
+  const masp    = elMaSP?.dataset?.masp || getCellValue(row, '.maSP');
+  if (!masp) return; // bỏ dòng trống
 
-    if (dsSP.length === 0) { alert("Chưa có sản phẩm nào trong hóa đơn!"); return; }
+  const ghichu  = getCellValue(row, '.ghiChuSP');
+  const dvtGoc  = getCellValue(row, '.dvtGoc');
+  const dvt     = getCellValue(row, '.dvt');
+  const soluongText = getCellValue(row, '.soLuong');
+  const tongSL  = parseFloat(getCellValue(row, '.tongSL')) || 0;
+  const dongia  = parseMoneyVN(getCellValue(row, '.donGia'));
+  const thanhTien = tongSL * dongia;
 
-    const { error: errCT } = await supabase
-  .from("chitiet")
-  .upsert(dsSP, {
-    onConflict: "sohd,masp",
-    defaultToNull: true
+  dsSP.push({
+    sohd,
+    line_no: lineNo++,   // ✅ OK
+    ngay, makh,
+    tensp, masp, ghichu,
+    soluong: tongSL,
+    dvt: dvtGoc,
+    dongia,
+    thanhtien: thanhTien
   });
+});
+
+    if (dsSP.length === 0) {
+  alert("Chưa có sản phẩm nào trong hóa đơn!");
+  return;
+}
+
+// 👉 CHỖ CẦN THÊM
+await supabase
+  .from("chitiet")
+  .delete()
+  .eq("sohd", sohd);
+
+// 👉 INSERT LẠI TOÀN BỘ
+const { error: errCT } = await supabase
+  .from("chitiet")
+  .insert(dsSP);
 
 if (errCT) {
   console.error("❌ Lỗi lưu chi tiết hóa đơn:", errCT);
