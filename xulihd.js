@@ -201,9 +201,18 @@ async function luuHoaDon() {
 
     if (dsSP.length === 0) { alert("Chưa có sản phẩm nào trong hóa đơn!"); return; }
 
-    await supabase.from("chitiet").delete().eq("sohd", sohd);
-    const { error: errCT } = await supabase.from("chitiet").insert(dsSP);
-    if (errCT) { console.error("❌ Lỗi lưu chi tiết hóa đơn:", errCT); alert("Lưu chi tiết hóa đơn thất bại!"); return; }
+    const { error: errCT } = await supabase
+  .from("chitiet")
+  .upsert(dsSP, {
+    onConflict: "sohd,masp",
+    defaultToNull: true
+  });
+
+if (errCT) {
+  console.error("❌ Lỗi lưu chi tiết hóa đơn:", errCT);
+  alert("Lưu chi tiết hóa đơn thất bại!");
+  return;
+}
 
     // Thông báo & sync
     try { window.opener?.postMessage({ type: "hd-saved", sohd }, "*"); } catch {}

@@ -4,37 +4,24 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0a84ff" />
-
-  <!-- CSP (DEV ONLY) -->
-  <meta http-equiv="Content-Security-Policy" content="
-    default-src 'self';
-    script-src 'self' 'unsafe-inline' 'unsafe-eval'
-      http://localhost:5173 ws://localhost:5173
-      https://cdn.jsdelivr.net https://esm.sh https://unpkg.com;
-    style-src  'self' 'unsafe-inline' https://cdn.jsdelivr.net;
-    img-src    'self' data: blob:;
-    font-src   'self' data: https://cdn.jsdelivr.net;
-    connect-src 'self'
-      http://localhost:5173 ws://localhost:5173
-      https: http: wss: ws: https://*.supabase.co;
-    worker-src 'self' blob:;
-    manifest-src 'self';
-  ">
-
   <title>Cá AMS</title>
 
   <!-- PWA -->
   <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
-  <link rel="apple-touch-icon" href="./icons/icon-192.png">
-  <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png">
+  <link rel="icon" sizes="192x192" href="./icons/icon-192.png">
+  <link rel="icon" sizes="512x512" href="./icons/icon-512.png">
 
   <style>
     :root{
-      --bg:#f5f5f7; --card:#fff; --text:#111; --muted:#6b7280;
-      --hover:#f6f7fb; --active:#eef2ff; --activeText:#1e40af;
-      --safe-top: env(safe-area-inset-top, 0px);
-      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --bg:#f5f5f7;
+      --card:#fff;
+      --text:#111;
+      --muted:#6b7280;
+      --line:#e5e7eb;
+      --blue:#007aff;
+      --radius:16px;
+      --safe-top:env(safe-area-inset-top,0px);
+      --safe-bottom:env(safe-area-inset-bottom,0px);
     }
     *{box-sizing:border-box}
     html,body{height:100%}
@@ -44,182 +31,233 @@
       font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
     }
 
-    /* ================= SPLASH ================= */
-    #splash{
-      position:fixed; inset:0; z-index:9999; background:#000;
-      display:flex; align-items:center; justify-content:center;
-      transition:opacity .6s ease, visibility .6s ease;
-      padding-top:var(--safe-top); padding-bottom:var(--safe-bottom);
+    /* ================= ROOT ================= */
+    .app{
+      height:100%;
+      display:flex;
     }
-    #splash.hide{opacity:0; visibility:hidden}
-    #splash iframe{position:absolute; inset:0; width:100%; height:100%; border:0}
-    #splash .hint{
-      position:absolute; left:50%; transform:translateX(-50%);
-      bottom:16px; background:rgba(255,255,255,.75); color:#111;
-      padding:6px 10px; border-radius:10px; font-size:12px; user-select:none;
-    }
-    @media (prefers-reduced-motion: reduce){#splash{transition:none}}
 
-    /* ================= DESKTOP LAYOUT ================= */
-    .wrap{
-      display:grid; grid-template-columns:280px 1fr; gap:16px;
-      height:100vh; padding:16px;
-      padding-top:calc(16px + var(--safe-top));
-      padding-bottom:calc(16px + var(--safe-bottom));
-      transition:grid-template-columns .25s;
+    /* ================= DESKTOP ================= */
+    body[data-ui="desktop"] .app{
+      padding:16px;
+      gap:16px;
     }
-    .collapsed .wrap{grid-template-columns:72px 1fr}
 
-    /* Sidebar */
-    .sidebar{
-      background:var(--card); border-radius:18px; padding:14px;
-      overflow:hidden; transition:padding .2s,width .25s;
+    body[data-ui="desktop"] .sidebar{
+      width:280px;
+      background:var(--card);
+      border-radius:var(--radius);
+      padding:14px;
+      display:flex;
+      flex-direction:column;
     }
-    .collapsed .sidebar{padding:10px}
-    .sb-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px}
-    .sb-title{font-weight:700; cursor:pointer; padding:6px 10px; border-radius:8px}
-    .sb-title:hover{background:var(--hover)}
-    .back-btn,.toggle{
-      border:0; background:transparent; cursor:pointer; color:var(--muted);
-      padding:6px 10px; border-radius:10px; font-size:14px
-    }
-    .back-btn:hover,.toggle:hover{background:#f3f4f6}
-    .back-btn{display:none}
-    .collapsed .sb-title,.collapsed .back-btn{display:none}
-    .collapsed .sb-head{justify-content:center}
 
-    .list{display:flex; flex-direction:column; gap:8px}
+    body[data-ui="desktop"].collapsed .sidebar{
+      width:72px;
+      padding:10px;
+    }
+
+    body[data-ui="desktop"] .content{
+      flex:1;
+      background:var(--card);
+      border-radius:var(--radius);
+      overflow:hidden;
+    }
+
+    /* ================= MOBILE ================= */
+    body[data-ui="mobile"] .app{
+      flex-direction:column;
+      padding-top:var(--safe-top);
+      padding-bottom:calc(56px + var(--safe-bottom));
+    }
+
+    body[data-ui="mobile"] .content{
+      flex:1;
+      background:var(--card);
+    }
+
+    body[data-ui="mobile"] .sidebar{
+      position:fixed;
+      inset:0 auto 0 0;
+      width:78%;
+      max-width:320px;
+      background:#fff;
+      transform:translateX(-100%);
+      transition:.25s ease;
+      z-index:300;
+    }
+
+    body[data-ui="mobile"].menu-open .sidebar{
+      transform:translateX(0);
+    }
+
+    body[data-ui="mobile"].menu-open::before{
+      content:'';
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.35);
+      z-index:200;
+    }
+
+    /* ================= SIDEBAR COMMON ================= */
+    .sb-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:12px;
+    }
+    .sb-title{
+      font-weight:700;
+      padding:6px 10px;
+      border-radius:8px;
+      cursor:pointer;
+    }
+    .sb-title:hover{background:#f3f4f6}
+
+    .toggle{
+      border:0;
+      background:transparent;
+      cursor:pointer;
+      font-size:16px;
+      color:var(--muted);
+    }
+
+    .menu{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+
     .item{
-      display:flex; align-items:center; gap:10px; width:100%;
-      cursor:pointer; padding:12px 14px; border-radius:12px;
-      border:0; background:transparent; font-weight:600; color:var(--text)
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:10px 12px;
+      border-radius:10px;
+      border:0;
+      background:transparent;
+      cursor:pointer;
+      font-weight:600;
     }
-    .item:hover{background:var(--hover)}
-    .item.active{background:var(--active); color:var(--activeText)}
-    .item .ic{width:28px; height:28px; display:inline-flex; align-items:center; justify-content:center; font-size:18px}
-    .item .txt{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
-    .collapsed .item{justify-content:center; padding:10px}
-    .collapsed .item .txt{display:none}
+    .item:hover{background:#f6f7fb}
+    .item.active{
+      background:#eef2ff;
+      color:#1e40af;
+    }
+    .item .ic{width:24px;text-align:center}
 
-    /* Content */
-    .content{height:100%}
+    body[data-ui="desktop"].collapsed .item .txt{
+      display:none;
+    }
+
+    /* ================= CONTENT ================= */
     iframe#view{
-      width:100%; height:100%; border:0;
-      background:var(--card); border-radius:18px;
+      width:100%;
+      height:100%;
+      border:0;
     }
 
-    /* ================= MOBILE SHELL ================= */
-    @media (max-width: 768px){
-      .wrap{
-        display:flex; flex-direction:column; gap:0;
-        padding-bottom:calc(76px + var(--safe-bottom));
-      }
-
-      .content{flex:1}
-      iframe#view{border-radius:16px}
-
-      /* Bottom tabbar */
-      .tabbar{
-        position:fixed;
-        left:12px; right:12px;
-        bottom:calc(10px + var(--safe-bottom));
-        height:60px; background:#fff; border-radius:18px;
-        display:flex; align-items:center; justify-content:space-around;
-        box-shadow:0 8px 30px rgba(0,0,0,.18);
-        z-index:100;
-      }
-      .tabbar .item{
-        flex:1; display:flex; flex-direction:column;
-        align-items:center; justify-content:center;
-        gap:2px; font-size:11px; font-weight:600;
-      }
-      .tabbar .item .ic{font-size:20px}
-      .tabbar .item.active{
-        color:#007aff; background:rgba(0,122,255,.1); border-radius:12px;
-      }
-
-      .collapsed .wrap{
-        display:flex;
-        flex-direction:column;
-        padding-bottom:calc(76px + var(--safe-bottom));
-      }
-
-      .sidebar{
-        display:block;
-        position:fixed;
-        top:0; left:0; bottom:0;
-        width:78%;
-        max-width:320px;
-        transform:translateX(-100%);
-        transition:.25s ease;
-        z-index:300;
-        background:#fff;
-      }
-      
-      body.menu-open .sidebar{
-        transform:translateX(0);
-      }
-      
-      body.menu-open::before{
-        content:'';
-        position:fixed;
-        inset:0;
-        background:rgba(0,0,0,.35);
-        z-index:200;
-      }
-      
-      .sidebar .item .txt {
-        display: inline !important;
-      }
-      
-      .sidebar .item {
-        justify-content: flex-start;
-        padding: 12px 16px;
-      }
+    /* ================= TABBAR MOBILE ================= */
+    .tabbar{
+      display:none;
     }
+    body[data-ui="mobile"] .tabbar{
+      position:fixed;
+      left:0; right:0; bottom:0;
+      height:56px;
+      background:#fff;
+      border-top:1px solid var(--line);
+      display:flex;
+      z-index:400;
+    }
+    .tabbar button{
+      flex:1;
+      border:0;
+      background:transparent;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      font-size:12px;
+    }
+    /* ================= SUBMENU ================= */
+.menu-group{
+  display:flex;
+  flex-direction:column;
+}
+
+.menu-group .submenu{
+  display:none;
+  padding-left:18px;
+  gap:4px;
+}
+
+.menu-group.open .submenu{
+  display:flex;
+  flex-direction:column; 
+}
+
+/* menu cha */
+.item.parent{
+  justify-content:space-between;
+}
+
+/* mũi tên */
+.item.parent .arrow{
+  font-size:12px;
+  transition:transform .2s ease;
+  opacity:.6;
+}
+
+.menu-group.open .item.parent .arrow{
+  transform:rotate(180deg);
+}
+
+/* menu con */
+.item.sub{
+  font-weight:500;
+  font-size:14px;
+  padding:8px 12px;
+  opacity:.9;
+}
+
+.item.sub.active{
+  background:#e0e7ff;
+  color:#1e3a8a;
+}
+
+/* desktop collapsed: vẫn thấy submenu icon */
+body[data-ui="desktop"].collapsed .submenu{
+  padding-left:0;
+}
   </style>
 
-  <!-- JS chính -->
   <script type="module" src="./app.js" defer></script>
 </head>
 
 <body>
-  <!-- Service Worker (DEV OK) -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js', { scope: '/' });
-    }
-  </script>
-
   <!-- Splash -->
-  <div id="splash" aria-live="polite">
-    <iframe id="splashPlayer" src="./splash.html" title="Cá Splash" tabindex="-1" aria-hidden="true"></iframe>
-    <div class="hint" id="splashHint">Nhấn để vào nhanh</div>
-  </div>
+  <div id="splash" hidden></div>
 
-  <div class="wrap">
-    <!-- Desktop Sidebar -->
-    <aside class="sidebar" id="sidebar">
+  <div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
       <div class="sb-head">
         <div class="sb-title" id="sbTitle">Trang chủ</div>
-        <div>
-          <button id="btnBack" class="back-btn">Quay lại</button>
-          <button id="btnToggle" class="toggle" title="Thu gọn">⇤</button>
-        </div>
-        <button id="btnInstall" hidden>Cài đặt Cá AMS</button>
+        <button class="toggle" id="btnToggle">☰</button>
       </div>
-      <nav id="menu" class="list"></nav>
+      <nav class="menu" id="menu"></nav>
     </aside>
 
     <!-- Content -->
     <main class="content">
-      <iframe id="view" src="./begin.html" title="view"></iframe>
+      <iframe id="view" src="./begin.html"></iframe>
     </main>
   </div>
 
   <!-- Mobile Tabbar -->
-  <nav id="tabbar" class="tabbar"></nav>
+  <nav class="tabbar" id="tabbar"></nav>
 
-  <noscript>Ứng dụng cần bật JavaScript để hoạt động.</noscript>
+  <noscript>Cần bật JavaScript để sử dụng Cá AMS</noscript>
 </body>
 </html>

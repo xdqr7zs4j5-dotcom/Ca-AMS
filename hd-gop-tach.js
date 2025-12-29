@@ -21,6 +21,18 @@ async function ensureProductCache() {
   });
 }
 
+async function getNextLineNo(sohd){
+  const { data, error } = await sb
+    .from("chitiet")
+    .select("line_no")
+    .eq("sohd", sohd)
+    .order("line_no", { ascending: false })
+    .limit(1);
+
+  if (error) throw error;
+  return data.length ? data[0].line_no + 1 : 1;
+}
+
 function fillMaspFromCatalog(row) {
   // Trả lại object đã điền đủ masp/dvt nếu có thể
   if (row.masp && _prodById.has(row.masp)) {
@@ -136,16 +148,36 @@ async function fetchChiTietBySohd(sohd){
   return data || [];
 }
 
-async function upsertHoaDon(row){
-  const { data, error } = await sb.from("hoadon").upsert(row, { onConflict: "sohd" }).select();
+async function insertHoaDon(row){
+  const { error } = await sb.from("hoadon").insert(row);
   if (error) throw new Error(error.message);
-  return data?.[0] ?? row;
+}
+
+
+async function updateHoaDon(sohd, payload){
+  const { error } = await sb
+    .from("hoadon")
+    .update(payload)
+    .eq("sohd", sohd);
+
+  if (error) throw new Error(error.message);
 }
 
 async function insertChiTiet(rows){
   if (!rows?.length) return;
-  const { error } = await sb.from("chitiet").insert(rows);
-  if (error) throw new Error(error.message);
+
+  let nextLine = await getNextLineNo(rows[0].sohd);
+
+  for (const r of rows){
+    const { error } = await sb
+      .from("chitiet")
+      .insert({
+        ...r,
+        line_no: nextLine++
+      });
+
+    if (error) throw new Error(error.message);
+  }
 }
 
 async function deleteChiTietByIds(ids){
@@ -243,7 +275,7 @@ export async function gopDon(){
     tinhtrang: "chua",
     phathanh: false
   };
-  await upsertHoaDon(newHD);
+  await insertHoaDon(newHD);
 
   // Insert CT mới (bắt buộc có masp)
   const ctInsert = mergedRows.map(r => ({
@@ -402,7 +434,7 @@ export async function tachDon(){
       const tongMoi = insertRows.reduce((s,r)=> s + (Number(r.soluong)||0)*(Number(r.dongia)||0), 0);
 
       // Tạo HĐ mới
-      await upsertHoaDon({
+      await insertHoaDon({
         sohd: sohdMoi,
         ngay: todayISO(),
         makh: hd.makh,
