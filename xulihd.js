@@ -190,6 +190,10 @@ rows.forEach(row => {
   const tongSL  = parseFloat(getCellValue(row, '.tongSL')) || 0;
   const dongia  = parseMoneyVN(getCellValue(row, '.donGia'));
   const thanhTien = tongSL * dongia;
+  const slThung =
+  soluongText && dvt
+    ? `${soluongText} ${dvt}`
+    : null;
 
   dsSP.push({
     sohd,
@@ -198,6 +202,7 @@ rows.forEach(row => {
     tensp, masp, ghichu,
     soluong: tongSL,
     dvt: dvtGoc,
+    slthung: slThung,
     dongia,
     thanhtien: thanhTien
   });

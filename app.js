@@ -49,6 +49,7 @@ const MENU = [
   { text:'Thêm SP', url:'./nhapsp.html' },
   { text:'Danh sách KH', url:'./danhsachkh.html' },
   { text:'Thêm KH', url:'./nhapkh.html' },
+  { text:'Báo cáo', url:'./baocao.html' },
 
   {
     text:'Nhân sự',
@@ -56,6 +57,15 @@ const MENU = [
       { text:'Chấm công', url:'./chamcong.html' },
       { text:'Hồ sơ', url:'./nhansu.html' },
       { text:'Bậc lương', url:'./thietlapluong.html' }
+    ]
+  },
+
+  {
+    text:'Kho',
+    children:[
+      { text:'Tồn kho', url:'./tk_theodoi.html' },
+      { text:'Chi tiết', url:'./tk_chitiet.html' },
+      { text:'Kiểm kho', url:'tk_chinh.html' }
     ]
   },
 
@@ -168,6 +178,7 @@ const MOBILE_TABS = [
   { text:'Bán hàng', icon:'📝', url:'./ghihd.html' },
   { text:'Tra cứu', icon:'🔎', url:'./tracuu.html' },
   { text:'Hóa đơn', icon:'📑', url:'./danhsachxk.html' },
+  { text:'Kiểm kho', icon:'🛠️', url:'./tk_chinh.html' },
   { text:'Menu', icon:'☰', action:'menu' }
 ];
 

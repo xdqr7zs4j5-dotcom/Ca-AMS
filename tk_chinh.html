@@ -308,9 +308,86 @@ filter.oninput=e=>{
   });
 };
 
-luu.onclick=async()=>{
-  alert('Logic lưu giữ nguyên như bạn đang dùng');
+function taoChungTuKiemKho(){
+  const d = new Date();
+  const pad = n => String(n).padStart(2,'0');
+
+  return `KT-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}`
+       + `-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+}
+
+
+luu.onclick = async () => {
+  luu.disabled = true;          
+  try {
+    const ngayKK = ngay.value;
+
+    const chungtuVal =
+      chungTu.value?.trim()
+      || taoChungTuKiemKho();
+    chungTu.value = chungtuVal;
+
+    const makhVal = maKH.value?.trim() || null;
+
+    const logs = [];
+
+    tbody.querySelectorAll('tr').forEach(tr => {
+      const masp = tr.dataset.masp;
+      const tensp = tr.children[1].textContent.trim();
+
+      const tontruoc = num(tr.querySelector('.ton').textContent);
+      const thucteInput = tr.querySelector('.thucte').value;
+      if (thucteInput === '') return;
+
+      const tonsau = num(thucteInput);
+      const dieuchinh = tonsau - tontruoc;
+      if (dieuchinh === 0) return;
+
+      const ghichu = tr.querySelector('.note').value || 'kiemkho';
+
+      logs.push({
+        masp,
+        tensp,
+        tontruoc,
+        dieuchinh,
+        tonsau,
+        ghichu,
+        chungtu: chungtuVal,
+        makh: makhVal,
+        created_at: ngayKK
+      });
+    });
+
+    if (logs.length === 0) {
+      alert('Không có sản phẩm nào thay đổi tồn kho');
+      return;
+    }
+
+    const { error: errLog } = await supabase
+      .from('td_tonkho')
+      .insert(logs);
+
+    if (errLog) throw errLog;
+
+    for (const r of logs) {
+      const { error } = await supabase
+        .from('sanpham')
+        .update({ tonkho: r.tonsau })
+        .eq('masp', r.masp);
+      if (error) throw error;
+    }
+
+    alert(`✅ Đã lưu kiểm kho (${logs.length} sản phẩm)`);
+    await loadAll();
+
+  } catch (e) {
+    console.error(e);
+    alert('❌ Lỗi khi lưu kiểm kho');
+  } finally {
+    luu.disabled = false;
+  }
 };
+
 
 await loadAll();
 </script>

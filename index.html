@@ -81,10 +81,14 @@
       inset:0 auto 0 0;
       width:78%;
       max-width:320px;
+      height:100vh;
       background:#fff;
       transform:translateX(-100%);
       transition:.25s ease;
       z-index:300;
+
+      display:flex;
+      flex-direction:column;
     }
 
     body[data-ui="mobile"].menu-open .sidebar{
@@ -126,6 +130,10 @@
       display:flex;
       flex-direction:column;
       gap:6px;
+      flex:1;   
+      overflow-y:auto;  
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
     }
 
     .item{
@@ -230,6 +238,10 @@
 body[data-ui="desktop"].collapsed .submenu{
   padding-left:0;
 }
+body[data-ui="mobile"] .menu{
+  padding-bottom: calc(56px + var(--safe-bottom));
+}
+
   </style>
 
   <script type="module" src="./app.js" defer></script>
