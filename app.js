@@ -44,7 +44,7 @@ const MENU = [
   { text:'Bán hàng', url:'./ghihd.html' },
   { text:'Tra cứu', url:'./tracuu.html' },
   { text:'Hóa đơn', url:'./danhsachxk.html' },
-  { text:'Nhập kho', url:'./danhsachnk.html' },
+  { text:'Khác', url:'./danhsachph.html' },
   { text:'Danh sách SP', url:'./danhsachsp.html' },
   { text:'Thêm SP', url:'./nhapsp.html' },
   { text:'Danh sách KH', url:'./danhsachkh.html' },
@@ -56,12 +56,14 @@ const MENU = [
     children:[
       { text:'Chấm công', url:'./chamcong.html' },
       { text:'Hồ sơ', url:'./nhansu.html' },
-      { text:'Bậc lương', url:'./thietlapluong.html' }
+      { text:'Bậc lương', url:'./thietlapluong.html' },
+      { text:'Thiết lập', url:'./thietlappc.html' }
     ]
   },
 
   {
     text:'Kho',
+    url:'./danhsachnk.html',
     children:[
       { text:'Tồn kho', url:'./tk_theodoi.html' },
       { text:'Chi tiết', url:'./tk_chitiet.html' },
@@ -109,9 +111,24 @@ function renderMenu() {
         <span class="arrow">▾</span>
       `;
 
-      parent.onclick = () => {
-        group.classList.toggle('open');
-      };
+      parent.onclick = (e) => {
+  // nếu click vào mũi tên → chỉ toggle
+  if (e.target.closest('.arrow')) {
+    group.classList.toggle('open');
+    return;
+  }
+
+  // còn lại → đi trang của menu cha
+  if (item.url) {
+    activeUrl = item.url;
+    view.src = item.url;
+    renderMenu();
+
+    if (body.dataset.ui === 'mobile') {
+      body.classList.remove('menu-open');
+    }
+  }
+};
 
       const sub = document.createElement('div');
       sub.className = 'submenu';

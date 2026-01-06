@@ -92,18 +92,41 @@
     border-color:var(--blue);
   }
 
-  /* ===== Stat cards ===== */
-  .stats{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:12px}
-  .stat{border:1px solid var(--line); border-radius:12px; padding:14px; background:#fafafa}
-  .stat h3{margin:0 0 6px; font-size:13px; color:var(--muted); font-weight:600}
-  .stat .val{font-size:22px; font-weight:800}
-  .val.negative{color:var(--red)}
-  .val.positive{color:var(--green)}
+  .salary-table{
+  width:100%;
+  border-collapse:collapse;
+  margin-top:14px;
+  font-size:15px;
+}
 
-  /* ===== Total ===== */
-  .total{margin-top:12px; border:1px solid var(--line); border-radius:14px; padding:18px; background:#fff}
-  .total h3{margin:0 0 8px; font-size:13px; color:var(--muted)}
-  .total .val{font-size:30px; font-weight:900}
+.salary-table th,
+.salary-table td{
+  border:1px solid var(--line);
+  padding:12px 14px;
+}
+
+.salary-table th{
+  background:#f3f4f6;
+  text-align:left;
+}
+
+.salary-table .right{
+  text-align:right;
+  font-weight:700;
+}
+
+.salary-table .center{
+  text-align:center;
+}
+
+.salary-table .negative{ color:var(--red) }
+.salary-table .positive{ color:var(--green) }
+
+.salary-table .total-row td{
+  font-size:18px;
+  font-weight:900;
+  background:#fafafa;
+}
 
   /* ===== Actions ===== */
   .actions{display:flex; gap:10px; margin-top:12px}
@@ -124,6 +147,55 @@
   .d-ung{background:var(--red)}
   .d-thuong{background:var(--green)}
 
+  .section{
+  margin-top:16px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  overflow:hidden;
+}
+
+.section-header{
+  padding:10px 14px;
+  background:#f9fafb;
+  font-weight:700;
+  cursor:pointer;
+  user-select:none;
+}
+
+.section-header{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:10px 14px;
+  background:#f9fafb;
+  font-weight:700;
+  cursor:pointer;
+  user-select:none;
+}
+
+.section-header .arrow{
+  display:inline-block;
+  transition:transform .2s ease;
+}
+
+.section.collapsed .arrow{
+  transform:rotate(0deg);   /* ▶ */
+}
+
+.section:not(.collapsed) .arrow{
+  transform:rotate(90deg);  /* ▼ */
+}
+
+.section-body{
+  padding:12px;
+  display:block;
+}
+
+.section.collapsed .section-body{
+  display:none;
+}
+
+
   /* ===== Responsive & Print ===== */
   @media (max-width:800px){
     .stats{grid-template-columns:1fr 1fr}
@@ -132,6 +204,7 @@
     .actions,.pill,.legend,#salaryMode{display:none!important}
     body{background:#fff}
     .card{border:none; box-shadow:none}
+    .section{display:none!important}
   }
 </style>
 </head>
@@ -164,29 +237,70 @@
         <span class="dot d-thuong"></span><span>thưởng</span>
       </div>
 
-      <div class="stats">
-        <div class="stat">
-          <h3 id="labelCong">Số công</h3>
-          <div class="val" id="soCong">—</div>
-        </div>
-        <div class="stat">
-          <h3 id="labelLuong">Lương theo công</h3>
-          <div class="val" id="luongTinh">—</div>
-        </div>
-        <div class="stat">
-          <h3>Trừ Ứng</h3>
-          <div class="val negative" id="tongUng">—</div>
-        </div>
-        <div class="stat">
-          <h3>Thưởng</h3>
-          <div class="val positive" id="tongThuong">—</div>
-        </div>
-      </div>
+      <table class="salary-table">
+  <thead>
+    <tr>
+      <th style="width:50px">STT</th>
+      <th>Khoản thu nhập</th>
+      <th class="right">Giá trị</th>
 
-      <div class="total">
-        <h3>TỔNG LƯƠNG</h3>
-        <div class="val" id="tongLuong">—</div>
-      </div>
+      <th style="width:50px">STT</th>
+      <th>Khoản giảm trừ</th>
+      <th class="right">Giá trị</th>
+    </tr>
+  </thead>
+
+  <tbody>
+  <tr>
+    <td class="center">1</td>
+    <td id="labelCong">Số công</td>
+    <td class="right" id="soCong">—</td>
+
+    <td class="center">1</td>
+    <td>Trừ ứng</td>
+    <td class="right negative" id="tongUng">—</td>
+  </tr>
+
+  <tr>
+  <td class="center">2</td>
+  <td id="labelLuong">Lương theo công</td>
+  <td class="right" id="luongTinh">—</td>
+
+  <td class="center">2</td>
+  <td>Bảo hiểm</td>
+  <td class="right negative">—</td>
+</tr>
+
+<tr id="rowBaoHiem">
+  <td></td>
+  <td></td>
+  <td></td>
+
+  <td class="center"></td>
+  <td></td>
+  <td></td>
+</tr>
+
+
+  <tr id="rowThuong">
+  <td class="center">3</td>
+  <td>Thưởng</td>
+  <td class="right positive" id="tongThuong">—</td>
+
+  <td class="center"></td>
+  <td class="muted"></td>
+  <td class="right"></td>
+</tr>
+</tbody>
+
+
+  <tfoot>
+    <tr class="total-row">
+      <td colspan="5">TỔNG LƯƠNG</td>
+      <td class="right" id="tongLuong">—</td>
+    </tr>
+  </tfoot>
+</table>
 
       <div class="actions">
         <button class="btn" id="backBtn">← Quay lại</button>
@@ -194,7 +308,13 @@
         <button class="btn primary" id="printBtn">🖨 In</button>
       </div>
 
-      <h3 style="margin:16px 0 8px">Dòng phát sinh trong tháng</h3>
+      <div class="section">
+  <div class="section-header" data-target="#psSection">
+    <span class="arrow">▶</span>
+  <span class="title">Dòng phát sinh trong tháng</span>
+  </div>
+
+  <div class="section-body" id="psSection">
       <table>
         <thead>
           <tr>
@@ -210,8 +330,13 @@
       </table>
 
       <!-- PHẦN DOANH THU NGÀY: chỉ hiện với nhân viên "bán hàng" -->
-      <div id="dtSection">
-        <h3 style="margin:20px 0 8px">Doanh thu theo ngày (từ view)</h3>
+      <div class="section" id="dtSection">
+  <div class="section-header" data-target="#dtBody">
+    <span class="arrow">▶</span>
+    <span class="title"> Doanh thu theo ngày</span>
+  </div>
+
+  <div class="section-body" id="dtBody">
         <table>
           <thead>
             <tr>
@@ -332,6 +457,54 @@
     ) || null;
   }
 
+  async function loadThietLapPC(){
+  const { data, error } = await supabase
+    .from('thietlap_pc')
+    .select('id, nhompc, giatri, loai')
+    .order('id');
+
+  if (error) throw error;
+  return data || [];
+}
+function renderPCGT(pcRows){
+  // Xóa dòng cũ nếu render lại
+  document.querySelectorAll('.pc-sub, .gt-sub').forEach(e => e.remove());
+
+  const rowThuong = document.getElementById('rowThuong');
+  const rowBaoHiem = document.getElementById('rowBaoHiem');
+
+  let pcIndex = 1;
+  let gtIndex = 1;
+
+  for (const r of pcRows){
+    const tr = document.createElement('tr');
+
+    if (r.loai === 'pc'){
+      tr.className = 'pc-sub';
+      tr.innerHTML = `
+        <td class="center">3.${pcIndex++}</td>
+        <td>${r.nhompc}</td>
+        <td class="right positive">${fmt.format(Number(r.giatri||0))} ₫</td>
+
+        <td></td><td></td><td></td>
+      `;
+      rowThuong.after(tr);
+    }
+
+    if (r.loai === 'gt'){
+      tr.className = 'gt-sub';
+      tr.innerHTML = `
+        <td class="center">2.${gtIndex++}</td>
+        <td>${r.nhompc}</td>
+        <td class="right negative">${fmt.format(Number(r.giatri||0))} ₫</td>
+      `;
+      rowBaoHiem.after(tr);
+
+    }
+  }
+}
+
+
   // ===== Logic =====
   function tinhLuongTheoNgayCong(ns, rows){
     let soCong = 0, tienCong = 0, tongUng = 0, tongThuong = 0;
@@ -343,6 +516,13 @@
       else if (loai === 'ung'){ tongUng += Math.abs(st); }
       else if (loai === 'thuong'){ tongThuong += Math.abs(st); }
     }
+    const tongPC = STATE.pcgt
+  .filter(r => r.loai === 'pc')
+  .reduce((s,r)=>s+Number(r.giatri||0),0);
+
+const tongGT = STATE.pcgt
+  .filter(r => r.loai === 'gt')
+  .reduce((s,r)=>s+Number(r.giatri||0),0);
     const luongThang = Number(ns?.luong||0);
     const congTC = Number(ns?.congtc||0) || 1;
     const luongTheoCong = tienCong>0 ? Math.round(tienCong)
@@ -465,6 +645,9 @@
     try{
       const [ns, rows] = await Promise.all([loadNhanSu(manv), loadChamCong(manv, th)]);
       STATE.ns = ns; STATE.rows = rows; STATE.th = th;
+      STATE.pcgt = await loadThietLapPC();
+      renderPCGT(STATE.pcgt);
+
 
       $('#title').textContent = `Bảng lương – ${ns?.ten || manv}`;
       $('#sub').textContent   = `Mã: ${manv} · ${ns?.chucvu || ''} · Tháng: ${th}`;
@@ -506,6 +689,16 @@
   // ===== Start =====
   $('#chonThang').value = new URLSearchParams(location.search).get('thang') || nowMonth();
   loadAll();
+
+  document.querySelectorAll('.section-header').forEach(h=>{
+  const sec = h.closest('.section');
+  sec.classList.add('collapsed'); // ẩn mặc định
+
+  h.addEventListener('click', ()=>{
+    sec.classList.toggle('collapsed');
+  });
+});
+
 </script>
 
 </body>

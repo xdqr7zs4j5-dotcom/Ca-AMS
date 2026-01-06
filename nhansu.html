@@ -42,7 +42,7 @@
     .card.list{flex:1 1 auto; min-height:0; display:flex; flex-direction:column; gap:8px}
 
     h2{margin:0 0 12px}
-    .grid{display:grid; gap:12px; grid-template-columns: repeat(6, 1fr)}
+    .grid{display:grid; gap:12px; grid-template-columns: repeat(7, 1fr)}
     .grid>div{display:flex; flex-direction:column; gap:6px}
     .row-span-2{grid-column: span 3}
     label{font-size:12px; color:var(--muted)}
@@ -83,6 +83,18 @@
     }
     .secret:hover{ color: transparent; }
     .secret:hover::after{ opacity: 1; }
+    .form-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:12px;
+}
+
+.form-header h2{
+  margin:0;
+}
+
 
     /* Responsive: 2 hàng control gọn gàng trên mobile */
     @media (max-width: 900px){
@@ -95,8 +107,17 @@
   <div class="wrap">
     <!-- Form -->
     <div class="card form">
-      <h2>Thêm / Sửa nhân sự</h2>
-      <div class="grid">
+  <div class="form-header">
+    <h2>Thêm / Sửa nhân sự</h2>
+
+    <div class="actions">
+      <button class="btn" id="btnReset">Nhập mới</button>
+      <button class="btn primary" id="btnSave">Lưu</button>
+      <button class="btn" id="btnCancel" style="display:none">Hủy</button>
+      <span class="muted" id="msg"></span>
+    </div>
+  </div>
+  <div class="grid">
         <div>
           <label>Mã NV (tự tạo khi thêm mới)</label>
           <input id="manv" placeholder="Sẽ tạo tự động" readonly>
@@ -113,34 +134,17 @@
         </div>
 
         <div>
+          <label>Công nợ đầu kỳ</label>
+          <input id="cono" type="number" step="1000" placeholder="0" data-step="5">
+        </div>
+
+        <div>
           <label>Tình trạng *</label>
           <select id="tinhtrang" data-step="6">
             <option value="active">active</option>
             <option value="suspend">suspend</option>
           </select>
         </div>
-
-        <div>
-          <label>Lương (tháng)</label>
-          <input id="luong" type="number" min="0" step="1000" placeholder="0" data-step="3">
-        </div>
-
-        <div>
-          <label>Công tiêu chuẩn (ngày)</label>
-          <input id="congtc" type="number" min="0" step="0.5" placeholder="26" data-step="4">
-        </div>
-
-        <div>
-          <label>Công nợ đầu kỳ</label>
-          <input id="cono" type="number" step="1000" placeholder="0" data-step="5">
-        </div>
-      </div>
-
-      <div class="actions">
-        <button class="btn"        id="btnReset" data-hotkey="ctrl+r" data-action="reset">Nhập mới</button>
-        <button class="btn primary" id="btnSave"  data-hotkey="ctrl+s" data-action="save">Lưu</button>
-        <button class="btn"        id="btnCancel" data-hotkey="esc"    data-action="cancel" style="display:none">Hủy</button>
-        <span class="muted" id="msg"></span>
       </div>
     </div>
 

@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<title>Thiết lập – Phụ cấp & Giảm trừ</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<style>
+:root{
+  --bg:#f2f2f7;
+  --card:#fff;
+  --line:#e5e7eb;
+  --blue:#007aff;
+  --red:#ff3b30;
+  --green:#34c759;
+  --radius:14px;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--bg);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  color:#111;
+}
+
+/* ===== TOPBAR ===== */
+.topbar{
+  position:sticky;
+  top:0;
+  z-index:10;
+  background:var(--bg);
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:12px 16px;
+}
+.topbar h2{
+  margin:0;
+  font-size:20px;
+}
+.actions{
+  display:flex;
+  gap:8px;
+}
+button{
+  border:none;
+  border-radius:10px;
+  padding:8px 14px;
+  font-weight:600;
+  cursor:pointer;
+}
+.btn-primary{background:var(--blue);color:#fff}
+.btn-secondary{background:#e5e5ea}
+
+/* ===== LAYOUT 2 CỘT ===== */
+.wrap{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:16px;
+  padding:0 16px 16px;
+}
+@media(max-width:768px){
+  .wrap{grid-template-columns:1fr}
+}
+
+.col h3{
+  margin:8px 0;
+  font-size:16px;
+}
+
+/* ===== LIST ===== */
+.list{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  overflow:hidden;
+}
+.row{
+  display:flex;
+  gap:12px;
+  align-items:center;
+  padding:10px 12px;
+  border-bottom:1px solid var(--line);
+}
+.row:last-child{border-bottom:none}
+.row.deleted{
+  opacity:.5;
+  text-decoration:line-through;
+  background:#ffecec;
+}
+
+.cell{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+.label{
+  font-size:12px;
+  color:#6b7280;
+}
+input{
+  border:none;
+  outline:none;
+  font-size:15px;
+  background:transparent;
+}
+
+.row-actions{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+.row-actions button{
+  padding:4px 8px;
+  font-size:12px;
+  border-radius:8px;
+}
+.xoa{background:var(--red);color:#fff}
+.undo{background:var(--green);color:#fff;display:none}
+</style>
+</head>
+
+<body>
+
+<div class="topbar">
+  <h2>Thiết lập phụ cấp & giảm trừ</h2>
+  <div class="actions">
+    <button class="btn-primary" onclick="luuThayDoi()">💾 Lưu</button>
+  </div>
+</div>
+
+<div class="wrap">
+  <!-- PHỤ CẤP -->
+  <div class="col">
+    <h3>Nhóm phụ cấp</h3>
+    <div class="list" id="listPC"></div>
+    <button class="btn-secondary" onclick="themDong('pc')">+ Thêm phụ cấp</button>
+  </div>
+
+  <!-- GIẢM TRỪ -->
+  <div class="col">
+    <h3>Nhóm giảm trừ</h3>
+    <div class="list" id="listGT"></div>
+    <button class="btn-secondary" onclick="themDong('gt')">+ Thêm giảm trừ</button>
+  </div>
+</div>
+
+<script type="module">
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+/* ===== SUPABASE ===== */
+const supabase = createClient(
+  'https://qvifxqsgjsvvdjfclyjm.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF2aWZ4cXNnanN2dmRqZmNseWptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQwMzc0MDcsImV4cCI6MjA2OTYxMzQwN30.egiHCr2zYRZyf6kwJk7xgcRYD5dqhU-n1H_Dnuo-jso'
+    );
+/* ===== DOM ===== */
+const listPC = document.getElementById('listPC');
+const listGT = document.getElementById('listGT');
+const duLieuGoc = new Map();
+
+/* ===== MONEY ===== */
+const fmt = n => Number(n||0).toLocaleString('vi-VN');
+const parse = v => Number(String(v).replace(/\D/g,''))||0;
+
+/* ===== TẠO DÒNG ===== */
+function taoDong(row={}, loai){
+  const div = document.createElement('div');
+  div.className = 'row';
+  div.dataset.loai = loai;
+  if(row.id) div.dataset.id = row.id;
+
+  div.innerHTML = `
+    <div class="cell">
+      <span class="label">Nhóm</span>
+      <input class="nhompc" value="${row.nhompc??''}">
+    </div>
+    <div class="cell">
+      <span class="label">Giá trị</span>
+      <input class="giatri" inputmode="numeric"
+        value="${row.giatri?fmt(row.giatri):''}">
+    </div>
+    <div class="row-actions">
+      <button class="xoa">Xóa</button>
+      <button class="undo">Hoàn tác</button>
+    </div>
+  `;
+
+  const ip = div.querySelector('.giatri');
+  ip.oninput = ()=> ip.value = ip.value ? fmt(parse(ip.value)) : '';
+
+  const btnX = div.querySelector('.xoa');
+  const btnU = div.querySelector('.undo');
+
+  btnX.onclick = ()=>{
+    div.classList.add('deleted');
+    btnX.style.display='none';
+    btnU.style.display='block';
+  };
+  btnU.onclick = ()=>{
+    div.classList.remove('deleted');
+    btnX.style.display='block';
+    btnU.style.display='none';
+  };
+
+  return div;
+}
+
+/* ===== THÊM ===== */
+function themDong(loai){
+  (loai==='pc'?listPC:listGT).appendChild(taoDong({},loai));
+}
+
+/* ===== LOAD ===== */
+async function taiDuLieu(){
+  const {data,error} = await supabase
+    .from('thietlap_pc')
+    .select('*')
+    .order('id');
+
+  if(error) return alert(error.message);
+
+  listPC.innerHTML='';
+  listGT.innerHTML='';
+  duLieuGoc.clear();
+
+  data.forEach(r=>{
+    duLieuGoc.set(r.id,{...r});
+    (r.loai==='gt'?listGT:listPC).appendChild(taoDong(r,r.loai));
+  });
+}
+
+/* ===== LẤY DATA ===== */
+function layHienTai(){
+  return [...document.querySelectorAll('.row')].map(div=>({
+    id:div.dataset.id?Number(div.dataset.id):null,
+    loai:div.dataset.loai,
+    nhompc:div.querySelector('.nhompc').value.trim(),
+    giatri:parse(div.querySelector('.giatri').value),
+    deleted:div.classList.contains('deleted')
+  }));
+}
+
+/* ===== LƯU ===== */
+async function luuThayDoi(){
+  const rows = layHienTai();
+
+  /* ===== XÓA ===== */
+  const del = rows.filter(r => r.deleted && r.id).map(r => r.id);
+  if (del.length) {
+    const { error } = await supabase
+      .from('thietlap_pc')
+      .delete()
+      .in('id', del);
+    if (error) return alert(error.message);
+  }
+
+  /* ===== TÁCH INSERT / UPDATE ===== */
+  const inserts = [];
+  const updates = [];
+
+  for (const r of rows) {
+    if (r.deleted || !r.nhompc) continue;
+
+    if (!r.id) {
+      // 👉 DÒNG MỚI
+      inserts.push({
+        nhompc: r.nhompc,
+        giatri: r.giatri,
+        loai: r.loai
+      });
+    } else {
+      const old = duLieuGoc.get(r.id);
+      if (
+        !old ||
+        old.nhompc !== r.nhompc ||
+        Number(old.giatri) !== r.giatri ||
+        old.loai !== r.loai
+      ) {
+        updates.push({
+          id: r.id,
+          nhompc: r.nhompc,
+          giatri: r.giatri,
+          loai: r.loai
+        });
+      }
+    }
+  }
+
+  /* ===== INSERT ===== */
+  if (inserts.length) {
+    const { error } = await supabase
+      .from('thietlap_pc')
+      .insert(inserts);
+    if (error) return alert(error.message);
+  }
+
+  /* ===== UPDATE ===== */
+  for (const u of updates) {
+    const { error } = await supabase
+      .from('thietlap_pc')
+      .update({
+        nhompc: u.nhompc,
+        giatri: u.giatri,
+        loai: u.loai
+      })
+      .eq('id', u.id);
+    if (error) return alert(error.message);
+  }
+
+  alert('✅ Đã lưu');
+  taiDuLieu();
+}
+
+/* expose */
+window.themDong = themDong;
+window.luuThayDoi = luuThayDoi;
+
+taiDuLieu();
+</script>
+</body>
+</html>
