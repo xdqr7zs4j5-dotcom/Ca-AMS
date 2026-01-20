@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="vi">
 <head>
   <meta charset="UTF-8"/>
@@ -194,6 +194,137 @@
 .section.collapsed .section-body{
   display:none;
 }
+/* =========================
+   CÁCH 3 – LAYOUT 2 BẢNG
+   ========================= */
+
+.salary-grid{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:16px;
+  margin-top:14px;
+}
+
+/* mỗi bảng là 1 card nhỏ */
+.salary-box{
+  border:1px solid var(--line);
+  border-radius:12px;
+  overflow:hidden;
+  background:#fff;
+}
+
+/* tiêu đề mỗi bảng */
+.salary-box .box-header{
+  padding:10px 14px;
+  font-weight:700;
+  background:#f9fafb;
+  border-bottom:1px solid var(--line);
+}
+
+/* bảng bên trong */
+.salary-box table{
+  margin:0;
+  border:none;
+}
+
+.salary-box th,
+.salary-box td{
+  border-left:none;
+  border-right:none;
+}
+
+.salary-box thead th{
+  background:#f3f4f6;
+}
+
+.salary-box tfoot td{
+  background:#fafafa;
+  font-weight:800;
+}
+
+/* căn phải số tiền */
+.salary-box .right{
+  text-align:right;
+  font-weight:700;
+}
+
+.salary-box .negative{ color:var(--red); }
+.salary-box .positive{ color:var(--green); }
+
+/* ===== INPUT DẠNG TEXT (GIỐNG SỐ 28) ===== */
+.day-input{
+  border: none;
+  outline: none;
+  background: transparent;
+
+  font-size: 15px;        /* giống số 28 */
+  font-weight: 700;       /* IN ĐẬM */
+  color: #111;
+
+  text-align: right;
+  width: 110px;
+
+  padding: 0;
+  margin: 0;
+
+  letter-spacing: .2px;
+}
+.meta-input{
+  border: none;
+  outline: none;
+  background: transparent;
+
+  font-size: 15px;
+  font-weight: 700;
+  color: #111;
+
+  text-align: right;
+  width: 110px;
+
+  padding: 0;
+  margin: 0;
+  letter-spacing: .2px;
+}
+
+.meta-input:focus{
+  box-shadow: none;
+}
+
+/* bỏ spinner */
+.day-input::-webkit-outer-spin-button,
+.day-input::-webkit-inner-spin-button{
+  -webkit-appearance: none;
+  margin: 0;
+}
+.day-input[type=text]{
+  -moz-appearance: textfield;
+}
+
+/* focus KHÔNG viền */
+.day-input:focus{
+  box-shadow: none;
+}
+.row-group{
+  background:#fafafa;
+  font-weight:700;
+}
+
+.row-child td{
+  font-weight:500;
+}
+
+.row-child .label{
+  padding-left:28px;
+}
+
+
+/* mobile: xếp dọc */
+@media (max-width:768px){
+  .salary-grid{
+    grid-template-columns:1fr;
+  }
+}
+
 
 
   /* ===== Responsive & Print ===== */
@@ -237,70 +368,57 @@
         <span class="dot d-thuong"></span><span>thưởng</span>
       </div>
 
-      <table class="salary-table">
-  <thead>
-    <tr>
-      <th style="width:50px">STT</th>
-      <th>Khoản thu nhập</th>
-      <th class="right">Giá trị</th>
+      <div class="salary-grid">
 
-      <th style="width:50px">STT</th>
-      <th>Khoản giảm trừ</th>
-      <th class="right">Giá trị</th>
-    </tr>
-  </thead>
-
-  <tbody>
-  <tr>
-    <td class="center">1</td>
-    <td id="labelCong">Số công</td>
-    <td class="right" id="soCong">—</td>
-
-    <td class="center">1</td>
-    <td>Trừ ứng</td>
-    <td class="right negative" id="tongUng">—</td>
-  </tr>
-
-  <tr>
-  <td class="center">2</td>
-  <td id="labelLuong">Lương theo công</td>
-  <td class="right" id="luongTinh">—</td>
-
-  <td class="center">2</td>
-  <td>Bảo hiểm</td>
-  <td class="right negative">—</td>
+  <!-- ===== THU NHẬP ===== -->
+  <div class="salary-box">
+    <div class="box-header">Thu nhập</div>
+    <table class="salary-table">
+      <thead>
+        <tr>
+          <th style="width:60px">STT</th>
+          <th>Khoản thu nhập</th>
+          <th class="right"></th>
+          <th class="right"></th>
+        </tr>
+      </thead>
+      <tbody id="thuBody"></tbody>
+      <tfoot>
+        <tr>
+          <td colspan="3">Tổng thu nhập</td>
+          <td class="right" id="tongThu">—</td>
+        </tr>
+        <tr class="total-row">
+  <td colspan="3">Tổng lương thực nhận</td>
+  <td class="right" id="tongLuong">—</td>
 </tr>
+      </tfoot>
+    </table>
+  </div>
 
-<tr id="rowBaoHiem">
-  <td></td>
-  <td></td>
-  <td></td>
+  <!-- ===== GIẢM TRỪ ===== -->
+  <div class="salary-box">
+    <div class="box-header">Giảm trừ</div>
+    <table class="salary-table">
+      <thead>
+        <tr>
+          <th style="width:60px">STT</th>
+          <th>Khoản giảm trừ</th>
+          <th class="right"></th>
+        </tr>
+      </thead>
+      <tbody id="giamBody"></tbody>
+      <tfoot>
+        <tr>
+          <td colspan="2">Tổng giảm trừ</td>
+          <td class="right" id="tongGiam">—</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
 
-  <td class="center"></td>
-  <td></td>
-  <td></td>
-</tr>
+</div>
 
-
-  <tr id="rowThuong">
-  <td class="center">3</td>
-  <td>Thưởng</td>
-  <td class="right positive" id="tongThuong">—</td>
-
-  <td class="center"></td>
-  <td class="muted"></td>
-  <td class="right"></td>
-</tr>
-</tbody>
-
-
-  <tfoot>
-    <tr class="total-row">
-      <td colspan="5">TỔNG LƯƠNG</td>
-      <td class="right" id="tongLuong">—</td>
-    </tr>
-  </tfoot>
-</table>
 
       <div class="actions">
         <button class="btn" id="backBtn">← Quay lại</button>
@@ -371,10 +489,32 @@
 
   const fmt = new Intl.NumberFormat('vi-VN');
   const $ = s => document.querySelector(s);
+  let META_KEY = null;
+  const META_VALUES = {};
 
   // ===== GLOBAL STATE =====
   const STATE = { ns: null, rows: [], th: '' };
   const sw = document.querySelector('#mode_switch');
+  let CURRENT_TONG_THU = 0;
+  let CURRENT_TONG_GIAM = 0;
+  let CURRENT_THU_TREE = [];   // ❗ BẮT BUỘC
+  const DAY_VALUES = {};
+
+  function formatVND(n){
+  return new Intl.NumberFormat('vi-VN').format(n);
+  }
+
+  function loadMeta(key){
+  try{
+    return JSON.parse(localStorage.getItem(key) || '{}');
+  }catch{
+    return {};
+  }
+}
+  function saveMeta(){
+  if(!META_KEY) return;
+  localStorage.setItem(META_KEY, JSON.stringify(META_VALUES));
+}
 
   // ===== Helper =====
   function nowMonth(){
@@ -445,6 +585,37 @@
     if (error) throw error;
     return data || [];
   }
+  async function tinhLuongTheoBac(ns, yyyymm){
+  // chỉ áp dụng cho NV bán hàng
+  if (!isSalesRole(ns?.chucvu)) return null;
+
+  // lấy doanh thu theo ngày → cộng tháng
+  const dtRows = await loadDoanhThuNgay(ns.manv, yyyymm);
+  const doanhSoThang = dtRows.reduce(
+    (s,r)=> s + Number(r.doanhthu||0), 0
+  );
+
+  // tìm bậc
+  const bac = await pickBac(doanhSoThang);
+  if (!bac) {
+    return {
+      doanhSoThang,
+      bacLabel: 'Chưa xếp bậc',
+      pct: 0,
+      luongBac: 0
+    };
+  }
+
+  const pct = Number(bac.pct_hoahong || 0);
+  const luongBac = Math.round(doanhSoThang * pct);
+
+  return {
+    doanhSoThang,
+    bacLabel: bac.ten_bac,
+    pct,
+    luongBac
+  };
+}
   async function pickBac(doanhso){
     const { data, error } = await supabase
       .from('thietlap_luong')
@@ -466,70 +637,6 @@
   if (error) throw error;
   return data || [];
 }
-function renderPCGT(pcRows){
-  // Xóa dòng cũ nếu render lại
-  document.querySelectorAll('.pc-sub, .gt-sub').forEach(e => e.remove());
-
-  const rowThuong = document.getElementById('rowThuong');
-  const rowBaoHiem = document.getElementById('rowBaoHiem');
-
-  let pcIndex = 1;
-  let gtIndex = 1;
-
-  for (const r of pcRows){
-    const tr = document.createElement('tr');
-
-    if (r.loai === 'pc'){
-      tr.className = 'pc-sub';
-      tr.innerHTML = `
-        <td class="center">3.${pcIndex++}</td>
-        <td>${r.nhompc}</td>
-        <td class="right positive">${fmt.format(Number(r.giatri||0))} ₫</td>
-
-        <td></td><td></td><td></td>
-      `;
-      rowThuong.after(tr);
-    }
-
-    if (r.loai === 'gt'){
-      tr.className = 'gt-sub';
-      tr.innerHTML = `
-        <td class="center">2.${gtIndex++}</td>
-        <td>${r.nhompc}</td>
-        <td class="right negative">${fmt.format(Number(r.giatri||0))} ₫</td>
-      `;
-      rowBaoHiem.after(tr);
-
-    }
-  }
-}
-
-
-  // ===== Logic =====
-  function tinhLuongTheoNgayCong(ns, rows){
-    let soCong = 0, tienCong = 0, tongUng = 0, tongThuong = 0;
-    for (const r of rows){
-      const loai = String(r.loai||'').toLowerCase();
-      const st = Number(r.sotien||0);
-      if (loai === 'full'){ soCong += 1; tienCong += st; }
-      else if (loai === 'half'){ soCong += 0.5; tienCong += st; }
-      else if (loai === 'ung'){ tongUng += Math.abs(st); }
-      else if (loai === 'thuong'){ tongThuong += Math.abs(st); }
-    }
-    const tongPC = STATE.pcgt
-  .filter(r => r.loai === 'pc')
-  .reduce((s,r)=>s+Number(r.giatri||0),0);
-
-const tongGT = STATE.pcgt
-  .filter(r => r.loai === 'gt')
-  .reduce((s,r)=>s+Number(r.giatri||0),0);
-    const luongThang = Number(ns?.luong||0);
-    const congTC = Number(ns?.congtc||0) || 1;
-    const luongTheoCong = tienCong>0 ? Math.round(tienCong)
-                                     : Math.round((luongThang/congTC) * soCong);
-    const tongLuong = luongTheoCong - tongUng + tongThuong;
-    return { soCong, luongTheoCong, tongUng, tongThuong, tongLuong };
-  }
 
   function renderPS(rows, mode){
   const tb = $('#psBody'); tb.innerHTML = '';
@@ -589,81 +696,534 @@ const tongGT = STATE.pcgt
   $('#dtDayTotalHD').textContent = totalHD;
   return total;
 }
+function buildLuongContext(ns, chamcongRows, mode, yyyymm){
+  const soCong = chamcongRows.reduce((s,r)=>{
+    if(r.loai==='full') return s+1;
+    if(r.loai==='half') return s+0.5;
+    return s;
+  },0);
+  const congTC =
+  META_VALUES.so_cong ?? Number(ns?.congtc || 1);
 
-  async function renderByMode(mode, ns, rows, yyyymm){
-  const sales = isSalesRole(ns?.chucvu);
+  const luongGoc =
+  META_VALUES.luong_co_ban ?? Number(ns?.luong || 0);
 
-  // Chỉ hiện Doanh thu ngày khi: NV bán hàng && đang ở chế độ "bậc"
-  const showDT = sales && mode === 'bac';
-  $('#dtSection').style.display = showDT ? '' : 'none';
+  return {
+    ns,
+    chamcongRows,
+    soCong,
+    congTC,
+    luongThang: luongGoc,   // ← override
+    mode,
+    yyyymm
+  };
 
-  let doanhsoThang = 0;
-  if (showDT){
-    const dtRows = await loadDoanhThuNgay(ns?.manv, yyyymm);
-    doanhsoThang = renderDoanhThuNgay(dtRows) ?? 0;
-  } else {
-    // Khi ẩn dtSection vẫn reset nội dung/tổng cho gọn
-    $('#dtDayBody').innerHTML = `<tr><td colspan="4" class="muted">—</td></tr>`;
-    $('#dtDayTotal').textContent = '—';
+}
+
+async function buildThuTree(ns, chamcongRows, pcRows, mode, yyyymm){
+  const ctx = buildLuongContext(ns, chamcongRows, mode, yyyymm);
+
+  const tree = [];
+
+  /* =====================
+     1. SỐ CÔNG
+  ===================== */
+  tree.push({
+  type:'meta',
+  key:'so_cong',
+  label:'Số công',
+  valueDay: ctx.congTC,
+  valueMonth: ctx.soCong,
+  editable: true,
+  display:'count'
+});
+  /* =====================
+     2. LƯƠNG
+  ===================== */
+  if(mode === 'bac'){
+    // ---- LƯƠNG THEO BẬC ----
+    const kqBac = await tinhLuongTheoBac(ns, yyyymm);
+
+    if(kqBac){
+      tree.push({
+        type:'fixed',
+  label:`Lương theo bậc (${kqBac.bacLabel} · ${(kqBac.pct*100).toFixed(1)}%)`,
+  valueDay: kqBac.doanhSoThang,
+  valueMonth: kqBac.luongBac,
+  display:'money'
+      });
+    }
+  }else{
+    // ---- LƯƠNG THEO NGÀY CÔNG ----
+
+    const luongNgay = ctx.luongThang;
+    const luongThang = luongNgay / ctx.congTC;
+    const luongThuc = Math.round(luongThang * ctx.soCong);
+
+tree.push({
+  type:'meta',
+  key:'luong_co_ban',
+  label:'Lương cơ bản',
+  valueDay: luongNgay,
+  valueMonth: luongThuc,
+  editable: true,
+  display:'money'
+});
+
   }
 
-  if (mode === 'bac'){
-    const bac = await pickBac(doanhsoThang);
-    const pct = Number(bac?.pct_hoahong || 0);
-    const luongBac = Math.round(doanhsoThang * pct);
-    const agg = tinhLuongTheoNgayCong(ns, rows);
-    const tongLuong = luongBac - agg.tongUng + agg.tongThuong;
+  /* =====================
+     3. THƯỞNG
+  ===================== */
+  const tongThuong = chamcongRows
+    .filter(r=>r.loai==='thuong')
+    .reduce((s,r)=>s+Math.abs(Number(r.sotien||0)),0);
 
-    $('#labelCong').textContent  = 'Tổng doanh số (tháng)';
-    $('#labelLuong').textContent = `Lương theo bậc${bac ? ` (${bac.ten_bac})` : ''}`;
-    $('#soCong').textContent     = `${fmt.format(doanhsoThang)} ₫`;
-    $('#luongTinh').textContent  = `${fmt.format(luongBac)} ₫`;
-    $('#tongUng').textContent    = `${fmt.format(agg.tongUng)} ₫`;
-    $('#tongThuong').textContent = `${fmt.format(agg.tongThuong)} ₫`;
-    $('#tongLuong').textContent  = `${fmt.format(tongLuong)} ₫`;
-  } else {
-    $('#labelCong').textContent  = 'Số công';
-    $('#labelLuong').textContent = 'Lương theo công';
-    const kq = tinhLuongTheoNgayCong(ns, rows);
-    $('#soCong').textContent     = (kq.soCong % 1 === 0) ? kq.soCong : kq.soCong.toFixed(1);
-    $('#luongTinh').textContent  = `${fmt.format(kq.luongTheoCong)} ₫`;
-    $('#tongUng').textContent    = `${fmt.format(kq.tongUng)} ₫`;
-    $('#tongThuong').textContent = `${fmt.format(kq.tongThuong)} ₫`;
-    $('#tongLuong').textContent  = `${fmt.format(kq.tongLuong)} ₫`;
+  if(tongThuong > 0){
+    tree.push({
+      type:'fixed',
+      label:'Thưởng',
+      value:tongThuong,
+      display:'money'
+    });
+  }
+
+  /* =====================
+     4. PHỤ CẤP (GROUP)
+  ===================== */
+  if(pcRows.length){
+    const children = pcRows.map(r=>{
+      const vNgay = Number(r.giatri||0);
+      const vThang = Math.round(vNgay * ctx.soCong);
+
+      return {
+        type:'pc',
+        key: `pc_${r.id}`, 
+        label:r.nhompc,
+        valueDay: vNgay,   
+        valueMonth: vThang,
+        editable: true 
+      };
+    });
+
+    tree.push({
+      type:'group',
+      label:'Phụ cấp',
+      children
+    });
+  }
+
+  return tree;
+}
+
+function buildGiamTree(chamcongRows, gtRows){
+  const tree = [];
+
+  const tongUng = chamcongRows
+    .filter(r=>r.loai==='ung')
+    .reduce((s,r)=>s+Math.abs(Number(r.sotien||0)),0);
+
+  if(tongUng>0){
+    tree.push({ type:'ung', label:'Trừ ứng', value:tongUng });
+  }
+
+  if(gtRows.length){
+    tree.push({
+      type:'group',
+      label:'Bảo hiểm',
+      children: gtRows.map(r=>({
+        type:'gt',
+        label:r.nhompc,
+        value:r.giatri
+      }))
+    });
+  }
+
+  return tree;
+}
+
+function recalcThuNhap(){
+  let tong = 0;
+  const soCong = STATE.rows.reduce((s,r)=>{
+    if(r.loai==='full') return s+1;
+    if(r.loai==='half') return s+0.5;
+    return s;
+  },0);
+
+  // cập nhật lại UI phụ cấp
+  document.querySelectorAll('.day-input').forEach(inp=>{
+    const key = inp.dataset.key;
+    const vDay = DAY_VALUES[key] || 0;
+    const vMonth = Math.round(vDay * soCong);
+
+    // tìm td tháng (cùng hàng)
+    const tdMonth = inp.closest('tr').querySelector('td:last-child');
+    tdMonth.textContent = fmt.format(vMonth) + ' ₫';
+  });
+
+  // tính lại tổng từ tree hiện tại
+  const pcSum = Object.values(DAY_VALUES)
+    .reduce((s,v)=> s + Math.round(v * soCong), 0);
+
+  const baseThu = calcTongThuFromTree(
+    CURRENT_THU_TREE.filter(n => n.type !== 'group')
+  );
+
+  const tongThu = baseThu + pcSum;
+
+  $('#tongThu').textContent = fmt.format(tongThu) + ' ₫';
+  $('#tongLuong').textContent =
+    fmt.format(tongThu - CURRENT_TONG_GIAM) + ' ₫';
+}
+function recalcFromDayValues(){
+  let tong = 0;
+  const soCong = STATE.rows.reduce((s,r)=>{
+    if(r.loai==='full') return s+1;
+    if(r.loai==='half') return s+0.5;
+    return s;
+  },0);
+
+  // duyệt lại tree
+  CURRENT_THU_TREE.forEach(node=>{
+    if(node.type === 'group'){
+      node.children.forEach(c=>{
+        const vDay = DAY_VALUES[c.key] ?? c.valueDay;
+        const vMonth = Math.round(vDay * soCong);
+        c.valueDay = vDay;
+        c.valueMonth = vMonth;
+        tong += vMonth;
+
+        // update UI cột theo tháng
+        const el = document.querySelector(
+          `[data-month-key="${c.key}"]`
+        );
+        if(el) el.textContent = fmt.format(vMonth) + ' ₫';
+      });
+    }else if(node.valueMonth){
+      tong += node.valueMonth;
+    }
+  });
+
+  $('#tongThu').textContent = fmt.format(tong) + ' ₫';
+  $('#tongLuong').textContent =
+    fmt.format(tong - CURRENT_TONG_GIAM) + ' ₫';
+}
+
+function renderThuFromTree(tree){
+  const tb = document.getElementById('thuBody');
+  tb.innerHTML = '';
+
+  let stt = 1;
+
+  for(const node of tree){
+
+    // ===== NODE THƯỜNG =====
+    if(node.type !== 'group'){
+  tb.insertAdjacentHTML('beforeend', `
+    <tr>
+      <td class="center">${stt++}</td>
+      <td>${node.label}</td>
+      <td class="right">
+${
+  node.editable
+    ? `<input class="meta-input"
+              data-key="${node.key}"
+              value="${node.valueDay}">`
+    : (
+        node.valueDay != null
+          ? (node.display === 'money'
+              ? fmt.format(node.valueDay)
+              : node.valueDay)
+          : '—'
+      )
+}
+</td>
+      <td class="right ${node.display==='money'?'positive':''}">
+        ${
+          node.valueMonth != null
+            ? (node.display === 'money'
+                ? fmt.format(node.valueMonth) + ' ₫'
+                : node.valueMonth)
+            : '—'
+        }
+      </td>
+    </tr>
+  `);
+  continue;
+}
+
+    // ===== NODE GROUP =====
+    const parentSTT = stt++;
+    tb.insertAdjacentHTML('beforeend', `
+      <tr class="row-group">
+        <td class="center">${parentSTT}</td>
+        <td>${node.label}</td>
+        <td></td>
+        <td></td>
+      </tr>
+    `);
+
+    let sub = 1;
+    for(const c of node.children){
+      tb.insertAdjacentHTML('beforeend', `
+    <tr class="row-child">
+      <td class="center">${parentSTT}.${sub++}</td>
+      <td class="label">${c.label}</td>
+      <td class="right">
+  ${
+    c.editable
+      ? `<input
+           class="day-input"
+           data-key="${c.key}"
+           value="${fmt.format(c.valueDay)}"
+         >`
+      : fmt.format(c.valueDay)
+  }
+</td>
+      <td class="right positive" data-month-key="${c.key}">
+  ${fmt.format(c.valueMonth)} ₫
+</td>
+
+    </tr>
+  `);
+}
+  }
+}
+function calcTongThuFromTree(tree){
+  let sum = 0;
+
+  for(const node of tree){
+    if(node.display === 'count') continue;
+    if(node.type !== 'group'){
+      if(typeof node.valueMonth === 'number'){
+        sum += node.valueMonth;
+      }
+      continue;
+    }
+
+    // node group (phụ cấp)
+    for(const c of node.children || []){
+      sum += Number(c.valueMonth  || 0);
+    }
+  }
+
+  return sum;
+}
+
+function calcTongGiamFromTree(tree){
+  let sum = 0;
+
+  for(const node of tree){
+    if(node.type !== 'group'){
+      sum += Number(node.value || 0);
+      continue;
+    }
+
+    for(const c of node.children || []){
+      sum += Number(c.value || 0);
+    }
+  }
+
+  return sum;
+}
+
+
+function renderGiamFromTree(tree){
+  const tb = document.getElementById('giamBody');
+  tb.innerHTML = '';
+
+  let stt = 1;
+
+  for(const node of tree){
+
+    // ===== NODE THƯỜNG (ỨNG) =====
+    if(node.type !== 'group'){
+      tb.insertAdjacentHTML('beforeend', `
+        <tr>
+          <td class="center">${stt++}</td>
+          <td>${node.label}</td>
+          <td class="right negative">${fmt.format(node.value)} ₫</td>
+        </tr>
+      `);
+      continue;
+    }
+
+    // ===== NODE GROUP (BẢO HIỂM) =====
+    const parentSTT = stt++;
+    tb.insertAdjacentHTML('beforeend', `
+      <tr class="row-group">
+        <td class="center">${parentSTT}</td>
+        <td>${node.label}</td>
+        <td></td>
+      </tr>
+    `);
+
+    let sub = 1;
+    for(const c of node.children){
+      tb.insertAdjacentHTML('beforeend', `
+        <tr class="row-child">
+          <td class="center">${parentSTT}.${sub++}</td>
+          <td class="label">${c.label}</td>
+          <td class="right negative">${fmt.format(c.value)} ₫</td>
+        </tr>
+      `);
+    }
   }
 }
 
+document.addEventListener('input', e=>{
+  if(!e.target.classList.contains('day-input')) return;
+
+  const raw = Number(e.target.value.replace(/\D/g,'') || 0);
+  const key = e.target.dataset.key;
+
+  DAY_VALUES[key] = raw;
+  recalcFromDayValues();
+});
+document.addEventListener('input', e=>{
+  if(!e.target.classList.contains('meta-input')) return;
+
+  const raw = Number(e.target.value.replace(/\D/g,'') || 0);
+  const key = e.target.dataset.key;
+
+  META_VALUES[key] = raw;
+  saveMeta();
+});
+
+document.addEventListener('focus', e=>{
+  if(!e.target.classList.contains('day-input')) return;
+
+  // khi focus: bỏ dấu chấm để nhập
+  e.target.value = e.target.value.replace(/\D/g,'');
+}, true);
+
+document.addEventListener('blur', e=>{
+  if(!e.target.classList.contains('day-input')) return;
+
+  const raw = Number(e.target.value.replace(/\D/g,'') || 0);
+  e.target.value = formatVND(raw); // có dấu chấm VN
+}, true);
+document.addEventListener('blur', e=>{
+  if(!e.target.classList.contains('meta-input')) return;
+
+  loadAll();   // rebuild sau khi user nhập xong
+}, true);
+
   // ===== Main =====
   async function loadAll(){
-    const qs = new URLSearchParams(location.search);
-    const manv = qs.get('manv') || '';
-    if (!manv){ alert('Thiếu tham số manv'); return; }
+  const qs = new URLSearchParams(location.search);
+  const manv = qs.get('manv') || '';
+  
+  
 
-    const th = $('#chonThang').value || nowMonth();
-    $('#sub').textContent = `Mã: ${manv} · Tháng: ${th}`;
-
-    try{
-      const [ns, rows] = await Promise.all([loadNhanSu(manv), loadChamCong(manv, th)]);
-      STATE.ns = ns; STATE.rows = rows; STATE.th = th;
-      STATE.pcgt = await loadThietLapPC();
-      renderPCGT(STATE.pcgt);
-
-
-      $('#title').textContent = `Bảng lương – ${ns?.ten || manv}`;
-      $('#sub').textContent   = `Mã: ${manv} · ${ns?.chucvu || ''} · Tháng: ${th}`;
-
-      renderPS(rows, currentMode());
-
-      const sales = isSalesRole(ns?.chucvu);
-      $('#dtSection').style.display = sales ? '' : 'none';
-
-      paintSwitch();
-      await renderByMode(currentMode(), STATE.ns, STATE.rows, STATE.th);
-    }catch(err){
-      console.error(err);
-      alert('Lỗi tải dữ liệu: ' + (err?.message || err));
-    }
+  if (!manv){
+    alert('Thiếu tham số manv');
+    return;
   }
+
+  const th = $('#chonThang').value || nowMonth();
+  META_KEY = `salary_meta_${manv}_${th}`;
+  Object.assign(META_VALUES, loadMeta(META_KEY));
+
+  try{
+    /* =====================
+       LOAD DATA
+    ===================== */
+    const [ns, chamcong] = await Promise.all([
+      loadNhanSu(manv),
+      loadChamCong(manv, th)
+    ]);
+
+    STATE.ns   = ns;
+    STATE.rows = chamcong;
+    STATE.th   = th;
+    STATE.pcgt = await loadThietLapPC();
+
+    /* =====================
+       HEADER
+    ===================== */
+    $('#title').textContent = `Bảng lương – ${ns?.ten || manv}`;
+    $('#sub').textContent   = `Mã: ${manv} · ${ns?.chucvu || ''} · Tháng: ${th}`;
+
+    /* =====================
+       MODE & UI
+    ===================== */
+    const mode = currentMode();
+    paintSwitch();
+    renderPS(chamcong, mode);
+
+    const sales = isSalesRole(ns?.chucvu);
+    $('#dtSection').style.display = sales ? '' : 'none';
+
+    Object.keys(DAY_VALUES).forEach(k => delete DAY_VALUES[k]);
+
+    /* =====================
+       BUILD TREE
+    ===================== */
+    const pcRows = STATE.pcgt.filter(r => r.loai === 'pc');
+    const gtRows = STATE.pcgt.filter(r => r.loai === 'gt');
+
+    const thuTree  = await buildThuTree(ns, chamcong, pcRows, mode, th);
+const giamTree = buildGiamTree(chamcong, gtRows);
+
+// ⭐ GHI NHỚ TREE HIỆN TẠI
+CURRENT_THU_TREE = thuTree;
+CURRENT_TONG_GIAM = calcTongGiamFromTree(giamTree);
+
+// ⭐ INIT DAY_VALUES CHO PHỤ CẤP
+Object.keys(DAY_VALUES).forEach(k => delete DAY_VALUES[k]);
+
+thuTree.forEach(node=>{
+  if(node.type === 'group'){
+    node.children.forEach(c=>{
+      if(c.editable){
+        DAY_VALUES[c.key] = c.valueDay;
+      }
+    });
+  }
+});
+
+
+    /* =====================
+       RENDER TREE
+    ===================== */
+    // ⭐ UPDATE STATE
+CURRENT_THU_TREE = thuTree;
+CURRENT_TONG_GIAM = calcTongGiamFromTree(giamTree);
+
+// reset DAY_VALUES
+Object.keys(DAY_VALUES).forEach(k => delete DAY_VALUES[k]);
+thuTree.forEach(node=>{
+  if(node.type === 'group'){
+    node.children.forEach(c=>{
+      if(c.editable){
+        DAY_VALUES[c.key] = c.valueDay;
+      }
+    });
+  }
+});
+
+// render
+renderThuFromTree(thuTree);
+renderGiamFromTree(giamTree);
+
+// tính tổng
+const tongThu = calcTongThuFromTree(thuTree);
+
+$('#tongThu').textContent   = fmt.format(tongThu) + ' ₫';
+$('#tongGiam').textContent = fmt.format(CURRENT_TONG_GIAM) + ' ₫';
+$('#tongLuong').textContent =
+  fmt.format(tongThu - CURRENT_TONG_GIAM) + ' ₫';
+
+console.log('THU TREE', thuTree);
+console.log('GIAM TREE', giamTree);
+console.log('TỔNG LƯƠNG', tongThu - CURRENT_TONG_GIAM);
+
+  }catch(err){
+    console.error(err);
+    alert('Lỗi tải dữ liệu: ' + (err?.message || err));
+  }
+}
 
   // ===== Events =====
   $('#backBtn').addEventListener('click', ()=> history.back());
@@ -678,14 +1238,39 @@ const tongGT = STATE.pcgt
   });
 
   if (sw && !sw.dataset.bound) {
-    sw.addEventListener('change', async ()=>{
-      paintSwitch();
-      renderPS(STATE.rows, currentMode());  
-      await renderByMode(currentMode(), STATE.ns, STATE.rows, STATE.th);
-    });
+  sw.addEventListener('change', async ()=>{
+  paintSwitch();
+
+  const mode = currentMode();
+  renderPS(STATE.rows, mode);
+
+  const pcRows = STATE.pcgt.filter(r => r.loai === 'pc');
+  const gtRows = STATE.pcgt.filter(r => r.loai === 'gt');
+
+  const thuTree  = await buildThuTree(
+    STATE.ns,
+    STATE.rows,
+    pcRows,
+    mode,
+    STATE.th          // ← THIẾU CÁI NÀY NỮA
+  );
+  const giamTree = buildGiamTree(STATE.rows, gtRows);
+
+  renderThuFromTree(thuTree);
+  renderGiamFromTree(giamTree);
+
+  const tongThu  = calcTongThuFromTree(thuTree);
+  CURRENT_TONG_GIAM = calcTongGiamFromTree(giamTree);
+
+$('#tongThu').textContent   = fmt.format(tongThu) + ' ₫';
+$('#tongGiam').textContent = fmt.format(CURRENT_TONG_GIAM) + ' ₫';
+$('#tongLuong').textContent =
+  fmt.format(tongThu - CURRENT_TONG_GIAM) + ' ₫';
+
+});
+
     sw.dataset.bound = '1';
   }
-
   // ===== Start =====
   $('#chonThang').value = new URLSearchParams(location.search).get('thang') || nowMonth();
   loadAll();
