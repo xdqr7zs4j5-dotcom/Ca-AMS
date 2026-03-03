@@ -78,12 +78,18 @@ document.addEventListener('keydown', e => {
   }
 
   focusByStep(step){
-    const cand = [...document.querySelectorAll('[data-step]')]
-      .map(el => [Number(el.dataset.step), el])
-      .filter(([n]) => !Number.isNaN(n) && n >= step)
-      .sort((a,b) => a[0] - b[0])[0]?.[1];
-    cand?.focus?.(); cand?.select?.();
-  }
+  const cand = [...document.querySelectorAll('[data-step]')]
+    .filter(el =>
+      !el.disabled &&                     // bỏ disabled
+      el.offsetParent !== null            // bỏ display:none
+    )
+    .map(el => [Number(el.dataset.step), el])
+    .filter(([n]) => !Number.isNaN(n) && n >= step)
+    .sort((a,b) => a[0] - b[0])[0]?.[1];
+
+  cand?.focus?.();
+  cand?.select?.();
+}
 }
 
 // Tự khởi tạo nếu trang không tự import

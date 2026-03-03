@@ -498,6 +498,7 @@ if (el) {
   if (group.length === 1) {
   variantSelect.innerHTML = "";
   variantSelect.style.display = "none";
+  variantSelect.disabled = true;
 
   const sp = group[0];
 
@@ -508,6 +509,7 @@ if (el) {
   return;
 }
   variantSelect.style.display = "inline-block";
+  variantSelect.disabled = false;
   variantSelect.innerHTML = "";
 
   // sort theo dinhluong lớn -> nhỏ cho dễ nhìn
