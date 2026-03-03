@@ -1,5 +1,6 @@
 import { supabase } from "./supabase.config.js";
 import { spMap, napDanhSachSanPham } from "./sanpham.data.js";
+import { spById } from './sanpham.data.js';
 
 // ==== Money helpers (dùng chung) ====
 export const moneyVN = (window.moneyVN ?? new Intl.NumberFormat("vi-VN"));
@@ -25,7 +26,8 @@ function _fmtNgayVN(iso) {
 
 function danhGiaGiaVon() {
   const tenSP = document.getElementById("tenSP")?.value.trim();
-  const sp = spMap[tenSP];
+  const masp = getMaSPGoc();
+  const sp = spById[masp];
   const input = document.getElementById("donGia");
   if (!input) return;
   const gv = Number(sp?.__gia_von || 0);
@@ -56,36 +58,47 @@ function setDonGia(value, source, extraNote = "") {
 }
 
 // ===== Lấy danh sách SP + autocomplete =====
-async function taiDanhSachSP() {
-  const { data, error } = await supabase
-    .from("sanpham")
-    .select(
-      "tensp, masp, dvt, dvtchuyendoi, dvtchuyendoi2, dongia, dongia2, dongia3, giavon, gianhapgoc, quycach, quycach2, tonkho"
-    );
+  let spByGroup = {};
+export async function taiDanhSachSP() {
+const { data, error } = await supabase 
+.from("sanpham") 
+.select( "tensp, masp, group_id, dinhluong, is_stock_parent, color, dvt, dvtchuyendoi, dvtchuyendoi2, dongia, dongia2, dongia3, giavon, gianhapgoc, quycach, quycach2, tonkho" ); 
+if (error) { 
+console.error("❌ Lỗi khi lấy sản phẩm:", error); 
+return; 
+} 
+Object.keys(spById).forEach(k => delete spById[k]);
+spByGroup = {};
 
-  if (error) {
-    console.error("❌ Lỗi khi lấy sản phẩm:", error);
-    return;
+data.forEach((sp) => {
+  sp.__gia_von = Number(sp.giavon || 0);
+
+  spById[sp.masp] = sp;
+
+  // nếu không có group_id → tự làm group riêng bằng masp
+  const key = sp.group_id || sp.masp;
+
+  if (!spByGroup[key]) {
+    spByGroup[key] = [];
   }
 
-  data.forEach((sp) => {
-    sp.__gia_von = Number(sp.giavon || 0); // chuẩn hoá giá vốn
-    spMap[sp.tensp.trim()] = sp;
-  });
+  spByGroup[key].push(sp);
+});
+const datalist = document.getElementById("dsTenSP"); 
+if (datalist) { 
+  datalist.innerHTML = ""; 
+  data.forEach((sp) => { 
+const opt = document.createElement("option"); 
+opt.value = sp.tensp; 
+datalist.appendChild(opt); 
+});
+ }
+const displayList = Object.values(spByGroup).map(group => group[0]);
 
-  const datalist = document.getElementById("dsTenSP");
-  if (datalist) {
-    datalist.innerHTML = "";
-    data.forEach((sp) => {
-      const opt = document.createElement("option");
-      opt.value = sp.tensp;
-      datalist.appendChild(opt);
-    });
-  }
-
-  initSmartSuggest("#tenSP", data);
-  console.log("✅ Đã cập nhật danh sách sản phẩm và datalist");
+initSmartSuggest("#tenSP", displayList);
+console.log("✅ Đã cập nhật danh sách sản phẩm và datalist"); 
 }
+
 window.taiDanhSachSP = taiDanhSachSP;
 
 // ===== Mapping loại HĐ =====
@@ -174,9 +187,9 @@ function _chonDonGiaTheoRule(sp, rule) {
 }
 function capNhatDonGia() {
   if (isManualLocked()) return;
-  const tenSP = document.getElementById("tenSP")?.value.trim();
   const loaiTen = document.getElementById("phanLoai")?.value?.trim();
-  const sp = spMap[tenSP];
+  const masp = getMaSPGoc();
+  const sp = spById[masp];
   if (!sp || !loaiTen) return;
 
   const rule = _getRule(loaiTen);
@@ -190,16 +203,17 @@ function capNhatDonGia() {
 }
 
 // ===== Giá cũ KH =====
-async function layGiaCuKhachHang(makh, tensp) {
-  if (!makh || !tensp) return null;
-  const key = `${makh}|${tensp}`;
+async function layGiaCuKhachHang(makh, masp) {
+  if (!makh || !masp) return null;
+
+  const key = `${makh}|${masp}`;
   if (giaCuCache.has(key)) return giaCuCache.get(key);
 
   const { data, error } = await supabase
     .from("chitiet")
     .select("dongia, ngay")
     .eq("makh", makh)
-    .eq("tensp", tensp)
+    .eq("masp", masp)
     .order("ngay", { ascending: false })
     .limit(1);
 
@@ -207,8 +221,10 @@ async function layGiaCuKhachHang(makh, tensp) {
     console.error("❌ Lỗi lấy giá cũ:", error);
     return null;
   }
+
   const rec = data?.[0] || null;
   if (rec) giaCuCache.set(key, rec);
+
   return rec;
 }
 
@@ -219,10 +235,10 @@ async function apGiaTheoPhanLoaiRoiThuDeGiaCu() {
   if (isManualLocked()) return;
 
   const makh = document.getElementById("maKH")?.value.trim();
-  const tensp = document.getElementById("tenSP")?.value.trim();
-  if (!makh || !tensp) return;
-
-  const rec = await layGiaCuKhachHang(makh, tensp);
+  const masp = getMaSPGoc();
+  if (!makh || !masp) return;
+  
+  const rec = await layGiaCuKhachHang(makh, masp);
   const el = document.getElementById("donGia");
 
   if (isManualLocked()) return;
@@ -237,11 +253,33 @@ async function apGiaTheoPhanLoaiRoiThuDeGiaCu() {
 }
 
 // ===== Tính SL / tiền =====
+function capNhatDonViTinh(sp) {
+  const select = document.getElementById("dvt");
+  if (!select || !sp) return;
+
+  select.innerHTML = "";
+
+  const ds = [sp.dvt, sp.dvtchuyendoi, sp.dvtchuyendoi2]
+    .filter(Boolean);
+
+  ds.forEach(dv => {
+    const opt = document.createElement("option");
+    opt.value = dv;
+    opt.textContent = dv;
+    select.appendChild(opt);
+  });
+
+  // chọn mặc định đơn vị chính
+  select.value = sp.dvt || ds[0];
+
+  select.dispatchEvent(new Event("change"));
+}
 function capNhatTongSL() {
   const tenSP = document.getElementById("tenSP")?.value.trim();
   const dvt = document.getElementById("dvt")?.value.trim();
   const sl = parseFloat(document.getElementById("soLuong")?.value) || 0;
-  const sp = spMap[tenSP];
+  const masp = getMaSPGoc();
+  const sp = spById[masp];
   if (!sp) return;
 
   let tong = sl;
@@ -437,32 +475,68 @@ export function getMaSPGoc() {
 
 // ===== Khi chọn TÊN SP =====
 function onTenSPChange() {
+  const el = document.getElementById("donGia");
+if (el) {
+  delete el.dataset.gia_old;
+  delete el.dataset.ngay_old;
+}
   unlockManual();
 
   const tenSP = document.getElementById("tenSP")?.value.trim();
-  const sp = spMap[tenSP];
+  if (!tenSP) return;
+
+  // tìm group có tensp trùng
+  const group = Object.values(spByGroup).find(arr =>
+    arr.some(sp => sp.tensp === tenSP)
+  );
+
+  if (!group) return;
+
+  const variantSelect = document.getElementById("variant");
+  if (!variantSelect) return;
+
+  if (group.length === 1) {
+  variantSelect.innerHTML = "";
+  variantSelect.style.display = "none";
+
+  const sp = group[0];
+
+  renderMaSPFromSP(sp);
+  capNhatDonViTinh(sp);
+  capNhatDonGia();
+  capNhatTongSL();
+  return;
+}
+  variantSelect.style.display = "inline-block";
+  variantSelect.innerHTML = "";
+
+  // sort theo dinhluong lớn -> nhỏ cho dễ nhìn
+  group.sort((a, b) => b.dinhluong - a.dinhluong);
+
+  group.forEach(sp => {
+    const opt = document.createElement("option");
+    opt.value = sp.masp;
+    opt.textContent =
+      `${sp.dinhluong}kg${sp.color ? " - " + sp.color : ""}`;
+    variantSelect.appendChild(opt);
+  });
+
+  variantSelect.dispatchEvent(new Event("change"));
+}
+document.getElementById("variant")?.addEventListener("change", () => {
+  const masp = document.getElementById("variant").value;
+  const sp = spById[masp];
   if (!sp) return;
 
-  // hiển thị: MÃ-cg:GIÁ_VỐN
+  // lưu mã gốc vào maSP
   renderMaSPFromSP(sp);
+  capNhatDonViTinh(sp);
 
-  // dựng DVT
-  const dvtSelect = document.getElementById("dvt");
-  if (dvtSelect) {
-    dvtSelect.innerHTML = "";
-    [sp.dvt, sp.dvtchuyendoi, sp.dvtchuyendoi2].forEach((dvt) => {
-      if (!dvt) return;
-      const opt = document.createElement("option");
-      opt.value = dvt;
-      opt.textContent = dvt;
-      dvtSelect.appendChild(opt);
-    });
-    if (dvtSelect.options.length) dvtSelect.value = dvtSelect.options[0].value;
-  }
+  // cập nhật giá theo rule
+  capNhatDonGia();
 
   capNhatTongSL();
-  apGiaTheoPhanLoaiRoiThuDeGiaCu();
-}
+});
 
 // ===== Lock/unlock nhập tay =====
 function isManualLocked() {
@@ -681,10 +755,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     maKH.addEventListener("change", async () => {
       if (isManualLocked()) return;
       const makh = document.getElementById("maKH")?.value.trim();
-      const tensp = document.getElementById("tenSP")?.value.trim();
-      if (!makh || !tensp) return;
-
-      const rec = await layGiaCuKhachHang(makh, tensp);
+      const masp = getMaSPGoc();
+      if (!makh || !masp) return;
+      
+      const rec = await layGiaCuKhachHang(makh, masp);
       const el = document.getElementById("donGia");
 
       if (isManualLocked()) return;
@@ -710,7 +784,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // nạp dữ liệu + UI phụ
-  await taiDanhSachSP();
   await napDanhSachPhanLoai();
   initPriceChooser();
 });

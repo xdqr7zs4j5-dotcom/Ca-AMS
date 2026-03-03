@@ -1,8 +1,9 @@
-export const spMap = {}
+export const spById = {}
+export const spMap = spById
 
 export function napDanhSachSanPham(data) {
   data.forEach(sp => {
-    spMap[sp.tensp] = sp
+    spById[sp.masp] = sp
   })
 }
 // Cuối/đầu file tuỳ bạn

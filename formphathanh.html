@@ -3,149 +3,296 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Phát hành (Excel chuẩn MISA)</title>
+<title>Phát hành</title>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- XLSX (global) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 
 <style>
-:root{
-  --bg:#f5f5f7; --card:#fff; --line:#e5e7eb; --blue:#007aff;
-}
-body{
-  margin:0;background:var(--bg);
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial;
-}
-.toolbar{
-  position:fixed;top:0;left:0;right:0;height:60px;
-  background:#fff;border-bottom:1px solid var(--line);
-  display:flex;align-items:center;padding:0 16px;z-index:10;
-}
-.btn{
-  background:var(--blue);color:#fff;border:none;
-  padding:8px 16px;border-radius:8px;font-weight:600;cursor:pointer;
-}
-.wrap{margin-top:70px;padding:16px;}
-.card{background:#fff;border:1px solid var(--line);border-radius:12px;}
-.table-wrap{overflow:auto;max-height:80vh;}
-table{border-collapse:collapse;width:1800px;font-size:13px;}
-th,td{border:1px solid var(--line);padding:6px 8px;white-space:nowrap;}
-thead th{background:#fafafa;position:sticky;top:0;}
-.num{text-align:right;}
+  :root{
+    --bg:#f5f5f7; --card:#fff; --text:#111; --muted:#6b7280; --line:#e5e7eb;
+    --blue:#007aff; --radius:14px; --shadow:0 6px 24px rgba(0,0,0,.06);
+    --toolbarH:64px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    overflow:hidden; /* cố định trang tại màn hình; chỉ khung bảng cuộn */
+  }
+
+  /* Toolbar cố định trên cùng */
+  .toolbar{
+    position:fixed; top:0; left:0; right:0; height:var(--toolbarH);
+    backdrop-filter:saturate(180%) blur(8px);
+    background:rgba(255,255,255,.9); border-bottom:1px solid var(--line);
+    display:flex; align-items:center; gap:12px; padding:0 16px; z-index:50;
+  }
+  .toolbar h2{margin:0; font-size:18px}
+  .spacer{flex:1}
+  .btn{
+    height:36px; padding:0 14px; border-radius:10px; border:1px solid var(--line);
+    background:var(--blue); color:#fff; font-weight:600; cursor:pointer;
+  }
+
+  /* Khung bảng có thanh cuộn */
+  .wrap{
+    position:fixed; top:var(--toolbarH); left:0; right:0; bottom:0;
+    padding:16px;
+  }
+  .card{
+    height:100%; background:var(--card); border:1px solid var(--line);
+    border-radius:var(--radius); box-shadow:var(--shadow);
+    display:flex; flex-direction:column;
+  }
+  .table-wrap{
+    overflow:auto; /* cuộn ngang + dọc */
+    padding:12px;
+    height:100%;
+  }
+
+  table{ border-collapse:separate; border-spacing:0; min-width:1200px; width:100% }
+  thead th, tbody td{
+    border-bottom:1px solid var(--line);
+    padding:8px 10px; font-size:14px; text-align:left; white-space:nowrap;
+  }
+  thead th{
+    position:sticky; top:0; z-index:1;
+    background:#fff; box-shadow:0 1px 0 var(--line);
+  }
+  tbody tr:hover{ background:#fafafa }
+
+  /* Căn phải cột số */
+  .num{ text-align:right }
+
+  .warning{ color:#b91c1c; padding:12px; }
 </style>
 </head>
-
 <body>
 
+<!-- Thanh công cụ trên cùng -->
 <div class="toolbar">
-  <h3>📤 Phát hành (chuẩn Excel MISA)</h3>
-  <div style="flex:1"></div>
-  <button id="exportBtn" class="btn">Xuất Excel</button>
+  <h2>📤 Phát hành hóa đơn</h2>
+  <div class="spacer"></div>
+  <button id="tiepTheoBtn" class="btn">➡ Tiếp theo (Xuất Excel)</button>
 </div>
 
+<!-- Khung bảng cuộn -->
 <div class="wrap">
   <div class="card">
     <div class="table-wrap">
-      <table id="bang">
+      <table id="bangPhatHanh">
         <thead>
           <tr>
-            <th><input type="checkbox" id="all"></th>
-            <th>Hình thức bán hàng</th>
-            <th>Phương thức thanh toán</th>
-            <th>Kèm PXK</th>
-            <th>Lập kèm HĐ</th>
-            <th>HĐ máy tính tiền</th>
-            <th>Đã lập HĐ</th>
-            <th>Ngày hạch toán</th>
-            <th>Ngày chứng từ</th>
-            <th>Số chứng từ</th>
-            <th>Số PX</th>
+            <th><input type="checkbox" id="chonTatCa"></th>
+            <th>STT</th>
+            <th>Ngày</th>
             <th>Mã KH</th>
-            <th>Tên khách hàng</th>
-            <th>Địa chỉ</th>
+            <th>Tên đơn vị</th>
             <th>MST</th>
-            <th>Tên hàng</th>
-            <th>Tiền/CP</th>
-            <th>TK DT</th>
+            <th>Địa chỉ</th>
+            <th>Người mua hàng</th>
+            <th>Email</th>
+            <th>HT thanh toán</th>
+            <th>Tên sản phẩm</th>
             <th>ĐVT</th>
-            <th class="num">SL</th>
+            <th class="num">Số lượng</th>
             <th class="num">Đơn giá</th>
             <th class="num">Thành tiền</th>
-            <th>Mã kho</th>
           </tr>
         </thead>
         <tbody></tbody>
       </table>
+      <div id="emptyNote" class="warning" style="display:none"></div>
     </div>
   </div>
 </div>
-
+<link rel="stylesheet" href="/shared/mobile-fix.css">
+<script src="/shared/mobile-fix.js" defer></script>
 <script type="module">
-import { supabase } from "./supabase.config.js";
+  import { supabase } from "./supabase.config.js";
 
-const params = new URLSearchParams(location.search);
-const dsSoHD = JSON.parse(decodeURIComponent(params.get("sohdlist") || "[]"));
-const tbody = document.querySelector("#bang tbody");
-
-function dmy(d){
-  const dt = new Date(d);
-  return dt.getDate()+"/"+(dt.getMonth()+1)+"/"+dt.getFullYear();
-}
-
-for (const sohd of dsSoHD) {
-  const { data: hd } = await supabase.from("hoadon").select("*").eq("sohd", sohd).single();
-  const { data: kh } = await supabase.from("khachhang").select("*").eq("makh", hd.makh).single();
-  const { data: ct } = await supabase.from("chitiet").select("*").eq("sohd", sohd);
-
-  for (const sp of ct) {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td><input type="checkbox" class="row"></td>
-      <td>Bán hàng hóa trong nước</td>
-      <td>${hd.httt || "Chưa thu tiền"}</td>
-      <td>Không</td>
-      <td>Không</td>
-      <td>Không</td>
-      <td>Chưa lập</td>
-      <td>${dmy(hd.ngay)}</td>
-      <td>${dmy(hd.ngay)}</td>
-      <td>${sohd}</td>
-      <td>XK${sohd}</td>
-      <td>${hd.makh || ""}</td>
-      <td>${kh?.tendv || ""}</td>
-      <td>${kh?.diachi || ""}</td>
-      <td>${kh?.mst || ""}</td>
-      <td>${sp.tensp}</td>
-      <td>131</td>
-      <td>5111</td>
-      <td>${sp.dvt || ""}</td>
-      <td class="num">${sp.soluong}</td>
-      <td class="num">${sp.dongia}</td>
-      <td class="num">${sp.soluong * sp.dongia}</td>
-      <td>BK-NS</td>
-    `;
-    tbody.appendChild(tr);
+  // ===== Helpers =====
+  function fmtDateDMY(d) {
+    if (!d) return "";
+    const s = String(d);
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) {
+      const [dd, mm, yyyy] = s.split("/");
+      return `${parseInt(dd,10)}/${parseInt(mm,10)}/${yyyy}`;
+    }
+    const dt = new Date(d);
+    if (isNaN(dt)) return "";
+    return `${dt.getDate()}/${dt.getMonth()+1}/${dt.getFullYear()}`;
   }
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const danhSachSoHD = JSON.parse(decodeURIComponent(urlParams.get("sohdlist") || "[]"));
+  const tbody = document.querySelector("#bangPhatHanh tbody");
+  const emptyNote = document.getElementById("emptyNote");
+
+  let stt = 1;
+  const mapSoHDToSTT = {};
+
+  window.addEventListener("DOMContentLoaded", async () => {
+    if (!danhSachSoHD.length) {
+      emptyNote.style.display = "block";
+      emptyNote.textContent = "⚠ Không có hóa đơn nào được chọn.";
+      return;
+    }
+
+    for (const sohd of danhSachSoHD) {
+      if (!(sohd in mapSoHDToSTT)) mapSoHDToSTT[sohd] = stt++;
+
+      const { data: hd } = await supabase.from("hoadon").select("*").eq("sohd", sohd).single();
+      if (!hd) continue;
+
+      const { data: kh } = await supabase.from("khachhang").select("*").eq("makh", hd.makh).single();
+      const { data: chitiet } = await supabase.from("chitiet").select("*").eq("sohd", sohd);
+
+      const ngayDMY = fmtDateDMY(hd.ngay);
+      const htttVal = hd.httt && hd.httt.trim() ? hd.httt : "Chuyển khoản / Tiền mặt";
+
+      for (const sp of (chitiet || [])) {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td><input type="checkbox" class="chonDong"
+              data-sohd="${sohd}"
+              data-ngay="${ngayDMY}"
+              data-makh="${hd.makh || ""}"
+              data-tenkh="${kh?.tendv || ""}"
+              data-diachi="${kh?.diachi || ""}"
+              data-mst="${kh?.mst || ""}"
+              data-nguoimua="${kh?.tenkh || ""}"
+              data-email="${kh?.email || ""}"
+              data-httt="${htttVal}"
+              data-tensp="${sp.tensp}"
+              data-dvt="${sp.dvt || ""}"
+              data-soluong="${sp.soluong ?? 0}"
+              data-dongia="${sp.dongia ?? 0}"
+          ></td>
+          <td>${mapSoHDToSTT[sohd]}</td>
+          <td>${ngayDMY}</td>
+          <td>${hd.makh || ""}</td>
+          <td>${kh?.tendv || ""}</td>
+          <td>${kh?.mst || ""}</td>
+          <td>${kh?.diachi || ""}</td>  
+          <td>${kh?.tenkh || ""}</td>
+          <td>${kh?.email || ""}</td>
+          <td>${htttVal}</td>
+          <td>${sp.tensp}</td>
+          <td>${sp.dvt || ""}</td>
+          <td class="num">${sp.soluong ?? 0}</td>
+          <td class="num">${sp.dongia ?? 0}</td>
+          <td class="num">${(sp.soluong ?? 0) * (sp.dongia ?? 0)}</td>
+        `;
+        tbody.appendChild(row);
+      }
+    }
+  });
+
+  // ===== Nút Tiếp theo (xuất Excel) =====
+  document.getElementById("tiepTheoBtn").addEventListener("click", () => {
+    const chon = [...document.querySelectorAll(".chonDong:checked")];
+    if (!chon.length) return alert("Vui lòng chọn ít nhất 1 dòng để phát hành.");
+
+    const duLieu = chon.map(cb => {
+      const dt = cb.dataset;
+      const soluong = Number(dt.soluong ?? 0);
+      const dongia  = Number(dt.dongia  ?? 0);
+      const htttVal = dt.httt && dt.httt.trim() ? dt.httt : "Chuyển khoản / Tiền mặt";
+
+      return {
+        sohd: dt.sohd,                 // dùng để nhóm STT
+        ngay: dt.ngay,                 // chuỗi dd/m/yyyy
+        makh: dt.makh || "",
+        tenkh: dt.tenkh || "",
+        diachi: dt.diachi || "",
+        mst: dt.mst   || "",
+        nguoimua: dt.nguoimua || "",
+        email: dt.email || "",
+        httt: htttVal,
+        tensp: dt.tensp,
+        dvt: dt.dvt || "",
+        soluong,
+        dongia,
+        thanhtien: soluong * dongia
+      };
+    });
+
+    xuatExcel(duLieu);
+  });
+
+  // ===== Chọn tất cả =====
+  document.getElementById("chonTatCa").addEventListener("change", function () {
+    const daChon = this.checked;
+    document.querySelectorAll(".chonDong").forEach(cb => { cb.checked = daChon; });
+  });
+
+  // ===== Xuất Excel (headers theo yêu cầu) =====
+  function xuatExcel(danhSach) {
+  const ws = XLSX.utils.aoa_to_sheet([]);
+  const emptyRows = Array.from({ length: 7 }, () => []);
+  XLSX.utils.sheet_add_aoa(ws, emptyRows, { origin: "A1" });
+
+  const headers = [
+    "STT", "Ngày", "Mã KH", "Tên đơn vị", "MST", "Địa chỉ",
+    "Người mua hàng", "Email", "HT thanh toán",
+    "Tên SP", "ĐVT", "SL", "Đơn giá", "Thành tiền"
+  ];
+  XLSX.utils.sheet_add_aoa(ws, [headers], { origin: "A8" });
+
+  const sttMap = {};
+  let stt = 1;
+  const rows = [];
+
+  for (const item of danhSach) {
+    const sohd = item.sohd;
+    const isFirstRow = !(sohd in sttMap);
+    if (isFirstRow) sttMap[sohd] = stt++;
+
+    // chỉ ghi đầy đủ ở dòng đầu tiên
+    const ngay      = isFirstRow ? (item.ngay || "")       : "";
+    const makh      = isFirstRow ? (item.makh || "")       : "";
+    const tendv     = isFirstRow ? (item.tenkh || "")      : "";
+    const mst       = isFirstRow ? (item.mst  || "")       : "";
+    const diachi    = isFirstRow ? (item.diachi || "")     : "";
+    const tenkh     = isFirstRow ? (item.nguoimua || "")   : "";
+    const email     = isFirstRow ? (item.email || "")      : "";
+    const httt      = isFirstRow ? (item.httt || "")       : "";
+
+    rows.push([
+      sttMap[sohd],  // STT
+      ngay,
+      makh,
+      tendv,
+      mst,
+      diachi,
+      tenkh,
+      email,
+      httt,
+      item.tensp,
+      item.dvt,
+      item.soluong,
+      item.dongia,
+      item.thanhtien
+    ]);
+  }
+
+  XLSX.utils.sheet_add_aoa(ws, rows, { origin: "A9" });
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "PhatHanh");
+  XLSX.writeFile(wb, `phathanh_${Date.now()}.xlsx`);
+
+  const sohdList = [...new Set(danhSach.map(d => d.sohd))];
+  if (window.opener) {
+    window.opener.postMessage({ type: "phathanh-done", dsSoHD: sohdList }, "*");
+  }
+  window.close();
 }
 
-/* chọn tất cả */
-document.getElementById("all").onchange = e=>{
-  document.querySelectorAll(".row").forEach(r=>r.checked=e.target.checked);
-};
-
-/* xuất excel */
-document.getElementById("exportBtn").onclick = ()=>{
-  const rows = [...document.querySelectorAll(".row:checked")].map(r =>
-    [...r.closest("tr").children].slice(1).map(td=>td.innerText)
-  );
-  if (!rows.length) return alert("Chưa chọn dòng");
-
-  const headers = [...document.querySelectorAll("thead th")].slice(1).map(th=>th.innerText);
-  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Import");
-  XLSX.writeFile(wb, "import_misa.xlsx");
-};
 </script>
-
 </body>
 </html>
+ 

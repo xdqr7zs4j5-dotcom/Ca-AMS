@@ -1,7 +1,7 @@
 // xulihd.js  (module)
 // =================== Imports ===================
 import { supabase } from "./supabase.config.js";
-import { spMap }    from "./sanpham.data.js"; // nếu cần
+import { spMap}    from "./sanpham.data.js"; // nếu cần
 
 // =================== Helpers ===================
 const $  = (s) => document.querySelector(s);

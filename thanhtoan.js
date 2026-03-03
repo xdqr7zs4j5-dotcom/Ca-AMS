@@ -1,5 +1,5 @@
 import { supabase } from "./supabase.config.js";
-import { spMap, napDanhSachSanPham, moneyVN, parseMoneyVN } from './sanpham.data.js';
+import { spById, spMap, napDanhSachSanPham, moneyVN, parseMoneyVN } from './sanpham.data.js';
 import { getMaSPGoc } from './xulisp.js';
 
 
@@ -64,11 +64,16 @@ document.getElementById('themSP').addEventListener('click', function () {
   const tenSP = tenSPRaw.trim();
   console.log('🔍 Giá trị input #tenSP (raw):', JSON.stringify(tenSPRaw));
   console.log('🔍 Giá trị sau khi chuẩn hóa:', JSON.stringify(tenSP));
-  console.log('📦 Các key trong spMap:', Object.keys(spMap));
-  console.log('📦 Có khớp key không?:', spMap.hasOwnProperty(tenSP));
 
-  let sp = spMap[tenSP];
-  console.log('📦 Giá trị sp tìm được:', sp);
+  const masp = getMaSPGoc();
+
+if (!masp) {
+  alert("Bạn chưa chọn sản phẩm.");
+  return;
+} 
+console.log("spById keys:", Object.keys(spById));
+
+const sp = spById[masp];
 
   if (!sp) {
     if (confirm(`Sản phẩm "${tenSPRaw.trim()}" chưa có trong danh sách. Bạn có muốn thêm mới không?`)) {
@@ -79,8 +84,8 @@ document.getElementById('themSP').addEventListener('click', function () {
   }
  
   const stt = tbody.rows.length + 1;
-  const maSPHienThi = document.getElementById('maSP').value.trim();
-  const maSPThuần   = getMaSPGoc(); 
+  const maSPHienThi = sp.masp;
+  const maSPThuần = masp;
   const ghiChu = document.getElementById('ghiChuSP').value.trim();
   const soLuong = document.getElementById('soLuong').value.trim();
   const dvt = document.getElementById('dvt').value.trim();
@@ -126,7 +131,7 @@ tr.querySelectorAll('.tongSL, .donGia').forEach(input => {
   input.addEventListener('input', () => {
     const row = input.closest('tr');
     const tongSL = parseFloat(row.querySelector('.tongSL')?.value) || 0;
-    const donGia = parseMoneyVN(row.querySelector('.donGia')?.value);  // <—
+    const donGia = parseMoneyVN(row.querySelector('.donGia')?.value);
     const tt = Math.round(tongSL * donGia);
     row.querySelector('.thanhTien').textContent = moneyVN.format(tt);  // <—
 
