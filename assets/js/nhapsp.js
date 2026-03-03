@@ -148,6 +148,7 @@ function onDvtCD2Change() {
   const get = id => document.getElementById(id).value.trim();
   const isParent = document.getElementById("isParent").checked;
   const params = new URLSearchParams(window.location.search);
+  const maspValue = get('masp');
   const maspSua = params.get("masp");
   let groupId;
 
@@ -165,7 +166,7 @@ if (maspSua) {
   groupId = crypto.randomUUID();
 }
   const sp = {
-  masp: get('masp'),
+  masp: maspValue,
   tensp: get('tensp'),
   dinhluong: parseFloat(get('dinhluong')) || null,
   dongia: parseFloat(get('dongia')) || 0,
@@ -180,7 +181,7 @@ if (maspSua) {
   gianhapgoc: parseFloat(get('gianhapgoc')) || 0,
   tonkho: parseFloat(get('tonkho')) || 0,
 
-  parent_id: null,
+  parent_id: maspValue, 
   group_id: groupId,
   is_parent: isParent,
   is_stock_parent: isParent
@@ -237,8 +238,8 @@ if (maspSua) {
   await supabase
     .from("sanpham")
     .delete()
-    .eq("parent_id", maspSua);
-
+    .eq("parent_id", maspSua)
+    .eq("is_parent", false);
 }
 
 if (isParent) {
@@ -494,7 +495,8 @@ if (childGroup) childGroup.style.display = "none";
 const { data: children } = await supabase
   .from("sanpham")
   .select("*")
-  .eq("parent_id", maspSua);
+  .eq("parent_id", maspSua)
+  .eq("is_parent", false);
 
 if (children && children.length > 0) {
 
