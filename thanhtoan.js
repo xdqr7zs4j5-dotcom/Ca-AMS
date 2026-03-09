@@ -66,22 +66,15 @@ document.getElementById('themSP').addEventListener('click', function () {
   console.log('🔍 Giá trị sau khi chuẩn hóa:', JSON.stringify(tenSP));
 
   const masp = getMaSPGoc();
-
-if (!masp) {
-  alert("Bạn chưa chọn sản phẩm.");
-  return;
-} 
-console.log("spById keys:", Object.keys(spById));
-
-const sp = spById[masp];
+  const sp = spById[masp];
 
   if (!sp) {
-    if (confirm(`Sản phẩm "${tenSPRaw.trim()}" chưa có trong danh sách. Bạn có muốn thêm mới không?`)) {
+    if (confirm(`Sản phẩm "${tenSP}" chưa có trong danh sách. Bạn có muốn thêm mới không?`)) {
       const url = `nhapsp.html?tensp=${encodeURIComponent(tenSP)}`;
-      window.open(url, '_blank', 'width=600,height=400');
+      window.open(url, "_blank", "width=600,height=400");
     }
     return;
-  }
+}
  
   const stt = tbody.rows.length + 1;
   const maSPHienThi = sp.masp;
