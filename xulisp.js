@@ -386,6 +386,8 @@ function initSmartSuggest(inputSel, items) {
     if (i >= 0 && els[i]) els[i].scrollIntoView({ block: "nearest" });
   }
   function pick(item) {
+    if (!item) return;
+
     input.value = item.raw;
     list.style.display = "none";
     input.dispatchEvent(new Event("change"));
@@ -434,7 +436,7 @@ function initSmartSuggest(inputSel, items) {
         cur = (cur - 1 + itemsEls.length) % itemsEls.length;
         setActive(cur);
       } else if (e.key === "Enter" || e.key === "Tab") {
-        if (cur >= 0) {
+        if (cur >= 0 && last[cur]) {
           e.preventDefault();
           e.stopPropagation();
           pick(last[cur]);
@@ -490,7 +492,14 @@ if (el) {
     arr.some(sp => sp.tensp === tenSP)
   );
 
-  if (!group) return;
+  if (!group) {
+  const el = document.getElementById("maSP");
+  if (el) {
+    el.value = "";
+    delete el.dataset.code;
+  }
+  return;
+}
 
   const variantSelect = document.getElementById("variant");
   if (!variantSelect) return;
