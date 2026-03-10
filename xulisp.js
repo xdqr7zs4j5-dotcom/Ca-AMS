@@ -87,13 +87,15 @@ data.forEach((sp) => {
 const datalist = document.getElementById("dsTenSP"); 
 if (datalist) { 
   datalist.innerHTML = ""; 
-  data.forEach((sp) => { 
-const opt = document.createElement("option"); 
-opt.value = sp.tensp; 
-datalist.appendChild(opt); 
-});
- }
-const displayList = Object.values(spByGroup).map(group => group[0]);
+  data
+    .filter(sp => sp.is_stock_parent)
+    .forEach((sp) => { 
+      const opt = document.createElement("option"); 
+      opt.value = sp.tensp; 
+      datalist.appendChild(opt); 
+    });
+}
+const displayList = data.filter(sp => sp.is_stock_parent);
 
 initSmartSuggest("#tenSP", displayList);
 console.log("✅ Đã cập nhật danh sách sản phẩm và datalist"); 
@@ -491,6 +493,8 @@ if (el) {
   const group = Object.values(spByGroup).find(arr =>
     arr.some(sp => sp.tensp === tenSP)
   );
+  console.log("tenSP:", tenSP);
+  console.log("group:", group);
 
   if (!group) {
   const el = document.getElementById("maSP");

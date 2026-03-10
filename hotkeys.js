@@ -3,6 +3,15 @@ export class KeyboardManager {
   constructor({ onAction } = {}) {
     this.onAction = onAction || (()=>{});
     this.keyMap = new Map();
+    this.flow = [
+      "tenSP",
+      "variant",
+      "soLuong",
+      "dvt",
+      "tongSL",
+      "donGia",
+      "thanhTien"
+    ];
     this.init();
   }
 
@@ -63,11 +72,9 @@ document.addEventListener('keydown', e => {
     return;
   }
 
-  // 3) Mặc định: nhảy sang phần tử có data-step kế tiếp
-  const s = Number(t.dataset.step || NaN);
-  if (!Number.isNaN(s)) {
+  if (t.id) {
     e.preventDefault();
-    this.focusByStep(s + 1);
+    this.focusNextFlow(t.id);
   }
 }, true);
   }
@@ -78,19 +85,55 @@ document.addEventListener('keydown', e => {
   }
 
   focusByStep(step){
-  const cand = [...document.querySelectorAll('[data-step]')]
+    const cand = [...document.querySelectorAll('[data-step]')]
     .filter(el =>
       !el.disabled &&                     // bỏ disabled
       el.offsetParent !== null            // bỏ display:none
     )
     .map(el => [Number(el.dataset.step), el])
-    .filter(([n]) => !Number.isNaN(n) && n >= step)
+    .filter(([n]) => !Number.isNaN(n) && n > step)
+    .sort((a,b) => a[0] - b[0])[0]?.[1];
+    
+    cand?.focus?.();
+    cand?.select?.();
+  }
+
+  focusNextStep(current){
+    const cand = [...document.querySelectorAll('[data-step]')]
+    .filter(el =>
+      !el.disabled &&
+      el.offsetParent !== null
+    )
+    .map(el => [Number(el.dataset.step), el])
+    .filter(([n]) => !Number.isNaN(n) && n > current)
     .sort((a,b) => a[0] - b[0])[0]?.[1];
 
-  cand?.focus?.();
-  cand?.select?.();
+    cand?.focus?.();
+    cand?.select?.();
+  }
+
+  focusNextFlow(currentId){
+    const visibleFlow = this.flow.filter(id=>{
+    const el = document.getElementById(id);
+    if(!el) return false;
+    if(el.disabled) return false;
+    if(!el.getClientRects().length) return false;
+    return true;
+  });
+  
+  const idx = visibleFlow.indexOf(currentId);
+  if(idx === -1) return;
+
+  const nextId = visibleFlow[idx+1];
+  if(!nextId) return;
+
+  const next = document.getElementById(nextId);
+
+  next?.focus();
+  setTimeout(()=>next?.select?.(),0);
 }
 }
+
 
 // Tự khởi tạo nếu trang không tự import
 if (!window.KeyboardManager) window.KeyboardManager = KeyboardManager;

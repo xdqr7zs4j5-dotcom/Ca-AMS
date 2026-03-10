@@ -160,7 +160,7 @@ if (maspSua) {
     .eq("masp", maspSua)
     .single();
 
-  groupId = old?.group_id;
+  groupId = old?.group_id || crypto.randomUUID();
 } else {
   // Nếu thêm mới → tạo UUID mới
   groupId = crypto.randomUUID();
@@ -274,6 +274,7 @@ const child = {
     if (!child.masp) continue;
 
     // 🔥 CHECK TRÙNG MÃ
+  if (!maspSua) {
     const { data: existed } = await supabase
       .from("sanpham")
       .select("masp")
@@ -284,6 +285,7 @@ const child = {
       alert("Mã con đã tồn tại: " + child.masp);
       return; // dừng toàn bộ quá trình lưu
     }
+  }
 
     const { error: childErr } = await supabase
       .from("sanpham")
@@ -456,6 +458,9 @@ if (childGroup) childGroup.style.display = "none";
     const { data, error } = await supabase.from("sanpham").select("*").eq("masp", maspSua).single();
     if (error || !data) { alert("Không tìm thấy sản phẩm để sửa!"); return; }
     for (const key in data) if (document.getElementById(key)) document.getElementById(key).value = data[key];
+    if (data.is_parent) {
+      document.getElementById("isParent").checked = true;
+      document.getElementById("childGroup").style.display = "block";}
     document.getElementById("masp").readOnly = true;
 
     // Set ĐVT chính (giữ logic cũ)
@@ -580,10 +585,23 @@ function themDongCon() {
 
   const parentCode = document.getElementById("masp").value;
 
-  const existingRows = document.querySelectorAll("#childList .child-row");
-  const nextIndex = existingRows.length + 1;
+  const rows = document.querySelectorAll("#childList .child-row");
 
-  const childCode = parentCode + "-" + String(nextIndex).padStart(2, "0");
+let maxIndex = 0;
+
+rows.forEach(row => {
+  const code = row.querySelector(".c-masp")?.value || "";
+  const match = code.match(/-(\d+)$/);
+
+  if (match) {
+    const num = parseInt(match[1]);
+    if (num > maxIndex) maxIndex = num;
+  }
+});
+
+const nextIndex = maxIndex + 1;
+
+const childCode = parentCode + "-" + String(nextIndex).padStart(2, "0");
 
   const div = document.createElement("div");
   div.className = "item child-row";
