@@ -611,22 +611,22 @@ const childCode = parentCode + "-" + String(nextIndex).padStart(2, "0");
 
       <div style="display:flex; gap:10px;">
         <input class="c-masp" value="${childCode}" readonly>
-        <input class="c-color" placeholder="Màu">
+        <button type="button" class="btn-link btn-remove">Xoá</button>
       </div>
 
       <div style="display:flex; gap:10px;">
         <input type="number" class="c-dinhluong" placeholder="Định lượng">
-        <input class="c-dvt" placeholder="ĐVT">
-      </div>
+        <input class="c-color" placeholder="Thuộc tính">
+       </div>
 
       <div style="display:flex; gap:10px;">
         <input type="number" class="c-dongia" placeholder="Đơn giá">
-        <input type="number" class="c-quycach" placeholder="Quy cách">
+        <input class="c-dvt" placeholder="ĐVT">
       </div>
 
       <div style="display:flex; gap:10px; align-items:center;">
-        <input class="c-dvtcd" placeholder="ĐVT chuyển đổi">
-        <button type="button" class="btn-link btn-remove">Xoá</button>
+        <input type="number" class="c-quycach" placeholder="Quy cách">
+        <input class="c-dvtcd" placeholder="ĐVT chuyển đổi">  
       </div>
 
     </div>
