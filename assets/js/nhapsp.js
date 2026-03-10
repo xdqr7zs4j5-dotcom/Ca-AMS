@@ -253,6 +253,7 @@ if (isParent) {
 const child = {
   masp: row.querySelector(".c-masp")?.value?.trim(),
   tensp: sp.tensp + " - " + (row.querySelector(".c-color")?.value || ""),
+  color: row.querySelector(".c-color")?.value || "",
   dinhluong: dinhluongCon,
   dvt: row.querySelector(".c-dvt")?.value || "",
   dongia: parseFloat(row.querySelector(".c-dongia")?.value) || 0,
@@ -517,6 +518,7 @@ if (children && children.length > 0) {
 
     lastRow.querySelector(".c-masp").value = child.masp;
     lastRow.querySelector(".c-dinhluong").value = child.dinhluong || "";
+    lastRow.querySelector(".c-color").value = child.color || "";
     lastRow.querySelector(".c-dvt").value = child.dvt || "";
     lastRow.querySelector(".c-dongia").value = child.dongia || "";
     lastRow.querySelector(".c-quycach").value = child.quycach || "";
