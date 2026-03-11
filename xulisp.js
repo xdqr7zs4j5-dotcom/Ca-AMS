@@ -656,7 +656,7 @@ function initPriceChooser() {
     const rule = Number(el.dataset.gia_rule || 0);
     const old = Number(el.dataset.gia_old || 0);
     if (!(old > 0 && rule >= 0)) return;
-    if (el.dataset.source !== "old") return;
+    
 
     pop.innerHTML = "";
     const ngay = el.dataset.ngay_old ? ` (${_fmtNgayVN(el.dataset.ngay_old)})` : "";
