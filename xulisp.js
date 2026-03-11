@@ -517,7 +517,7 @@ if (el) {
 
   renderMaSPFromSP(sp);
   capNhatDonViTinh(sp);
-  capNhatDonGia();
+  apGiaTheoPhanLoaiRoiThuDeGiaCu();
   capNhatTongSL();
   return;
 }
@@ -548,8 +548,7 @@ document.getElementById("variant")?.addEventListener("change", () => {
   capNhatDonViTinh(sp);
 
   // cập nhật giá theo rule
-  capNhatDonGia();
-
+  apGiaTheoPhanLoaiRoiThuDeGiaCu();
   capNhatTongSL();
 });
 
