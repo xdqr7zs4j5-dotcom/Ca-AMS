@@ -280,11 +280,14 @@ window.themDongSP = function(sp = {}){
     const i = sp.slthung.indexOf(" ");
     if (i !== -1) { sluong = sp.slthung.slice(0,i).trim(); dvtgoc = sp.slthung.slice(i+1).trim(); }
   }
+  const tenspHienThi = sp.color
+  ? `${sp.tensp} - ${sp.color}`
+  : (sp.tensp ?? sp.ten_sp ?? "");
 
   row.innerHTML = `
     <td class="stt">${stt}</td>
     <td><input class="maSP"   value="${sp.masp   ?? sp.ma_sp   ?? ''}"></td>
-    <td><input class="tenSP"  value="${sp.tensp  ?? sp.ten_sp  ?? ''}"></td>
+    <td><input class="tenSP"  value="${tenspHienThi}"></td>
     <td><input class="ghiChuSP" value="${sp.ghichu ?? ''}"></td>
     <td><input class="soLuong" type="number" value="${sluong}"></td>
     <td><input class="dvt" value="${dvtgoc}"></td>

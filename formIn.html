@@ -191,7 +191,8 @@ function renderOnePage({ hoadon, khach, chitiet }, ctyHTML, noCu = 0) {
   const rows = chitiet.map((sp, i) => `
     <tr>
       <td>${i+1}</td>
-      <td>${sp.tensp}<br><small>${sp.ghichu ? `// ${sp.ghichu} //` : ""}</small></td>
+      <td>${sp.color ? `${sp.tensp} - ${sp.color}` : sp.tensp}
+        <br><small>${sp.ghichu ? `// ${sp.ghichu} //` : ""}</small></td>
       <td>${sp.slthung||""}</td>
       <td>${(sp.soluong||0)} ${sp.dvt||""}</td>
       <td style="text-align:right">${fmt(sp.dongia||0)}</td>
@@ -309,7 +310,8 @@ document.getElementById("noCu").textContent = `Bal: ${fmt(noCu)}`;
   tbody.innerHTML = chitiet.map((sp, i) => `
     <tr>
       <td>${i + 1}</td>
-      <td>${sp.tensp}<br/><small>${sp.ghichu ? `// ${sp.ghichu} //` : ""}</small></td>
+      <td>${sp.color ? `${sp.tensp} - ${sp.color}` : sp.tensp}
+        <br/><small>${sp.ghichu ? `// ${sp.ghichu} //` : ""}</small></td>
       <td>${sp.slthung  || ""}</td>
       <td>${(sp.soluong || 0)} ${sp.dvt || ""}</td>
       <td style="text-align:right">${fmt(sp.dongia || 0)}</td>

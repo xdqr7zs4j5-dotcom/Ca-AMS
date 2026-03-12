@@ -178,7 +178,9 @@ let lineNo = 1;
 rows.forEach(row => {
   if (row.querySelector("th")) return; // bỏ header
 
-  const tensp   = getCellValue(row, '.tenSP');
+  const tenspRaw = getCellValue(row, '.tenSP');
+  const tensp = tenspRaw.split(" - ")[0];
+  const color = tenspRaw.split(" - ")[1] || null;
   const elMaSP  = row.querySelector('.maSP');
   const masp    = elMaSP?.dataset?.masp || getCellValue(row, '.maSP');
   if (!masp) return; // bỏ dòng trống
@@ -199,7 +201,7 @@ rows.forEach(row => {
     sohd,
     line_no: lineNo++,   // ✅ OK
     ngay, makh,
-    tensp, masp, ghichu,
+    tensp, color, masp, ghichu,
     soluong: tongSL,
     dvt: dvtGoc,
     slthung: slThung,

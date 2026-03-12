@@ -138,10 +138,10 @@
     /* Mobile */
     @media (max-width: 900px){
       :root{
-        --h-kpi: 28vh;
+        --h-notes: 50vh;
+        --h-kpi:  30vh;
         --h-kh:  30vh;
-        --h-sp:  22vh;
-        --h-notes: calc(100vh - 2*var(--pad) - 3*var(--gap) - var(--h-kpi) - var(--h-kh) - var(--h-sp));
+        --h-sp: calc(100vh - 2*var(--pad) - 3*var(--gap) - var(--h-kpi) - var(--h-kh) - var(--h-notes));
       }
       .kpi-wrap{grid-template-columns:1fr}
     }
@@ -156,7 +156,7 @@
 </head>
 <body>
   <div class="wrap">
-    <!-- 1) Doanh thu + trạng thái -->
+     <!-- 1) Doanh thu + trạng thái -->
     <div class="card">
       <div class="card-body">
         <div class="kpi-wrap">
@@ -190,26 +190,22 @@
         </div>
       </div>
     </div>
-
-    <!-- 2) Khách hàng -->
+     <!-- 2) Ghi chú nhanh (localStorage) -->
     <div class="card">
       <div class="section-bar">
-        <div class="title">👥 Khách hàng</div>
+        <div class="title">📝 Ghi chú</div>
 
         <div class="pill toolbar-grow">
-          <label>Tìm KH</label>
-          <input id="qKH" list="dsKH" placeholder="Nhập mã hoặc tên…" style="width:100%">
-          <datalist id="dsKH"></datalist>
+          <input id="noteInput" placeholder="Nhập ghi chú">
         </div>
 
-        <div class="pill"><label>Công nợ</label><span id="khCongNo" style="font-weight:700">0</span></div>
-        <button id="btnViewKH" class="btn-ghost primary">Xem KH</button>
-        <button id="btnAllOrders" class="btn-ghost primary">Đơn gần đây</button>
+        <button id="btnAddNote" class="btn-ghost primary" title="Ctrl/Cmd + Enter để lưu">Lưu</button>
+        <button id="btnExportNotes" class="btn-ghost small">Xuất</button>
+        <button id="btnClearNotes" class="btn-ghost small" title="Xoá tất cả">Xoá hết</button>
       </div>
 
-      <div class="card-body" style="padding-top:8px">
-        <div class="section meta">Đơn gần đây của <b id="khNameLabel">—</b></div>
-        <div id="khOrders" class="orders" style="margin-top:8px"></div>
+      <div class="card-body" style="padding:12px">
+        <div class="notes-grid" id="notesGrid"></div>
       </div>
     </div>
 
@@ -242,24 +238,28 @@
       </div>
     </div>
 
-    <!-- 4) Ghi chú nhanh (localStorage) -->
+    <!-- 4) Khách hàng -->
     <div class="card">
       <div class="section-bar">
-        <div class="title">📝 Ghi chú</div>
+        <div class="title">👥 Khách hàng</div>
 
         <div class="pill toolbar-grow">
-          <input id="noteInput" placeholder="Nhập ghi chú">
+          <label>Tìm KH</label>
+          <input id="qKH" list="dsKH" placeholder="Nhập mã hoặc tên…" style="width:100%">
+          <datalist id="dsKH"></datalist>
         </div>
 
-        <button id="btnAddNote" class="btn-ghost primary" title="Ctrl/Cmd + Enter để lưu">Lưu</button>
-        <button id="btnExportNotes" class="btn-ghost small">Xuất</button>
-        <button id="btnClearNotes" class="btn-ghost small" title="Xoá tất cả">Xoá hết</button>
+        <div class="pill"><label>Công nợ</label><span id="khCongNo" style="font-weight:700">0</span></div>
+        <button id="btnViewKH" class="btn-ghost primary">Xem KH</button>
+        <button id="btnAllOrders" class="btn-ghost primary">Đơn gần đây</button>
       </div>
 
-      <div class="card-body" style="padding:12px">
-        <div class="notes-grid" id="notesGrid"></div>
+      <div class="card-body" style="padding-top:8px">
+        <div class="section meta">Đơn gần đây của <b id="khNameLabel">—</b></div>
+        <div id="khOrders" class="orders" style="margin-top:8px"></div>
       </div>
     </div>
+
   </div>
   <link rel="stylesheet" href="/shared/mobile-fix.css">
   <script src="/shared/mobile-fix.js" defer></script>

@@ -84,19 +84,10 @@ data.forEach((sp) => {
 
   spByGroup[key].push(sp);
 });
-const datalist = document.getElementById("dsTenSP"); 
-if (datalist) { 
-  datalist.innerHTML = ""; 
-  data
-    .filter(sp => sp.is_stock_parent)
-    .forEach((sp) => { 
-      const opt = document.createElement("option"); 
-      opt.value = sp.tensp; 
-      datalist.appendChild(opt); 
-    });
-}
-const displayList = data.filter(sp => sp.is_stock_parent);
-
+const displayList = data.map(sp => ({
+  ...sp,
+  tensp_goiy: sp.tensp
+}));
 initSmartSuggest("#tenSP", displayList);
 console.log("✅ Đã cập nhật danh sách sản phẩm và datalist"); 
 }
@@ -345,8 +336,14 @@ function levenshtein(a, b) {
 }
 function buildIndex(items) {
   return items.map((sp) => {
-    const raw = sp.tensp;
-    return { raw, norm: vnNormalize(raw), slug: slugify(raw), data: sp };
+    const raw = sp.tensp_goiy;
+    const searchText = `${sp.tensp_goiy} ${sp.tensp}`;
+    return {
+      raw,
+      norm: vnNormalize(searchText),
+      slug: slugify(searchText),
+      data: sp
+    };
   });
 }
 function smartSearch(index, query, limit = 12) {
@@ -390,9 +387,14 @@ function initSmartSuggest(inputSel, items) {
   function pick(item) {
     if (!item) return;
 
+    const sp = item.data;
     input.value = item.raw;
     list.style.display = "none";
-    input.dispatchEvent(new Event("change"));
+    
+    renderMaSPFromSP(sp);
+    capNhatDonViTinh(sp);
+    apGiaTheoPhanLoaiRoiThuDeGiaCu();
+    capNhatTongSL();
   }
 
   input.addEventListener("input", () => {
@@ -476,81 +478,6 @@ export function getMaSPGoc() {
   const raw = (el.value || "").trim();
   return raw.replace(/-(?:cg|gv):[\d\.,\s]+$/i, "").trim();
 }
-
-// ===== Khi chọn TÊN SP =====
-function onTenSPChange() {
-  const el = document.getElementById("donGia");
-if (el) {
-  delete el.dataset.gia_old;
-  delete el.dataset.ngay_old;
-}
-  unlockManual();
-
-  const tenSP = document.getElementById("tenSP")?.value.trim();
-  if (!tenSP) return;
-
-  // tìm group có tensp trùng
-  const group = Object.values(spByGroup).find(arr =>
-    arr.some(sp => sp.tensp === tenSP)
-  );
-  console.log("tenSP:", tenSP);
-  console.log("group:", group);
-
-  if (!group) {
-  const el = document.getElementById("maSP");
-  if (el) {
-    el.value = "";
-    delete el.dataset.code;
-  }
-  return;
-}
-
-  const variantSelect = document.getElementById("variant");
-  if (!variantSelect) return;
-
-  if (group.length === 1) {
-  variantSelect.innerHTML = "";
-  variantSelect.style.display = "none";
-  variantSelect.disabled = true;
-
-  const sp = group[0];
-
-  renderMaSPFromSP(sp);
-  capNhatDonViTinh(sp);
-  apGiaTheoPhanLoaiRoiThuDeGiaCu();
-  capNhatTongSL();
-  return;
-}
-  variantSelect.style.display = "inline-block";
-  variantSelect.disabled = false;
-  variantSelect.innerHTML = "";
-
-  // sort theo dinhluong lớn -> nhỏ cho dễ nhìn
-  group.sort((a, b) => b.dinhluong - a.dinhluong);
-
-  group.forEach(sp => {
-    const opt = document.createElement("option");
-    opt.value = sp.masp;
-    opt.textContent =
-      `${sp.dinhluong}kg${sp.color ? " - " + sp.color : ""}`;
-    variantSelect.appendChild(opt);
-  });
-
-  variantSelect.dispatchEvent(new Event("change"));
-}
-document.getElementById("variant")?.addEventListener("change", () => {
-  const masp = document.getElementById("variant").value;
-  const sp = spById[masp];
-  if (!sp) return;
-
-  // lưu mã gốc vào maSP
-  renderMaSPFromSP(sp);
-  capNhatDonViTinh(sp);
-
-  // cập nhật giá theo rule
-  apGiaTheoPhanLoaiRoiThuDeGiaCu();
-  capNhatTongSL();
-});
 
 // ===== Lock/unlock nhập tay =====
 function isManualLocked() {
@@ -726,7 +653,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   // bind 1 lần
   const elTen = document.getElementById("tenSP");
   if (elTen && !elTen.dataset.bound) {
-    elTen.addEventListener("change", onTenSPChange);
     elTen.dataset.bound = "1";
   }
 
