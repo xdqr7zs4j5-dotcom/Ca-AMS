@@ -163,9 +163,7 @@
                 <th>Mã NV</th>
                 <th>Họ tên</th>
                 <th>TT</th>
-                <th class="right">Lương</th>
-                <th class="right">CôngTC</th>
-                <th class="right">Công nợ</th>
+                <th>Công nợ</th>
                 <th>Chức vụ</th>
                 <th>Hành động</th>
               </tr>
@@ -205,8 +203,6 @@
       return {
         ten: ($('#ten').value||'').trim(),
         tinhtrang: $('#tinhtrang').value,
-        luong: $('#luong').value === '' ? null : Number($('#luong').value),
-        congtc: $('#congtc').value === '' ? null : Number($('#congtc').value),
         cono: $('#cono').value === '' ? null : Number($('#cono').value),
         chucvu: ($('#chucvu').value||'').trim() || null,
       };
@@ -257,8 +253,6 @@
       $('#manv').value = '';
       $('#ten').value = '';
       $('#tinhtrang').value = 'active';
-      $('#luong').value = '';
-      $('#congtc').value = '';
       $('#cono').value = '';
       $('#chucvu').value = '';
       $('#ten').focus();
@@ -290,9 +284,7 @@
           <td><a href="#" class="openLuong" data-manv="${r.manv||''}">${r.manv||''}</a></td>
           <td>${esc(r.ten||'')}</td>
           <td>${esc(r.tinhtrang||'')}</td>
-          <td class="right">${maskVND(r.luong)}</td>
-          <td class="right">${maskText(r.congtc)}</td>
-          <td class="right">${maskVND(r.cono)}</td>
+          <td>${maskVND(r.cono)}</td>
           <td>${maskText(r.chucvu)}</td>
           <td>
             <div class="row-actions">
@@ -337,8 +329,6 @@
       $('#manv').value = data.manv;
       $('#ten').value = data.ten || '';
       $('#tinhtrang').value = data.tinhtrang || 'active';
-      $('#luong').value = data.luong ?? '';
-      $('#congtc').value = data.congtc ?? '';
       $('#cono').value = data.cono ?? '';
       $('#chucvu').value = data.chucvu ?? '';
       setModeEdit(manv);
