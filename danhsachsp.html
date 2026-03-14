@@ -293,9 +293,22 @@
       const items = Array.from($$("#noiDungBang .chk:checked"));
       if(!items.length) return alert("Vui lòng chọn 1 sản phẩm để sửa.");
       if(items.length>1) return alert("Chỉ có thể sửa 1 sản phẩm mỗi lần.");
+
       const masp = items[0].dataset.masp;
-      window.open(`nhapsp.html?masp=${encodeURIComponent(masp)}`,"_blank","width=760,height=640");
-    }
+
+      const win = window.open(
+        `nhapsp.html?masp=${encodeURIComponent(masp)}`,
+        "_blank",
+        "width=760,height=640"
+      );
+
+      const timer = setInterval(()=>{
+        if(win.closed){
+          clearInterval(timer);
+          taiSanPham();   // reload danh sách
+          }
+        },500);
+      }
 
     function showBarcode(code){
   const modal = document.getElementById("barcodeModal");

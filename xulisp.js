@@ -183,6 +183,7 @@ function capNhatDonGia() {
   const loaiTen = document.getElementById("phanLoai")?.value?.trim();
   const masp = getMaSPGoc();
   const sp = spById[masp];
+  console.log("TEST PRICE", sp.dongia, sp.dongia2, sp.dongia3);
   if (!sp || !loaiTen) return;
 
   const rule = _getRule(loaiTen);
@@ -390,6 +391,11 @@ function initSmartSuggest(inputSel, items) {
     const sp = item.data;
     input.value = item.raw;
     list.style.display = "none";
+
+    const el = document.getElementById("donGia");
+    
+    delete el.dataset.gia_old;
+    delete el.dataset.ngay_old;
     
     renderMaSPFromSP(sp);
     capNhatDonViTinh(sp);
