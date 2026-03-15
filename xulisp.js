@@ -393,6 +393,7 @@ function initSmartSuggest(inputSel, items) {
     list.style.display = "none";
 
     const el = document.getElementById("donGia");
+    unlockManual();
     
     delete el.dataset.gia_old;
     delete el.dataset.ngay_old;
