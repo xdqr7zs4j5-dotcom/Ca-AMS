@@ -573,8 +573,13 @@ function initPriceChooser() {
     const rule = Number(el.dataset.gia_rule || 0);
     const old = Number(el.dataset.gia_old || 0);
     const ngay = el.dataset.ngay_old || "";
-    if (key === "old" && old > 0) setDonGia(old, "old", _fmtNgayVN(ngay));
-    else if (key === "rule") setDonGia(rule, "rule");
+    unlockManual();
+    if (key === "old" && old > 0) {
+      setDonGia(old, "old", _fmtNgayVN(ngay));
+    } else if (key === "rule") {
+      setDonGia(rule, "rule");
+    }
+    lockManual();
     hide();
   }
   function place() {
