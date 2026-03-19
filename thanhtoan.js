@@ -80,6 +80,10 @@ document.getElementById('themSP').addEventListener('click', function () {
   const maSPHienThi = sp.masp;
   const maSPThuần = masp;
   const ghiChu = document.getElementById('ghiChuSP').value.trim();
+  const khoSelect = document.getElementById('kho');
+  const opt = khoSelect.selectedOptions[0];
+  const kho_id = khoSelect.value;        // id (để lưu DB nếu cần)
+  const kho_ma = opt?.dataset?.ma || ''; // 👈 cái bạn cần
   const soLuong = document.getElementById('soLuong').value.trim();
   const dvt = document.getElementById('dvt').value.trim();
   const tongSL = document.getElementById('tongSL').value.trim();
@@ -98,6 +102,7 @@ document.getElementById('themSP').addEventListener('click', function () {
     <td class="maSP" data-masp="${maSPThuần}">${maSPHienThi}</td>
     <td class="tenSP">${tenSP}</td>
     <td class="ghiChuSP">${ghiChu}</td>
+    <td class="kho" data-kho="${kho_id}">${kho_ma}</td>
     <td class="soLuong">${hienSoLuong}</td>
     <td class="dvt">${hienDVT}</td>
     <td><input type="number" class="editable tongSL" value="${tongSL}" /></td>

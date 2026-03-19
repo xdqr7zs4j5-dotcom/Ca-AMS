@@ -146,7 +146,7 @@ export async function taiHoaDonCu(sohd){
 
     // 2) Chi tiết
     const { data: chitiet, error: errCT } = await supabase
-      .from("chitiet").select("*").eq("sohd", sohd);
+      .from("chitiet").select(`*,thietlap_kho (id, ma_kho)`).eq("sohd", sohd);
 
     if (errCT) {
       alert("Không tìm được chi tiết sản phẩm!");
@@ -289,6 +289,7 @@ window.themDongSP = function(sp = {}){
     <td><input class="maSP"   value="${sp.masp   ?? sp.ma_sp   ?? ''}"></td>
     <td><input class="tenSP"  value="${tenspHienThi}"></td>
     <td><input class="ghiChuSP" value="${sp.ghichu ?? ''}"></td>
+    <td class="kho" data-kho="${sp.kho_id || ''}">${sp.thietlap_kho?.ma_kho || ''}</td>
     <td><input class="soLuong" type="number" value="${sluong}"></td>
     <td><input class="dvt" value="${dvtgoc}"></td>
     <td><input class="tongSL" type="number" value="${sp.soluong ?? sp.so_luong ?? ''}"></td>

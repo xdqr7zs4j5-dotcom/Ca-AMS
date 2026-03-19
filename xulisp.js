@@ -24,6 +24,30 @@ function _fmtNgayVN(iso) {
   return `${dd}/${mm}/${yy}`;
 }
 
+export async function taiDanhSachKho() {
+  const { data, error } = await supabase
+    .from("thietlap_kho")
+    .select("id, ma_kho, ten_kho")
+    .eq("is_active", true)
+    .order("ten_kho");
+
+  if (error) {
+    console.error("Lỗi load kho:", error);
+    return;
+  }
+
+  const select = document.getElementById("kho");
+  if (!select) return;
+
+  select.innerHTML =
+    `<option value="">-- Chọn kho --</option>` +
+    (data || [])
+      .map(k => `<option value="${k.id}" data-ma="${k.ma_kho}">
+        ${k.ma_kho} - ${k.ten_kho}
+      </option>`)
+      .join("");
+}
+
 function danhGiaGiaVon() {
   const tenSP = document.getElementById("tenSP")?.value.trim();
   const masp = getMaSPGoc();
@@ -38,23 +62,52 @@ function danhGiaGiaVon() {
 }
 
 function setDonGia(value, source, extraNote = "") {
-  if (isManualLocked() && source !== "manual") return;
-
   const donGiaInput = document.getElementById("donGia");
-  const lbl = document.getElementById("labelCotGiaDangAp");
-  const v = Number(value || 0);
 
+  const currentSource = donGiaInput.dataset.source;
+
+  const priority = {
+    rule: 1,
+    old: 2,
+    chooser: 3,
+    manual: 4
+  };
+
+  // ❗ chặn override nếu source thấp hơn
+  if (
+    currentSource &&
+    priority[source] < priority[currentSource]
+  ) {
+    return;
+  }
+
+  const v = Number(value || 0);
   donGiaInput.value = v;
-  donGiaInput.dataset.source = source; // 'rule' | 'old' | 'manual'
+  donGiaInput.dataset.source = source;
+
   donGiaInput.style.backgroundColor = source === "old" ? "#fff7cc" : "";
 
+  const lbl = document.getElementById("labelCotGiaDangAp");
   if (lbl) {
-    if (source === "manual") lbl.textContent = "Áp giá: Nhập tay" + (isManualLocked() ? " (ĐÃ KHÓA)" : "");
-    else if (source === "old") lbl.textContent = `Áp giá: Giá cũ KH${extraNote ? ` (${extraNote})` : ""}`;
+    if (source === "manual") lbl.textContent = "Áp giá: Nhập tay";
+    else if (source === "chooser") lbl.textContent = "Áp giá: Người dùng chọn";
+    else if (source === "old") lbl.textContent = `Áp giá: Giá cũ KH ${extraNote || ""}`;
     else lbl.textContent = "Áp giá: Theo phân loại";
   }
-  if (typeof capNhatThanhTien === "function") capNhatThanhTien();
+
+  capNhatThanhTien?.();
   danhGiaGiaVon();
+}
+
+function resetDonGia() {
+  const el = document.getElementById("donGia");
+  if (!el) return;
+
+  el.value = "";
+  delete el.dataset.source;
+  delete el.dataset.gia_old;
+  delete el.dataset.ngay_old;
+  delete el.dataset.gia_rule;
 }
 
 // ===== Lấy danh sách SP + autocomplete =====
@@ -62,7 +115,7 @@ function setDonGia(value, source, extraNote = "") {
 export async function taiDanhSachSP() {
 const { data, error } = await supabase 
 .from("sanpham") 
-.select( "tensp, masp, group_id, dinhluong, is_stock_parent, color, dvt, dvtchuyendoi, dvtchuyendoi2, dongia, dongia2, dongia3, giavon, gianhapgoc, quycach, quycach2, tonkho" ); 
+.select( "tensp, masp, group_id, dinhluong, is_stock_parent, color, dvt, dvtchuyendoi, dvtchuyendoi2, dongia, dongia2, dongia3, giavon, gianhapgoc, quycach, quycach2, tonkho, default_warehouse_id" ); 
 if (error) { 
 console.error("❌ Lỗi khi lấy sản phẩm:", error); 
 return; 
@@ -179,7 +232,6 @@ function _chonDonGiaTheoRule(sp, rule) {
   return 0;
 }
 function capNhatDonGia() {
-  if (isManualLocked()) return;
   const loaiTen = document.getElementById("phanLoai")?.value?.trim();
   const masp = getMaSPGoc();
   const sp = spById[masp];
@@ -223,11 +275,7 @@ async function layGiaCuKhachHang(makh, masp) {
 }
 
 async function apGiaTheoPhanLoaiRoiThuDeGiaCu() {
-  if (isManualLocked()) return;
-
   capNhatDonGia();
-  if (isManualLocked()) return;
-
   const makh = document.getElementById("maKH")?.value.trim();
   const masp = getMaSPGoc();
   if (!makh || !masp) return;
@@ -235,14 +283,12 @@ async function apGiaTheoPhanLoaiRoiThuDeGiaCu() {
   const rec = await layGiaCuKhachHang(makh, masp);
   const el = document.getElementById("donGia");
 
-  if (isManualLocked()) return;
-
   if (rec?.dongia > 0) {
     el.dataset.gia_old = rec.dongia;
     el.dataset.ngay_old = rec.ngay;
-    if (el.dataset.source !== "manual") setDonGia(rec.dongia, "old", _fmtNgayVN(rec.ngay));
+    setDonGia(rec.dongia, "old", _fmtNgayVN(rec.ngay));
   } else {
-    if (el.dataset.source !== "manual") setDonGia(Number(el.dataset.gia_rule || el.value), "rule");
+    setDonGia(Number(el.dataset.gia_rule || el.value), "rule");
   }
 }
 
@@ -393,15 +439,18 @@ function initSmartSuggest(inputSel, items) {
     list.style.display = "none";
 
     const el = document.getElementById("donGia");
-    unlockManual();
     
     delete el.dataset.gia_old;
     delete el.dataset.ngay_old;
-    
+    resetDonGia();
     renderMaSPFromSP(sp);
     capNhatDonViTinh(sp);
     apGiaTheoPhanLoaiRoiThuDeGiaCu();
     capNhatTongSL();
+    const khoInput = document.getElementById("kho");
+    if (khoInput) {
+      khoInput.value = sp.default_warehouse_id || "";
+    }
   }
 
   input.addEventListener("input", () => {
@@ -486,19 +535,6 @@ export function getMaSPGoc() {
   return raw.replace(/-(?:cg|gv):[\d\.,\s]+$/i, "").trim();
 }
 
-// ===== Lock/unlock nhập tay =====
-function isManualLocked() {
-  return document.getElementById("donGia")?.dataset.lock_manual === "1";
-}
-function lockManual() {
-  const el = document.getElementById("donGia");
-  if (el) el.dataset.lock_manual = "1";
-}
-function unlockManual() {
-  const el = document.getElementById("donGia");
-  if (el) el.dataset.lock_manual = "0";
-}
-
 // ===== Price chooser (khởi tạo sau DOM) =====
 function initPriceChooser() {
   const input = document.getElementById("donGia");
@@ -569,19 +605,19 @@ function initPriceChooser() {
     return items[ni];
   }
   function applyChoice(key) {
-    const el = input;
-    const rule = Number(el.dataset.gia_rule || 0);
-    const old = Number(el.dataset.gia_old || 0);
-    const ngay = el.dataset.ngay_old || "";
-    unlockManual();
-    if (key === "old" && old > 0) {
-      setDonGia(old, "old", _fmtNgayVN(ngay));
-    } else if (key === "rule") {
-      setDonGia(rule, "rule");
-    }
-    lockManual();
-    hide();
+  const el = input;
+  const rule = Number(el.dataset.gia_rule || 0);
+  const old = Number(el.dataset.gia_old || 0);
+  const ngay = el.dataset.ngay_old || "";
+
+  if (key === "old" && old > 0) {
+    setDonGia(old, "chooser", _fmtNgayVN(ngay));
+  } else if (key === "rule") {
+    setDonGia(rule, "chooser");
   }
+
+  hide();
+}
   function place() {
     const r = input.getBoundingClientRect();
     const top = r.bottom + window.scrollY + 4;
@@ -672,7 +708,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const elLoai = document.getElementById("phanLoai");
   if (elLoai && !elLoai.dataset.bound) {
     elLoai.addEventListener("change", () => {
-      unlockManual();
+      resetDonGia();
       apGiaTheoPhanLoaiRoiThuDeGiaCu();
     });
     elLoai.dataset.bound = "1";
@@ -705,33 +741,23 @@ document.addEventListener("DOMContentLoaded", async () => {
   const maKH = document.getElementById("maKH");
   if (maKH && !maKH.dataset.bound) {
     maKH.addEventListener("change", async () => {
-      if (isManualLocked()) return;
-      const makh = document.getElementById("maKH")?.value.trim();
-      const masp = getMaSPGoc();
-      if (!makh || !masp) return;
-      
-      const rec = await layGiaCuKhachHang(makh, masp);
-      const el = document.getElementById("donGia");
+  resetDonGia(); // 🔥 thêm dòng này
 
-      if (isManualLocked()) return;
-      if (rec?.dongia > 0) {
-        el.dataset.gia_old = rec.dongia;
-        el.dataset.ngay_old = rec.ngay;
-        if (el.dataset.source !== "manual") setDonGia(rec.dongia, "old", _fmtNgayVN(rec.ngay));
-      } else {
-        if (el.dataset.source !== "manual") setDonGia(Number(el.dataset.gia_rule || el.value), "rule");
-      }
-    });
+  const makh = document.getElementById("maKH")?.value.trim();
+  const masp = getMaSPGoc();
+  if (!makh || !masp) return;
+
+  await apGiaTheoPhanLoaiRoiThuDeGiaCu();
+});
     maKH.dataset.bound = "1";
   }
 
   const donGia = document.getElementById("donGia");
   if (donGia && !donGia.dataset.bound) {
     donGia.addEventListener("input", () => {
-      const val = document.getElementById("donGia").value;
-      lockManual();
-      setDonGia(val, "manual");
-    });
+  const val = document.getElementById("donGia").value;
+  setDonGia(val, "manual");
+});
     donGia.dataset.bound = "1";
   }
 

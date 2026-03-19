@@ -53,10 +53,11 @@
     grid-template-columns:
     minmax(160px, 100px)
     minmax(200px, 2fr)
-    minmax(100px, 1.5fr)
-    minmax(100px, 0.8fr)
+    minmax(80px, 1.5fr)
+    minmax(80px, 1fr)
+    minmax(80px, 0.8fr)
     minmax(120px, 1fr)
-    minmax(100px, 1fr)
+    minmax(80px, 1fr)
     minmax(100px, 1.2fr)
     minmax(100px, 1.2fr);
     gap:8px;padding:12px 14px;overflow:visible;}
@@ -73,6 +74,9 @@
   thead th{position:sticky;top:0;z-index:1;background:#fbfbfe;text-align:left;font-size:13px;color:var(--muted);
     padding:10px 12px;border-bottom:1px solid var(--line)}
   tbody td{padding:6px 10px;border-bottom:1px solid #f1f3f5}
+  #bangSP th:nth-child(5),
+  #bangSP td:nth-child(5) {
+    width: 100px;}
   tbody tr:last-child td{border-bottom:none}
   td input,td select{width:100%;border:none;background:transparent;padding:8px 6px;outline:none}
   td input:focus{box-shadow:inset 0 -2px 0 var(--blue)}
@@ -185,6 +189,7 @@
         </div>
         <datalist id="dsTenSP"></datalist>
         <input type="text" placeholder="Ghi chú" id="ghiChuSP" data-hotkey="F3" data-enter-target="#donGia">
+        <select id="kho"></select>
         <input type="number" placeholder="Số lượng" id="soLuong" data-step="7">
         <select id="dvt" data-step="8"></select>
         <input type="number" placeholder="Tổng SL" id="tongSL">
@@ -197,7 +202,7 @@
       <table id="bangSP" data-grid-nav="true">
         <thead>
           <tr>
-            <th>STT</th><th>Mã SP</th><th>Tên SP</th><th>Ghi chú</th>
+            <th>STT</th><th>Mã SP</th><th>Tên SP</th><th>Ghi chú</th><th>Kho</th>
             <th>Số lượng</th><th>Đơn vị</th><th>Tổng SL</th><th>ĐVT</th>
             <th>Đơn giá</th><th style="text-align:left">Thành tiền</th><th class="td-actions"></th>
           </tr>
@@ -245,7 +250,7 @@
   window.addEventListener('resize', syncRecentHeight);
   // Gọi lại khi bạn thay đổi nội dung các card bên trái (nếu có)
 
-  import { loaiHDReady } from './xulisp.js'; // để chờ nạp xong options phân loại
+  import { loaiHDReady, taiDanhSachKho } from './xulisp.js'; // để chờ nạp xong options phân loại
 
 const _norm = s => (s||'').normalize('NFD').replace(/\p{Diacritic}/gu,'').toLowerCase();
 
@@ -269,6 +274,9 @@ function _togglePPB(){
 
 // chạy sau khi nạp xong danh sách phân loại
 document.addEventListener('DOMContentLoaded', async () => {
+
+  await taiDanhSachKho();
+
   try { await loaiHDReady; } catch {}
   _togglePPB();
 });

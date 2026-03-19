@@ -180,6 +180,7 @@ rows.forEach(row => {
 
   const tenspRaw = getCellValue(row, '.tenSP');
   const tensp = tenspRaw.split(" - ")[0];
+  const kho_id = row.querySelector('.kho')?.dataset?.kho;
   const color = tenspRaw.split(" - ")[1] || null;
   const elMaSP  = row.querySelector('.maSP');
   const masp    = elMaSP?.dataset?.masp || getCellValue(row, '.maSP');
@@ -201,7 +202,7 @@ rows.forEach(row => {
     sohd,
     line_no: lineNo++,   // ✅ OK
     ngay, makh,
-    tensp, color, masp, ghichu,
+    tensp, color, masp, ghichu,kho_id ,
     soluong: tongSL,
     dvt: dvtGoc,
     slthung: slThung,

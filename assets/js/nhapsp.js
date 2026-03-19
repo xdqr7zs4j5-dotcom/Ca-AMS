@@ -22,6 +22,25 @@
         select.appendChild(opt);
       });
     }
+    async function taiDanhSachKho() {
+      const { data, error } = await supabase
+      .from("thietlap_kho")
+      .select("id, ten_kho")
+      .eq("is_active", true)
+      .order("ten_kho");
+
+      if (error) {
+        console.error("Lỗi load kho:", error);
+        return;
+      }
+      
+      const select = document.getElementById("defaultKho");
+      
+      select.innerHTML = '<option value="">-- Chọn kho --</option>' +
+      (data || []).map(k =>
+        `<option value="${k.id}">${k.ten_kho}</option>`
+      ).join("");
+    }
 
     // ===== 2) Chọn nhóm -> tự sinh mã SP =====
     async function capNhatMaSP() {
@@ -184,7 +203,8 @@ if (maspSua) {
   parent_id: maspValue, 
   group_id: groupId,
   is_parent: isParent,
-  is_stock_parent: isParent
+  is_stock_parent: isParent,
+  default_warehouse_id: document.getElementById("defaultKho").value || null
 };
 
   if (!sp.masp || !sp.tensp || !sp.dvt) {
@@ -248,9 +268,9 @@ if (isParent) {
 
   for (const row of rows) {
 
-    const dinhluongCon = parseFloat(row.querySelector(".c-dinhluong")?.value) || 0;
-
-const child = {
+  const dinhluongCon = parseFloat(row.querySelector(".c-dinhluong")?.value) || 0;
+  const parentKho = sp.default_warehouse_id || null;
+  const child = {
   masp: row.querySelector(".c-masp")?.value?.trim(),
   tensp: sp.tensp + " - " + (row.querySelector(".c-color")?.value || ""),
   color: row.querySelector(".c-color")?.value || "",
@@ -266,6 +286,7 @@ const child = {
   is_stock_parent: false,
 
   tonkho: 0,
+  default_warehouse_id: row.querySelector(".c-kho")?.value || parentKho ,
 
   // 🔥 TÍNH LẠI GIÁ
   giavon: (sp.giavon || 0) * dinhluongCon,
@@ -447,6 +468,7 @@ if (childGroup) childGroup.style.display = "none";
 
     document.addEventListener("DOMContentLoaded", async () => {
   await taiDanhSachNhom();
+  await taiDanhSachKho();
   await taiDanhSachDVT();
 
   // ... đoạn lấy params như cũ
@@ -459,10 +481,12 @@ if (childGroup) childGroup.style.display = "none";
     const { data, error } = await supabase.from("sanpham").select("*").eq("masp", maspSua).single();
     if (error || !data) { alert("Không tìm thấy sản phẩm để sửa!"); return; }
     for (const key in data) if (document.getElementById(key)) document.getElementById(key).value = data[key];
+    if (data.default_warehouse_id) {
+      document.getElementById("defaultKho").value = data.default_warehouse_id;}
     if (data.is_parent) {
       document.getElementById("isParent").checked = true;
       document.getElementById("childGroup").style.display = "block";}
-    document.getElementById("masp").readOnly = true;
+      document.getElementById("masp").readOnly = true;
 
     // Set ĐVT chính (giữ logic cũ)
     const sel = document.getElementById('dvtSelect');
@@ -515,6 +539,12 @@ if (children && children.length > 0) {
 
     const rows = document.querySelectorAll("#childList .child-row");
     const lastRow = rows[rows.length - 1];
+    const khoEl = lastRow.querySelector(".c-kho");
+    const hasOption = Array.from(khoEl.options).some(opt => opt.value === child.default_warehouse_id);
+    if (hasOption) {
+      khoEl.value = child.default_warehouse_id;
+      khoEl.dataset.touched = "1";
+    }
 
     lastRow.querySelector(".c-masp").value = child.masp;
     lastRow.querySelector(".c-dinhluong").value = child.dinhluong || "";
@@ -571,7 +601,6 @@ barcodeModal.addEventListener('click', (e) => {
   }
 });
 
-
 const isParentCheckbox = document.getElementById("isParent");
 const childGroup = document.getElementById("childGroup");
 
@@ -582,6 +611,15 @@ const btnAddChild = document.getElementById("btnAddChild");
 const childList = document.getElementById("childList");
 
 btnAddChild.addEventListener("click", themDongCon);
+document.getElementById("defaultKho").addEventListener("change", (e) => {
+  const newKho = e.target.value;
+
+  document.querySelectorAll(".c-kho").forEach(sel => {
+    if (!sel.dataset.touched) {
+      sel.value = newKho;
+    }
+  });
+});
 });
 function themDongCon() {
 
@@ -626,6 +664,10 @@ const childCode = parentCode + "-" + String(nextIndex).padStart(2, "0");
         <input class="c-dvt" placeholder="ĐVT">
       </div>
 
+      <div style="display:flex; gap:10px;">
+        <select class="c-kho"></select>
+      </div>
+
       <div style="display:flex; gap:10px; align-items:center;">
         <input type="number" class="c-quycach" placeholder="Quy cách">
         <input class="c-dvtcd" placeholder="ĐVT chuyển đổi">  
@@ -633,6 +675,20 @@ const childCode = parentCode + "-" + String(nextIndex).padStart(2, "0");
 
     </div>
   `;
+  const khoSelect = div.querySelector(".c-kho");
+  const parentKho = document.getElementById("defaultKho").value;
+
+  // clone option từ select chính
+  const mainKho = document.getElementById("defaultKho");
+  khoSelect.innerHTML = mainKho.innerHTML;
+
+  // auto chọn kho cha
+  if (parentKho) {
+    khoSelect.value = parentKho;
+  }
+  khoSelect.addEventListener("change", () => {
+    khoSelect.dataset.touched = "1";
+  });
 
   div.querySelector(".btn-remove").addEventListener("click", () => {
     div.remove();
