@@ -35,7 +35,7 @@
 
   .button-row{display:flex;gap:8px;margin-top:4px}
   .btn{flex:1;padding:10px 8px;border:none;border-radius:12px;color:#fff;font-weight:600;cursor:pointer;box-shadow:var(--shadow)}
-  .btn.save{background:var(--green)} .btn.print{background:var(--blue)} .btn.delete{background:var(--red)}
+  .btn.save{background:var(--green)} .btn.print{background:var(--blue)} .btn.pre{background:var(--muted)} .btn.delete{background:var(--red)}
   .icon-btn{border:none;background:transparent;padding:6px 8px;border-radius:10px;cursor:pointer}
   .icon-btn:hover{background:#f0f1f5}
 
@@ -189,12 +189,12 @@
         </div>
         <datalist id="dsTenSP"></datalist>
         <input type="text" placeholder="Ghi chú" id="ghiChuSP" data-hotkey="F3" data-enter-target="#donGia">
-        <select id="kho"></select>
-        <input type="number" placeholder="Số lượng" id="soLuong" data-step="7">
-        <select id="dvt" data-step="8"></select>
+        <select id="kho" data-step="7"></select>
+        <input type="number" placeholder="Số lượng" id="soLuong" data-step="8">
+        <select id="dvt" data-step="9"></select>
         <input type="number" placeholder="Tổng SL" id="tongSL">
-        <input type="number" placeholder="Đơn giá" id="donGia" data-step="9">
-        <input type="number" placeholder="Thành tiền" id="thanhTien" data-step="10" data-enter-action="addItem">
+        <input type="number" placeholder="Đơn giá" id="donGia" data-step="10">
+        <input type="number" placeholder="Thành tiền" id="thanhTien" data-step="11" data-enter-action="addItem">
       </div>
     </section>
 

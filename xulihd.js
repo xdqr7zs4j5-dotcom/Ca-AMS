@@ -31,7 +31,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const url = `formIn.html?sohd=${encodeURIComponent(hoaDon.sohd)}`;
     window.open(url, "_blank", "width=900,height=600");
   });
-
+  
   // === Khi mới vào form: KHÔNG gán số HĐ, chỉ gán ngày nếu trống ===
   const soHDInput = document.getElementById("soHD");
   if (soHDInput) soHDInput.value = ""; // để trống → tạo mới sẽ xin số lúc Lưu

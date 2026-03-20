@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phiếu Xuất Kho</title>
+
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    font-size: 15px;
+    margin: 0;
+    padding: 16px;
+  }
+
+  h2 { text-align: center; margin: 10px 0; }
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  .info-table, .product-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+  }
+
+  .info-table td {
+    padding: 4px 8px;
+  }
+
+  .product-table th, .product-table td {
+    border: 1px solid #000;
+    padding: 6px;
+    text-align: left;
+  }
+
+  .product-table th {
+    background: #f0f0f0;
+  }
+
+  .sign {
+    margin-top: 40px;
+    display: flex;
+    justify-content: space-between;
+    text-align: center;
+  }
+
+  .sign div {
+    width: 30%;
+  }
+
+  .page { page-break-after: always; }
+  .page:last-child { page-break-after: auto; }
+
+  @media print {
+    thead, tfoot { display: table-row-group; }
+    tr { page-break-inside: avoid; }
+  }
+</style>
+</head>
+
+<body>
+
+<div id="root"></div>
+
+<script type="module">
+import { supabase } from "./supabase.config.js";
+
+const qs = new URLSearchParams(location.search);
+const fmt = n => (Number(n)||0).toLocaleString("vi-VN");
+
+// ---------------------
+// Parse
+// ---------------------
+function parseInput() {
+  const sohd = (qs.get("sohd") || "").trim();
+  if (!sohd) throw new Error("Thiếu số hóa đơn");
+  return sohd;
+}
+
+// ---------------------
+// Fetch data
+// ---------------------
+async function fetchData(sohd) {
+  const { data: hoadon } =
+    await supabase.from("hoadon").select("*").eq("sohd", sohd).single();
+
+  const { data: chitiet } =
+    await supabase.from("chitiet")
+      .select("*")
+      .eq("sohd", sohd);
+
+  return { hoadon, chitiet };
+}
+
+// ---------------------
+// Header công ty
+// ---------------------
+async function getCty() {
+  const { data } = await supabase
+    .from("taikhoan")
+    .select("*")
+    .order("id",{ascending:false})
+    .limit(1)
+    .single();
+
+  return `
+    <strong>${data?.name || "CÔNG TY"}</strong><br>
+    Địa chỉ: ${data?.dc_dn || ""}<br>
+    SĐT: ${data?.sdt_dn || ""}
+  `;
+}
+
+// ---------------------
+// Render
+// ---------------------
+function render({ hoadon, chitiet }, ctyHTML) {
+
+  // ⚠️ GROUP THEO KHO
+  const mapKho = {};
+
+  chitiet.forEach(sp => {
+    const kho = sp.makho || "Không rõ";
+    if (!mapKho[kho]) mapKho[kho] = [];
+    mapKho[kho].push(sp);
+  });
+
+  let pages = "";
+
+  Object.keys(mapKho).forEach(kho => {
+
+    const rows = mapKho[kho].map((sp, i) => `
+      <tr>
+        <td>${i+1}</td>
+        <td>${sp.tensp}</td>
+        <td>${sp.slthung || ""}</td>
+        <td>${sp.soluong || 0} ${sp.dvt || ""}</td>
+        <td>${sp.ghichu || ""}</td>
+      </tr>
+    `).join("");
+
+    pages += `
+    <section class="page">
+
+      <div class="header">
+        <div>${ctyHTML}</div>
+        <div style="text-align:right">
+          Ngày: ${hoadon.ngay || ""}<br>
+          Số PXK: ${hoadon.sohd || ""}<br>
+          Kho: <strong>${kho}</strong>
+        </div>
+      </div>
+
+      <h2>PHIẾU XUẤT KHO</h2>
+
+      <table class="info-table">
+        <tr><td><strong>Khách hàng:</strong> ${hoadon.makh || ""}</td></tr>
+        <tr><td><strong>Lý do xuất:</strong> Bán hàng</td></tr>
+        <tr><td><strong>Ghi chú:</strong> ${hoadon.ghichu || ""}</td></tr>
+      </table>
+
+      <table class="product-table">
+        <thead>
+          <tr>
+            <th>STT</th>
+            <th>Tên hàng</th>
+            <th>SL thùng</th>
+            <th>Số lượng</th>
+            <th>Ghi chú</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+        </tbody>
+      </table>
+
+      <div class="sign">
+        <div>
+          Người lập phiếu<br><br><br>
+          (Ký tên)
+        </div>
+        <div>
+          Thủ kho<br><br><br>
+          (Ký tên)
+        </div>
+        <div>
+          Người nhận hàng<br><br><br>
+          (Ký tên)
+        </div>
+      </div>
+
+    </section>
+    `;
+  });
+
+  return pages;
+}
+
+// ---------------------
+// Init
+// ---------------------
+document.addEventListener("DOMContentLoaded", async () => {
+  try {
+    const sohd = parseInput();
+    const data = await fetchData(sohd);
+    const ctyHTML = await getCty();
+
+    document.getElementById("root").innerHTML = render(data, ctyHTML);
+
+    setTimeout(() => window.print(), 300);
+    window.onafterprint = () => window.close();
+
+  } catch (e) {
+    alert(e.message);
+  }
+});
+</script>
+
+</body>
+</html>
