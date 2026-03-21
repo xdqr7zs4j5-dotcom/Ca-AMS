@@ -150,6 +150,22 @@
         </div>
 
         <div class="pill">
+          <label>Lọc theo</label>
+          <select id="loaiLoc">
+            <option value="">— Chọn —</option>
+            <option value="kho">Kho</option>
+            <option value="nhom">Nhóm</option>
+          </select>
+        </div>
+
+        <div class="pill">
+          <label>Giá trị</label>
+          <select id="giaTriLoc">
+            <option value="">— Chọn —</option>
+          </select>
+        </div>
+
+        <div class="pill">
           <button id="btnThemSP" class="btn">➕ Thêm sản phẩm</button>
         </div>
 
@@ -195,6 +211,8 @@
   <script type="module">
     import { supabase } from './supabase.config.js';
 
+    let mapKho = {};
+    let mapNhom = {};
     let danhSachSP = [], dsHienThi = [];
     const $  = s => document.querySelector(s);
     const $$ = s => document.querySelectorAll(s);
@@ -206,10 +224,60 @@
       return x.toLocaleString('vi-VN');
     }
 
+    async function taiBoLoc(){
+  const { data: kho } = await supabase
+    .from("thietlap_kho")
+    .select("id, ten_kho");
+
+  mapKho = {};
+  (kho || []).forEach(k => {
+    mapKho[k.id] = k.ten_kho;
+  });
+
+  // nhóm
+  const { data: nhom } = await supabase
+    .from("thietlap_sp")
+    .select("kihieu, nhomsp");
+
+  mapNhom = {};
+  (nhom || []).forEach(n => {
+    mapNhom[n.kihieu] = n.nhomsp;
+  });
+}
+function getKyHieu(masp){
+  if(!masp) return "";
+
+  // bỏ phần -xx phía sau
+  const base = masp.split("-")[0];
+
+  // lấy chữ đầu (A, B, C...)
+  return base.replace(/[0-9]/g, "");
+}
+    function capNhatGiaTriLoc(){
+  const loai = $("#loaiLoc").value;
+  const select = $("#giaTriLoc");
+
+  let list = [];
+
+  if(loai === "kho"){
+    list = Object.values(mapKho);
+  }
+
+  if(loai === "nhom"){
+    list = Object.values(mapNhom);
+  }
+
+  // remove trùng
+  list = [...new Set(list)];
+
+  select.innerHTML = `<option value="">— Chọn —</option>` +
+    list.map(v => `<option value="${v}">${v}</option>`).join("");
+}
+
     async function taiSanPham() {
       const { data, error } = await supabase
         .from('sanpham')
-        .select('masp,tensp,dinhluong,barcode,dongia,dongia2,dongia3,dvt,quycach,dvtchuyendoi,quycach2,dvtchuyendoi2,giavon,tonkho')
+        .select('masp,tensp,dinhluong,barcode,dongia,dongia2,dongia3,dvt,quycach,dvtchuyendoi,quycach2,dvtchuyendoi2,giavon,tonkho,default_warehouse_id')
         .order('tensp', { ascending:true });
       if (error) { alert("Lỗi tải dữ liệu: " + error.message); return; }
       danhSachSP = data || [];
@@ -268,13 +336,36 @@
     }
 
     function locVaHienThi(){
-      const kw = $("#timSP").value.trim().toLowerCase();
-      dsHienThi = danhSachSP.filter(sp =>
-        (sp.tensp||'').toLowerCase().includes(kw) ||
-        (sp.masp ||'').toLowerCase().includes(kw)
-      );
-      renderBang(dsHienThi);
+  const kw = $("#timSP").value.trim().toLowerCase();
+  const loai = $("#loaiLoc").value;
+  const giaTri = $("#giaTriLoc").value;
+
+  dsHienThi = danhSachSP.filter(sp => {
+
+    const matchText =
+      (sp.tensp||'').toLowerCase().includes(kw) ||
+      (sp.masp ||'').toLowerCase().includes(kw);
+
+    let matchFilter = true;
+
+    // ===== LỌC KHO =====
+    if(loai === "kho" && giaTri){
+      const tenKho = mapKho[sp.default_warehouse_id];
+      matchFilter = tenKho === giaTri;
     }
+
+    // ===== LỌC NHÓM =====
+    if(loai === "nhom" && giaTri){
+      const kihieu = getKyHieu(sp.masp);
+      const nhom = mapNhom[kihieu];
+      matchFilter = nhom === giaTri;
+    }
+
+    return matchText && matchFilter;
+  });
+
+  renderBang(dsHienThi);
+}
 
     async function xoaSanPham(){
       const items = Array.from($$("#noiDungBang .chk:checked"));
@@ -336,7 +427,8 @@ document.addEventListener("click", e=>{
 });
 
     // ===== Events =====
-    window.addEventListener("DOMContentLoaded", ()=>{
+    window.addEventListener("DOMContentLoaded", async ()=>{
+
       /* click nền xám => đóng */
 document.getElementById("barcodeModal").addEventListener("click", ()=>{
   document.getElementById("barcodeModal").style.display="none";
@@ -352,6 +444,16 @@ document.querySelector(".bc-box").addEventListener("click", e=>{
         if(this.value==="sua") suaSanPhamTuDanhSach();
         this.value="";
       });
+
+      await taiBoLoc();
+
+      $("#loaiLoc").addEventListener("change", ()=>{
+        capNhatGiaTriLoc();
+        locVaHienThi();
+      });
+      
+      $("#giaTriLoc").addEventListener("change", locVaHienThi);
+      
       $("#chkAll").addEventListener("change", e=>{
         $$("#noiDungBang .chk").forEach(c=>c.checked=e.target.checked);
         capNhatDem();

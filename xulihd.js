@@ -186,7 +186,7 @@ async function luuHoaDon() {
     if (!masp) return; // bỏ dòng trống
 
     const ghichu  = getCellValue(row, '.ghiChuSP');
-    const soLuongNhap = parseFloat(getCellValue(row, '.soLuong')) || 0;
+    const soLuongNhap = parseFloat(getCellValue(row, '.soLuong')) || null;
     const dvtNhap     = getCellValue(row, '.dvtNhap') || null;
     const tongSL = parseFloat(getCellValue(row, '.tongSL')) || 0;
     const dvtGoc = getCellValue(row, '.dvt');
@@ -212,21 +212,42 @@ async function luuHoaDon() {
   alert("Chưa có sản phẩm nào trong hóa đơn!");
   return;
 }
+// 🔥 rollback trước
+const isUpdate = !!sohd && !!(await supabase
+  .from("hoadon")
+  .select("da_ap_kho")
+  .eq("sohd", sohd)
+  .single()
+).data?.da_ap_kho;
 
-// 👉 CHỖ CẦN THÊM
+if (isUpdate) {
+  await supabase.rpc('rollback_hoadon', { p_sohd: sohd });
+}
+
+// reset trạng thái
 await supabase
-  .from("chitiet")
-  .delete()
+  .from("hoadon")
+  .update({ da_ap_kho: false })
   .eq("sohd", sohd);
 
-// 👉 INSERT LẠI TOÀN BỘ
+// delete + insert
+await supabase.from("chitiet").delete().eq("sohd", sohd);
+
 const { error: errCT } = await supabase
   .from("chitiet")
   .insert(dsSP);
-
 if (errCT) {
-  console.error("❌ Lỗi lưu chi tiết hóa đơn:", errCT);
-  alert("Lưu chi tiết hóa đơn thất bại!");
+  console.error("❌ Lỗi lưu chi tiết:", errCT);
+  alert("Lỗi lưu chi tiết!");
+  return;
+}
+
+// apply lại
+const { error: errKho } = await supabase.rpc('apply_hoadon', { p_sohd: sohd });
+
+if (errKho) {
+  console.error("❌ Lỗi cập nhật kho:", errKho);
+  alert("Lỗi cập nhật tồn kho!");
   return;
 }
 
