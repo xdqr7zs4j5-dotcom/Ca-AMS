@@ -9,7 +9,7 @@
     --bg:#f5f5f7; --card:#fff; --text:#111; --muted:#6b7280; --line:#e5e7eb;
     --blue:#007aff; --green:#34c759; --red:#ff3b30;
     --radius:16px; --shadow:0 1px 2px rgba(0,0,0,.05),0 6px 16px rgba(0,0,0,.06);
-    --inputBg:#f8f8fb; --inputBorder:#e6e7ee; --inputFocus:#c7d7ff;
+    --inputBg:#f8f8fb; --inputBorder:#e6e7ee; --inputFocus:#c7d7ff; 
   }
   *{box-sizing:border-box}
   html,body{height:100%}
@@ -75,11 +75,33 @@
     padding:10px 12px;border-bottom:1px solid var(--line)}
   tbody td{padding:6px 10px;border-bottom:1px solid #f1f3f5}
   #bangSP th:nth-child(5),
-  #bangSP td:nth-child(5) {
-    width: 100px;}
+  #bangSP td:nth-child(5) {width: 100px;}
   tbody tr:last-child td{border-bottom:none}
   td input,td select{width:100%;border:none;background:transparent;padding:8px 6px;outline:none}
-  td input:focus{box-shadow:inset 0 -2px 0 var(--blue)}
+  td input:focus{
+  border: none;
+  outline: none;
+  border-radius: 10px;
+  box-shadow: inset 0 -3px 0 var(--inputFocus);
+}
+  /* FIX: number input trong table giống text input */
+  td input[type="number"]{
+    border: none;
+    background: transparent ;
+    outline: none; 
+  }
+
+  /* đảm bảo focus giống input text */
+  td input[type="number"]:focus{
+    box-shadow: inset 0 -3px 0 var(--inputFocus) !important;
+  }
+
+  /* xóa spinner */
+  td input[type="number"]::-webkit-outer-spin-button,
+  td input[type="number"]::-webkit-inner-spin-button{
+    -webkit-appearance: none;
+    margin: 0;
+  }
   .td-actions{width:40px;text-align:right}
 
   .ac-wrap{grid-column:auto;position:relative;min-width:0}

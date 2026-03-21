@@ -171,41 +171,38 @@ async function luuHoaDon() {
     }
 
     // 3) Thu sản phẩm từ bảng và ghi bảng chitiet
-    const rows = document.querySelectorAll("#bangSP tr");
-const dsSP = [];
-let lineNo = 1;
+    const rows = document.querySelectorAll("#bangSPBody tr");
+    const dsSP = [];
+    let lineNo = 1;
+    
+    rows.forEach(row => {
+      if (row.querySelector("th")) return; // bỏ header
+    const tenspRaw = getCellValue(row, '.tenSP');
+    const tensp = tenspRaw.split(" - ")[0];
+    const kho_id = row.querySelector('.khoSelect')?.value || null;
+    const color = tenspRaw.split(" - ")[1] || null;
+    const elMaSP  = row.querySelector('.maSP');
+    const masp    = elMaSP?.dataset?.masp || getCellValue(row, '.maSP');
+    if (!masp) return; // bỏ dòng trống
 
-rows.forEach(row => {
-  if (row.querySelector("th")) return; // bỏ header
-
-  const tenspRaw = getCellValue(row, '.tenSP');
-  const tensp = tenspRaw.split(" - ")[0];
-  const kho_id = row.querySelector('.kho')?.dataset?.kho;
-  const color = tenspRaw.split(" - ")[1] || null;
-  const elMaSP  = row.querySelector('.maSP');
-  const masp    = elMaSP?.dataset?.masp || getCellValue(row, '.maSP');
-  if (!masp) return; // bỏ dòng trống
-
-  const ghichu  = getCellValue(row, '.ghiChuSP');
-  const dvtGoc  = getCellValue(row, '.dvtGoc');
-  const dvt     = getCellValue(row, '.dvt');
-  const soluongText = getCellValue(row, '.soLuong');
-  const tongSL  = parseFloat(getCellValue(row, '.tongSL')) || 0;
-  const dongia  = parseMoneyVN(getCellValue(row, '.donGia'));
-  const thanhTien = tongSL * dongia;
-  const slThung =
-  soluongText && dvt
-    ? `${soluongText} ${dvt}`
-    : null;
+    const ghichu  = getCellValue(row, '.ghiChuSP');
+    const soLuongNhap = parseFloat(getCellValue(row, '.soLuong')) || 0;
+    const dvtNhap     = getCellValue(row, '.dvtNhap') || null;
+    const tongSL = parseFloat(getCellValue(row, '.tongSL')) || 0;
+    const dvtGoc = getCellValue(row, '.dvt');
+    const dongia  = parseMoneyVN(getCellValue(row, '.donGia'));
+    const thanhTien = tongSL * dongia;
+    
 
   dsSP.push({
     sohd,
     line_no: lineNo++,   // ✅ OK
     ngay, makh,
     tensp, color, masp, ghichu,kho_id ,
+    soLuongNhap,
+    dvtNhap,
     soluong: tongSL,
     dvt: dvtGoc,
-    slthung: slThung,
     dongia,
     thanhtien: thanhTien
   });

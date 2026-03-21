@@ -235,8 +235,12 @@ function capNhatDonGia() {
   const loaiTen = document.getElementById("phanLoai")?.value?.trim();
   const masp = getMaSPGoc();
   const sp = spById[masp];
-  console.log("TEST PRICE", sp.dongia, sp.dongia2, sp.dongia3);
-  if (!sp || !loaiTen) return;
+  if (!sp) {
+    console.warn("❌ Không tìm thấy SP:", masp);
+    return;
+  }
+
+  if (!loaiTen) return;
 
   const rule = _getRule(loaiTen);
   const gia = _chonDonGiaTheoRule(sp, rule);
@@ -761,7 +765,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     donGia.dataset.bound = "1";
   }
 
-  // nạp dữ liệu + UI phụ
+  await taiDanhSachSP();
   await napDanhSachPhanLoai();
   initPriceChooser();
 });

@@ -150,7 +150,7 @@ async function fetchHoaDonFull(sohd) {
     await supabase.from("chitiet")
       .select("*")
       .eq("sohd", sohd)
-      .order('slthung', { nullsFirst:false, ascending:true })
+      .order('soLuongNhap', { nullsFirst:false, ascending:true })
       .order('masp', { ascending:true });
   if (errCT || !chitiet) throw new Error(`Không có chi tiết HĐ ${sohd}`);
 
@@ -193,7 +193,7 @@ function renderOnePage({ hoadon, khach, chitiet }, ctyHTML, noCu = 0) {
       <td>${i+1}</td>
       <td>${sp.color ? `${sp.tensp} - ${sp.color}` : sp.tensp}
         <br><small>${sp.ghichu ? `// ${sp.ghichu} //` : ""}</small></td>
-      <td>${sp.slthung||""}</td>
+      <td>${sp.soLuongNhap || ""} ${sp.dvtNhap || ""}</td>
       <td>${(sp.soluong||0)} ${sp.dvt||""}</td>
       <td style="text-align:right">${fmt(sp.dongia||0)}</td>
       <td style="text-align:right">${fmt((sp.dongia||0)*(sp.soluong||0))}</td>
@@ -312,7 +312,7 @@ document.getElementById("noCu").textContent = `Bal: ${fmt(noCu)}`;
       <td>${i + 1}</td>
       <td>${sp.color ? `${sp.tensp} - ${sp.color}` : sp.tensp}
         <br/><small>${sp.ghichu ? `// ${sp.ghichu} //` : ""}</small></td>
-      <td>${sp.slthung  || ""}</td>
+      <td>${sp.soLuongNhap || ""} ${sp.dvtNhap || ""}</td>
       <td>${(sp.soluong || 0)} ${sp.dvt || ""}</td>
       <td style="text-align:right">${fmt(sp.dongia || 0)}</td>
       <td style="text-align:right">${fmt((sp.dongia || 0) * (sp.soluong || 0))}</td>

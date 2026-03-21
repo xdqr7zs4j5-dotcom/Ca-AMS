@@ -4,7 +4,11 @@ import { getMaSPGoc } from './xulisp.js';
 
 
 // ===== NEW: chọn đúng tbody + scroller
-const tbody = document.getElementById('bangSPBody');            // <tbody id="bangSPBody">
+let tbody;
+
+document.addEventListener("DOMContentLoaded", () => {
+  tbody = document.getElementById('bangSPBody');
+});           
 const scroller = document.querySelector('.table-scroll');       // khung cuộn
 
 // ===== NEW: hàm cuộn đến dòng vừa thêm
@@ -17,11 +21,12 @@ function autoScrollToNewRow(tr) {
     tr?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   });
 }
+window.autoScrollToNewRow = autoScrollToNewRow;
 
 // Hàm tính lại tổng tiền hàng từ bảng
 function tinhTongTienHang() {
   let tong = 0;
-  document.querySelectorAll("#bangSP tbody tr").forEach(row => {
+  document.querySelectorAll("#bangSPBody tr").forEach(row => {
     const cell = row.querySelector(".thanhTien") || row.querySelector("td:nth-child(10)");
     const raw  = cell?.textContent ?? cell?.value ?? '0';
     tong += parseMoneyVN(raw);              // <— dùng parseMoneyVN
@@ -76,88 +81,46 @@ document.getElementById('themSP').addEventListener('click', function () {
     return;
 }
  
-  const stt = tbody.rows.length + 1;
-  const maSPHienThi = sp.masp;
   const maSPThuần = masp;
   const ghiChu = document.getElementById('ghiChuSP').value.trim();
   const khoSelect = document.getElementById('kho');
   const opt = khoSelect.selectedOptions[0];
   const kho_id = khoSelect.value;        // id (để lưu DB nếu cần)
-  const kho_ma = opt?.dataset?.ma || ''; // 👈 cái bạn cần
-  const soLuong = document.getElementById('soLuong').value.trim();
-  const dvt = document.getElementById('dvt').value.trim();
+  const soLuongNhap = parseFloat(document.getElementById('soLuong')?.value) || 0;
+  const dvtNhap = document.getElementById('dvt')?.value || "";
   const tongSL = document.getElementById('tongSL').value.trim();
   const donGiaStr = document.getElementById('donGia').value.trim();
-  const donGiaNum = parseMoneyVN(donGiaStr);              // <—
-  const thanhTienNum = (parseFloat(tongSL)||0) * donGiaNum;
-
-  const isDVTGoc = dvt === sp.dvt;
-  const hienSoLuong = isDVTGoc ? "" : soLuong;
-  const hienDVT = isDVTGoc ? "" : dvt;
+  const donGiaNum = parseMoneyVN(donGiaStr);              
   const dvtGoc = sp.dvt || "";
 
-  const tr = document.createElement('tr');
-  tr.innerHTML = `
-    <td class="stt">${stt}</td> 
-    <td class="maSP" data-masp="${maSPThuần}">${maSPHienThi}</td>
-    <td class="tenSP">${tenSP}</td>
-    <td class="ghiChuSP">${ghiChu}</td>
-    <td class="kho" data-kho="${kho_id}">${kho_ma}</td>
-    <td class="soLuong">${hienSoLuong}</td>
-    <td class="dvt">${hienDVT}</td>
-    <td><input type="number" class="editable tongSL" value="${tongSL}" /></td>
-    <td class="dvtGoc">${dvtGoc}</td>
-    <td><input type="text" class="editable donGia" value="${moneyVN.format(donGiaNum)}" inputmode="numeric" /></td>
-    <td class="thanhTien">${moneyVN.format(Math.round(thanhTienNum))}</td>
-    <td><button class="xoaSP">❌</button></td>
-  `;
-
-  tbody.appendChild(tr);
-
-  // ===== NEW: auto cuộn & highlight nhẹ
-  autoScrollToNewRow(tr);
-  tr.style.transition = 'background 500ms';
-  tr.style.background = '#fff8e1';
-  setTimeout(() => (tr.style.background = ''), 500);
-
-  // mask cho ô đơn giá của dòng mới
-const ipDG = tr.querySelector('.donGia');
-ipDG.addEventListener('focus', () => { ipDG.value = String(parseMoneyVN(ipDG.value) || ''); });
-ipDG.addEventListener('blur',  () => { ipDG.value = moneyVN.format(parseMoneyVN(ipDG.value)); });
-
-tr.querySelectorAll('.tongSL, .donGia').forEach(input => {
-  input.addEventListener('input', () => {
-    const row = input.closest('tr');
-    const tongSL = parseFloat(row.querySelector('.tongSL')?.value) || 0;
-    const donGia = parseMoneyVN(row.querySelector('.donGia')?.value);
-    const tt = Math.round(tongSL * donGia);
-    row.querySelector('.thanhTien').textContent = moneyVN.format(tt);  // <—
-
-    tinhTongTienHang();
-    tinhTongThanhToan();
+  window.themDongSP({
+    masp: maSPThuần,
+    tensp: tenSP,
+    ghichu: ghiChu,
+    kho_id: kho_id,
+    soLuongNhap: soLuongNhap, 
+    dvtNhap: dvtNhap,
+ 
+    soluong: parseFloat(tongSL) || 0,
+    dvt: dvtGoc,
+    dongia: donGiaNum
   });
-});
 
-  // Xoá dòng
-  tr.querySelector(".xoaSP")?.addEventListener("click", () => {
-    tr.remove();
-    capNhatSTT();
-    tinhTongTienHang();
-    tinhTongThanhToan();
-  });
+
 
   // Xoá input sau khi thêm + focus nhập tiếp
   document.querySelectorAll('.input-bar input').forEach(i => i.value = '');
   document.getElementById('tenSP').focus();
 
-  tinhTongTienHang();
-  tinhTongThanhToan();
 });
 
 // Hàm cập nhật lại STT sau khi xoá dòng
 function capNhatSTT() {
-  const rows = document.querySelectorAll("#bangSP tbody tr");
+  const rows = document.querySelectorAll("#bangSPBody tr");
   rows.forEach((row, index) => {
     row.querySelector(".stt").textContent = index + 1;
   });
 }
+
+window.tinhTongTienHang = tinhTongTienHang;
+window.tinhTongThanhToan = tinhTongThanhToan;

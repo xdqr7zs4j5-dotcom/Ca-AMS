@@ -1,6 +1,7 @@
 // xulihd.js  (module)
 // =================== Imports ===================
 import { supabase } from "./supabase.config.js";
+import { parseMoneyVN } from './sanpham.data.js';
 import { spMap}    from "./sanpham.data.js"; // nếu cần
 
 // =================== Helpers ===================
@@ -8,7 +9,22 @@ const $  = (s) => document.querySelector(s);
 const $$ = (s) => document.querySelectorAll(s);
 const moneyVN = new Intl.NumberFormat("vi-VN");
 const toYMD = (d) => new Date(d).toISOString().slice(0,10);
+let khoList = [];
 
+async function loadKhoList() {
+  const { data, error } = await supabase
+    .from("thietlap_kho")
+    .select("id, ma_kho")
+    .order("ma_kho");
+
+  if (error) {
+    console.error("Lỗi load kho:", error);
+    return;
+  }
+
+  khoList = data || [];
+  window.khoList = khoList;
+}
 function setVal(sel, v){ const el = $(sel); if (el) el.value = v ?? ""; }
 function numVal(sel){
   const el = $(sel); if (!el) return 0;
@@ -105,6 +121,7 @@ async function init(){
     const sohd = new URLSearchParams(location.search).get("sohd") || "";
 
     await loadNhanVienBanHang();
+    await loadKhoList();
 
     // Đổ danh sách đơn gần đây nếu có khung
     if (typeof taiDonHangGanDay === "function") await taiDonHangGanDay();
@@ -221,8 +238,8 @@ export async function taiHoaDonCu(sohd){
     }
 
     // 7) Tính tổng
-    if (typeof tinhTongTienHang === "function") tinhTongTienHang();
-    if (typeof tinhTongThanhToan === "function") tinhTongThanhToan();
+    if (typeof window.tinhTongTienHang === "function") window.tinhTongTienHang();
+    if (typeof window.tinhTongThanhToan === "function") window.tinhTongThanhToan();
   } catch (e) {
     console.error("taiHoaDonCu lỗi:", e);
   }
@@ -267,58 +284,134 @@ export async function taiDonHangGanDay(){
 window.taiDonHangGanDay = taiDonHangGanDay;
 
 // =================== Thêm dòng SP ===================
-window.themDongSP = function(sp = {}){
+window.themDongSP = function(sp = {}) {
   const tbody = document.getElementById("bangSPBody");
   if (!tbody) return;
 
-  const stt = tbody.rows.length + 1;
-  const row = document.createElement("tr");
+  const moneyVN = new Intl.NumberFormat("vi-VN");
+  // ===== normalize data =====
+  const masp    = sp.masp ?? sp.ma_sp ?? "";
+  const tensp   = sp.tensp ?? sp.ten_sp ?? "";
+  const ghichu  = sp.ghichu ?? "";
+  const kho_id  = sp.kho_id ?? "";
+  const soluong = Number(sp.soluong ?? sp.so_luong ?? 0);
+  const spInfo = spMap?.[masp] || {};
 
-  // Tách "slthung" => số + dvt (VD: "10 lốc")
-  let sluong = "", dvtgoc = "";
-  if (sp.slthung) {
-    const i = sp.slthung.indexOf(" ");
-    if (i !== -1) { sluong = sp.slthung.slice(0,i).trim(); dvtgoc = sp.slthung.slice(i+1).trim(); }
-  }
-  const tenspHienThi = sp.color
-  ? `${sp.tensp} - ${sp.color}`
-  : (sp.tensp ?? sp.ten_sp ?? "");
+  const dvtGoc = sp.dvt ?? sp.don_vi_tinh ?? spInfo.dvt ?? "";
+  const dvtChuyen = spInfo.dvtchuyendoi ?? "";
+
+  const soLuong = Number(sp.soLuongNhap ?? sp.so_luong ?? 0);
+  const dvtNhap = sp.dvtNhap ?? "";
+
+  // 🔥 KEY LOGIC
+  const isNhapGoc = dvtNhap === dvtGoc;
+
+  // hiển thị
+  const soLuongDisplay = isNhapGoc ? "" : soLuong;
+  const dvtNhapDisplay = isNhapGoc ? "" : dvtNhap;
+  const dvtDisplay = dvtGoc;
+  const dongia = parseMoneyVN(sp.dongia ?? sp.don_gia ?? 0);
+
+  const stt = tbody.rows.length + 1;
+
+  // ===== create row =====
+  const row = document.createElement("tr");
 
   row.innerHTML = `
     <td class="stt">${stt}</td>
-    <td><input class="maSP"   value="${sp.masp   ?? sp.ma_sp   ?? ''}"></td>
-    <td><input class="tenSP"  value="${tenspHienThi}"></td>
-    <td><input class="ghiChuSP" value="${sp.ghichu ?? ''}"></td>
-    <td class="kho" data-kho="${sp.kho_id || ''}">${sp.thietlap_kho?.ma_kho || ''}</td>
-    <td><input class="soLuong" type="number" value="${sluong}"></td>
-    <td><input class="dvt" value="${dvtgoc}"></td>
-    <td><input class="tongSL" type="number" value="${sp.soluong ?? sp.so_luong ?? ''}"></td>
-    <td><input class="dvtGoc" value="${sp.dvt ?? sp.don_vi_tinh ?? ''}"></td>
-    <td><input class="donGia" type="number" value="${sp.dongia ?? sp.don_gia ?? 0}"></td>
-    <td class="thanhtien">0</td>
+
+    <td><input class="maSP" value="${masp}"></td>
+
+    <td><input class="tenSP" value="${tensp}"></td>
+
+    <td><input class="ghiChuSP" value="${ghichu}"></td>
+
+    <td>
+      <select class="khoSelect">
+        <option value="">-- Chọn kho --</option>
+      </select>
+    </td>
+    <td><input class="soLuong" type="number" value="${soLuongDisplay}"></td>
+    
+    <td><input class="dvtNhap" value="${dvtNhapDisplay}"></td>
+
+    <td><input class="tongSL" type="number" value="${soluong}"></td>
+
+    <td><input class="dvt" value="${dvtDisplay}"></td>
+
+    <td>
+      <input class="donGia" type="text"
+        value="${moneyVN.format(dongia)}"
+        inputmode="numeric">
+    </td>
+
+    <td class="thanhTien">0</td>
+
     <td><button class="xoaSP">❌</button></td>
   `;
 
-  // Xóa dòng
-  row.querySelector(".xoaSP").addEventListener("click", () => {
-    row.remove(); capNhatSTT(); tinhTongTienHang?.();
+  // ===== kho select =====
+  const khoSelect = row.querySelector(".khoSelect");
+  if (window.khoList) {
+    window.khoList.forEach(k => {
+      const opt = document.createElement("option");
+      opt.value = k.id;
+      opt.textContent = k.ma_kho;
+      khoSelect.appendChild(opt);
+    });
+  }
+  if (kho_id) khoSelect.value = String(kho_id);
+
+  // ===== elements =====
+  const ipSL  = row.querySelector(".tongSL");
+  const ipGia = row.querySelector(".donGia");
+  const cellTT = row.querySelector(".thanhTien");
+
+  // ===== format tiền =====
+  ipGia.addEventListener("focus", () => {
+    ipGia.value = String(ipGia.value).replace(/[^\d]/g, '');
   });
 
-  // Cập nhật thành tiền khi đổi SL/ĐG
-  const sl   = row.querySelector(".tongSL");
-  const gia  = row.querySelector(".donGia");
-  const tien = row.querySelector(".thanhtien");
-  const capNhatTien = () => {
-    const thanhTien = (parseFloat(sl.value) || 0) * (parseFloat(gia.value) || 0);
-    tien.textContent = Math.round(thanhTien).toString();
-    tinhTongTienHang?.();
-  };
-  sl.addEventListener("input", capNhatTien);
-  gia.addEventListener("input", capNhatTien);
+  ipGia.addEventListener("blur", () => {
+    ipGia.value = moneyVN.format(parseMoneyVN(ipGia.value));
+  });
 
+  // ===== tính tiền =====
+  const capNhatTien = () => {
+    const sl  = Number(ipSL.value) || 0;
+    const gia = parseMoneyVN(ipGia.value);   
+
+    const tt  = Math.round(sl * gia);
+
+    cellTT.textContent = moneyVN.format(tt);
+
+    if (typeof window.tinhTongTienHang === "function") window.tinhTongTienHang();
+    if (typeof window.tinhTongThanhToan === "function") window.tinhTongThanhToan();
+  };
+
+  ipSL.addEventListener("input", capNhatTien);
+  ipGia.addEventListener("input", capNhatTien);
+  ipGia.addEventListener("blur", capNhatTien);
+
+  // ===== xóa dòng =====
+  row.querySelector(".xoaSP").addEventListener("click", () => {
+    row.remove();
+    capNhatSTT();
+
+    if (typeof window.tinhTongTienHang === "function") window.tinhTongTienHang();
+    if (typeof window.tinhTongThanhToan === "function") window.tinhTongThanhToan();
+  });
+
+  // ===== append =====
   tbody.appendChild(row);
+
   capNhatSTT();
   capNhatTien();
+
+  // ===== auto scroll (nếu có) =====
+  if (typeof window.autoScrollToNewRow === "function") {
+    window.autoScrollToNewRow(row);
+  }
 };
 
 // =================== Tính tổng ===================
@@ -327,24 +420,6 @@ function capNhatSTT(){
     const cell = row.querySelector("td:first-child");
     if (cell) cell.textContent = i + 1;
   });
-}
-function tinhTongTienHang(){
-  let tong = 0;
-  $$("#bangSPBody tr").forEach(row => {
-    const txt = row.querySelector(".thanhtien")?.textContent || "0";
-    tong += Number(String(txt).replace(/[^\d.-]/g,'')) || 0;
-  });
-  setVal("#tongHang", Math.round(tong).toString());
-  tinhTongThanhToan();
-}
-function tinhTongThanhToan(){
-  const tongHang  = numVal("#tongHang");
-  const chietKhau = numVal("#chietKhau");
-  const thue      = numVal("#thue");
-  const tienThue  = tongHang * (thue / 100);
-  const tongTT    = tongHang - chietKhau + tienThue;
-  setVal("#tienThue", Math.round(tienThue).toString());
-  setVal("#tongThanhToan", Math.round(tongTT).toString());
 }
 
 // =================== Mở form in / nạp lại đơn ===================
