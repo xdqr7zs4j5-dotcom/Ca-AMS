@@ -212,42 +212,21 @@ async function luuHoaDon() {
   alert("Chưa có sản phẩm nào trong hóa đơn!");
   return;
 }
-// 🔥 rollback trước
-const isUpdate = !!sohd && !!(await supabase
-  .from("hoadon")
-  .select("da_ap_kho")
-  .eq("sohd", sohd)
-  .single()
-).data?.da_ap_kho;
 
-if (isUpdate) {
-  await supabase.rpc('rollback_hoadon', { p_sohd: sohd });
-}
-
-// reset trạng thái
+// 👉 CHỖ CẦN THÊM
 await supabase
-  .from("hoadon")
-  .update({ da_ap_kho: false })
+  .from("chitiet")
+  .delete()
   .eq("sohd", sohd);
 
-// delete + insert
-await supabase.from("chitiet").delete().eq("sohd", sohd);
-
+// 👉 INSERT LẠI TOÀN BỘ
 const { error: errCT } = await supabase
   .from("chitiet")
   .insert(dsSP);
+
 if (errCT) {
-  console.error("❌ Lỗi lưu chi tiết:", errCT);
-  alert("Lỗi lưu chi tiết!");
-  return;
-}
-
-// apply lại
-const { error: errKho } = await supabase.rpc('apply_hoadon', { p_sohd: sohd });
-
-if (errKho) {
-  console.error("❌ Lỗi cập nhật kho:", errKho);
-  alert("Lỗi cập nhật tồn kho!");
+  console.error("❌ Lỗi lưu chi tiết hóa đơn:", errCT);
+  alert("Lưu chi tiết hóa đơn thất bại!");
   return;
 }
 
