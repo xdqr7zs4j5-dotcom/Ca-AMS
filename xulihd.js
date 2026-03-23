@@ -229,6 +229,7 @@ if (errCT) {
   alert("Lưu chi tiết hóa đơn thất bại!");
   return;
 }
+await supabase.rpc('apply_hoadon', { p_sohd: sohd });
 
     // Thông báo & sync
     try { window.opener?.postMessage({ type: "hd-saved", sohd }, "*"); } catch {}

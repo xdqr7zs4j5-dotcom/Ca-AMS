@@ -6,177 +6,58 @@
 <title>Kiểm kho</title>
 
 <style>
-:root{
-  --bg:#f5f5f7; --card:#fff; --text:#111; --muted:#6b7280; --line:#e5e7eb;
-  --blue:#007aff; --green:#34c759; --red:#ff3b30;
-  --radius:14px; --shadow:0 1px 2px rgba(0,0,0,.05),0 6px 16px rgba(0,0,0,.06);
+  :root{
+    --bg:#f5f5f7; --card:#fff; --text:#111; --muted:#6b7280; --line:#e5e7eb;
+    --blue:#007aff; --red:#ff3b30; --radius:14px; --shadow:0 6px 24px rgba(0,0,0,.06);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; display:flex; flex-direction:column; background:var(--bg);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif; color:var(--text)
+  }
+ 
+  .wrap{padding:16px; display:flex; flex-direction:column; gap:12px; flex:1 1 auto; min-height:0}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow)}
+  .toolbar{display:flex; flex-wrap:wrap; gap:10px; padding:12px; align-items:center}
+  .pill{display:flex; align-items:center; gap:8px; padding:4px 8px; border:1px solid var(--line); border-radius:999px; background:#fff}
+  .pill label{font-size:12px; color:var(--muted)}
+  .pill input,.pill select{border:none; outline:none; font-size:14px; background:transparent; min-height:24px}
+  .pill select{
+    min-width:140px; appearance:none; padding-right:18px;
+    background:linear-gradient(45deg,transparent 50%,var(--muted) 50%) right 8px center/8px 8px no-repeat
+  }
+  .btn{border:none; background:var(--blue); color:#fff; padding:8px 12px; border-radius:999px;
+      font-weight:600; cursor:pointer}
+  .btn:active{opacity:.85}
+  
+
+ 
+  input, select {
+  border: none;
+  outline: none;
+  background: transparent;
+  box-shadow: none;
+  appearance: none;
 }
 
-*{box-sizing:border-box}
+  .table-card{flex:1 1 auto; min-height:0; padding:8px}
+  .table-wrap{overflow:auto; border-radius:12px; border:1px solid var(--line); background:#fff; height:100%}
+  table{width:100%; border-collapse:separate; border-spacing:0}
+  thead th{
+    position:sticky; top:0; z-index:1; background:#fafafa; border-bottom:1px solid var(--line);
+    font-size:13px; font-weight:700; color:#374151; text-align:left; padding:10px 12px
+  }
+  tbody td{border-bottom:1px solid var(--line); padding:10px 12px; vertical-align:middle; font-size:14px}
+  tbody tr:hover{background:#fafbff}
+  .cell-check{width:42px}
+  .num{text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+  .lowText{color:var(--red); font-weight:700}
 
-/* ❗ KHÓA CUỘN TOÀN TRANG */
-html,body{
-  height:100%;
-  margin:0;
-  overflow:hidden;
-  background:var(--bg);
-  color:var(--text);
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
-}
-
-/* Appbar */
-.appbar{
-  position:sticky;
-  top:0;
-  z-index:100;
-  background:rgba(245,245,247,.8);
-  backdrop-filter:blur(16px);
-  border-bottom:1px solid var(--line);
-}
-.appbar-inner{
-  padding:12px 16px;
-}
-.title{
-  margin:0;
-  font-size:18px;
-  font-weight:800;
-}
-
-/* Layout chính */
-.wrap{
-  height:100vh;
-  padding:16px;
-  display:flex;
-  flex-direction:column;
-  gap:12px;
-  overflow:hidden;
-}
-
-/* Card */
-.card{
-  background:var(--card);
-  border:1px solid var(--line);
-  border-radius:14px;
-  box-shadow:var(--shadow);
-}
-
-/* Form trên */
-.section{
-  padding:12px;
-}
-
-.toolbar{
-  display:flex;
-  gap:8px;
-  align-items:center;
-  flex-wrap:nowrap;
-}
-
-.pill{
-  display:flex;
-  gap:8px;
-  align-items:center;
-  border:1px solid var(--line);
-  border-radius:999px;
-  padding:6px 10px;
-  background:#fff;
-}
-.pill label{
-  font-size:12px;
-  color:var(--muted);
-  white-space:nowrap;
-}
-.pill input{
-  border:none;
-  outline:none;
-  background:transparent;
-  font-size:14px;
-  min-width:80px;
-}
-
-.btn{
-  border:0;
-  border-radius:12px;
-  padding:10px 14px;
-  font-weight:700;
-  cursor:pointer;
-}
-.btn.primary{
-  background:#0a84ff;            /* xanh iOS */
-  color:#fff;
-  border-radius:999px;           /* pill tròn */
-  padding:8px 18px;              /* gọn hơn */
-  font-size:14px;
-  font-weight:600;
-  display:inline-flex;
-  align-items:center;
-  gap:6px;
-  box-shadow:none;               /* bỏ bóng */
-}
-
-.btn.primary:active{
-  transform:translateY(1px);
-}
-
-/* ❗ CARD BẢNG CHIẾM PHẦN CÒN LẠI */
-.card.table-card{
-  flex:1;
-  display:flex;
-  flex-direction:column;
-  overflow:hidden;
-}
-
-/* ❗ CHỈ BẢNG ĐƯỢC CUỘN */
-.table-wrap{
-  flex:1;
-  overflow:auto;
-  border-top:1px solid var(--line);
-}
-
-/* Bảng */
-table{
-  width:100%;
-  border-collapse:collapse;
-}
-thead th{
-  position:sticky;
-  top:0;
-  z-index:2;
-  background:#fafafa;
-  border-bottom:1px solid var(--line);
-  padding:10px 12px;
-  font-size:13px;
-  text-align:left;
-}
-tbody td{
-  border-bottom:1px solid var(--line);
-  padding:10px 12px;
-  font-size:14px;
-}
-tbody tr:hover{
-  background:#fafbff;
-}
-
-.num{
-  text-align:right;
-  font-variant-numeric:tabular-nums;
-}
-.mono{
-  font-family:ui-monospace,monospace;
-}
-.pill-mini{
-  background:#f3f4f6;
-  padding:3px 8px;
-  border-radius:999px;
-  font-size:12px;
-}
-
-/* Đáy bảng cho đỡ cụt */
-.table-wrap::after{
-  content:"";
-  display:block;
-  height:120px;
-}
+  @media (max-width: 900px){
+    th:nth-child(4), td:nth-child(4){display:none;} /* Ẩn ĐVT trên màn nhỏ */
+  }
 </style>
 </head>
 
@@ -188,6 +69,11 @@ tbody tr:hover{
   <div class="card">
     <div class="section">
       <div class="toolbar">
+        <div class="pill" style="min-width:180px">
+          <label>Kho</label>
+          <select id="kho"></select>
+        
+        </div>
         <div class="pill">
           <label>Ngày</label>
           <input type="date" id="ngay">
@@ -224,7 +110,7 @@ tbody tr:hover{
             <th class="num" style="width:130px">Tồn hiện tại</th>
             <th class="num" style="width:140px;text-align:center;">Tồn thực tế</th>
             <th class="num" style="width:130px">Chênh lệch</th>
-            <th style="width:200px">Ghi chú</th>
+            <th style="width:200px; text-align:center;">Ghi chú</th>
             <th class="num" style="width:130px">Tồn sau</th>
           </tr>
         </thead>
@@ -247,42 +133,76 @@ const num = v => Number(String(v||'').replaceAll('.',''))||0;
 const d = new Date();
 ngay.value = d.toISOString().slice(0,10);
 
+async function loadKho(){
+  const { data, error } = await supabase
+    .from("thietlap_kho")
+    .select("id, ten_kho");
+
+  if(error){
+    alert(error.message);
+    return;
+  }
+
+  const sel = document.getElementById("kho");
+
+  sel.innerHTML = data.map(k =>
+    `<option value="${k.id}">${k.ten_kho}</option>`
+  ).join("");
+}
+
 /* LOAD SẢN PHẨM */
 async function loadAll(){
+  const kho_id = document.getElementById('kho').value;
+
+  if (!kho_id) {
+    tbody.innerHTML = '';
+    return;
+  }
+
   const { data, error } = await supabase
-    .from('sanpham')
-    .select('masp,tensp,tonkho')
-    .order('tensp');
+    .from('v_tonkho')
+    .select('masp, tensp, ton')
+    .eq('kho_id', kho_id);
 
-  if(error){ alert(error.message); return }
+  if (error) {
+    alert(error.message);
+    return;
+  }
 
-  tbody.innerHTML='';
-  data.forEach(sp=>{
-    const tr=document.createElement('tr');
-    tr.dataset.masp=sp.masp;
-    tr.innerHTML=`
+  tbody.innerHTML = '';
+
+  data.forEach(sp => {
+    const ton = sp.ton || 0;
+
+    const tr = document.createElement('tr');
+    tr.dataset.masp = sp.masp;
+
+    tr.innerHTML = `
       <td class="mono"><span class="pill-mini">${sp.masp}</span></td>
       <td>${sp.tensp}</td>
-      <td class="num ton">${fmt(sp.tonkho)}</td>
+      <td class="num ton">${fmt(ton)}</td>
       <td class="num">
         <input class="thucte" type="number" style="width:100px;text-align:right">
       </td>
       <td class="num chenhlech"></td>
-      <td>
-        <select class="note" style="width:100%">
+      <td style="text-align:center;">
+        <select class="note">
           <option value="">—</option>
           <option value="kiemkho">Kiểm kho</option>
           <option value="hu_hong">Hư hỏng</option>
           <option value="mat_mat">Mất mát</option>
-          <option value="khac">Khác</option>
         </select>
       </td>
-      <td class="num sau">${fmt(sp.tonkho)}</td>
+      <td class="num sau">${fmt(ton)}</td>
     `;
-    tr.querySelector('.thucte').addEventListener('input',()=>calc(tr));
+
+    tr.querySelector('.thucte').addEventListener('input', () => calc(tr));
+
     tbody.appendChild(tr);
   });
 }
+document.getElementById('kho')
+  .addEventListener('change', loadAll);
 
 function calc(tr){
   const ton=num(tr.querySelector('.ton').textContent);
@@ -316,80 +236,72 @@ function taoChungTuKiemKho(){
        + `-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
 }
 
-
 luu.onclick = async () => {
-  luu.disabled = true;          
+  luu.disabled = true;
+
   try {
-    const ngayKK = ngay.value;
+    const kho_id = document.getElementById('kho').value;
+    if (!kho_id) {
+      alert('Chọn kho');
+      return;
+    }
 
     const chungtuVal =
       chungTu.value?.trim()
       || taoChungTuKiemKho();
+
     chungTu.value = chungtuVal;
 
-    const makhVal = maKH.value?.trim() || null;
+    const items = [];
 
-    const logs = [];
-
-    tbody.querySelectorAll('tr').forEach(tr => {
+    for (const tr of tbody.querySelectorAll('tr')) {
       const masp = tr.dataset.masp;
-      const tensp = tr.children[1].textContent.trim();
+      const ton = num(tr.querySelector('.ton').textContent);
+      const thucteVal = tr.querySelector('.thucte').value;
 
-      const tontruoc = num(tr.querySelector('.ton').textContent);
-      const thucteInput = tr.querySelector('.thucte').value;
-      if (thucteInput === '') return;
+      if (thucteVal === '') continue;
 
-      const tonsau = num(thucteInput);
-      const dieuchinh = tonsau - tontruoc;
-      if (dieuchinh === 0) return;
+      const thucte = num(thucteVal);
+      const chenhlech = thucte - ton;
 
-      const ghichu = tr.querySelector('.note').value || 'kiemkho';
+      if (chenhlech === 0) continue;
 
-      logs.push({
+      items.push({
         masp,
-        tensp,
-        tontruoc,
-        dieuchinh,
-        tonsau,
-        ghichu,
-        chungtu: chungtuVal,
-        makh: makhVal,
-        created_at: ngayKK
+        soluong: chenhlech
       });
-    });
+    }
 
-    if (logs.length === 0) {
-      alert('Không có sản phẩm nào thay đổi tồn kho');
+    if (items.length === 0) {
+      alert('Không có thay đổi');
       return;
     }
 
-    const { error: errLog } = await supabase
-      .from('td_tonkho')
-      .insert(logs);
+    // 👉 CALL RPC (QUAN TRỌNG NHẤT)
+    const { error } = await supabase.rpc('apply_kiemkho_full', {
+      p_kho_id: kho_id,
+      p_items: items,
+      p_note: chungtuVal
+    });
 
-    if (errLog) throw errLog;
+    if (error) throw error;
 
-    for (const r of logs) {
-      const { error } = await supabase
-        .from('sanpham')
-        .update({ tonkho: r.tonsau })
-        .eq('masp', r.masp);
-      if (error) throw error;
-    }
+    alert(`✅ Đã chỉnh tồn (${items.length} sản phẩm)`);
 
-    alert(`✅ Đã lưu kiểm kho (${logs.length} sản phẩm)`);
     await loadAll();
 
   } catch (e) {
     console.error(e);
-    alert('❌ Lỗi khi lưu kiểm kho');
+    alert('❌ Lỗi khi chỉnh tồn');
   } finally {
     luu.disabled = false;
   }
 };
+window.addEventListener("DOMContentLoaded", async () => {
+  await loadKho();
+  await loadAll();
+});
 
-
-await loadAll();
 </script>
 
 </body>
