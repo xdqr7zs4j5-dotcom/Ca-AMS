@@ -75,7 +75,7 @@
             <option value="gopdon">Gộp đơn</option>
             <option value="tachdon">Tách đơn</option>
             <option value="thanhtoan">Thanh toán</option>
-            <option value="tra">Lập phiếu trả hàng</option>
+            <option value="tra">Lập phiếu xuất kho</option>
             <option value="xoa">Xóa hóa đơn</option>
           </select>
         </div>
@@ -378,8 +378,8 @@
       window.open(url, "_blank", "width=900,height=600");
     }
 
-    function moformtra(dsSoHD){
-      const url = `formtra.html?sohdlist=${encodeURIComponent(JSON.stringify(dsSoHD))}`;
+    function moxuatkho(dsSoHD){
+      const url = `xuatkho.html?sohdlist=${encodeURIComponent(JSON.stringify(dsSoHD))}`;
       window.open(url, "_blank", "width=1000,height=700");
     }
 
@@ -422,7 +422,7 @@
       if (action === "in") inGopNhieu(ds);
       else if (action === "phathanh") moformphathanh(ds);
       else if (action === "thanhtoan") await thanhToanNhieu(ds);
-      else if (action === "tra") moformtra(ds);
+      else if (action === "tra") moxuatkho(ds);
       else if (action === "xoa") await xoaNhieu(ds);
     });
 

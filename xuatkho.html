@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phiếu Xuất Kho</title>
+
+<style>
+
+body{
+font-family:Arial,sans-serif;
+font-size:15px;
+margin:0;
+padding:16px;
+}
+
+h2{
+text-align:center;
+margin:8px 0 12px;
+}
+
+.header{
+display:flex;
+justify-content:space-between;
+margin-bottom:10px;
+}
+
+.info-table,.product-table{
+width:100%;
+border-collapse:collapse;
+margin-top:10px;
+}
+
+.info-table td{
+padding:4px 8px;
+}
+
+.product-table th,
+.product-table td{
+border:1px solid #000;
+padding:4px 6px;
+text-align:left;
+}
+
+.product-table th{
+background:#f0f0f0;
+}
+
+.product-table td:nth-child(1),
+.product-table td:nth-child(3){
+text-align:center;
+}
+
+.page{
+page-break-after:always;
+}
+
+@media print{
+thead{display:table-row-group;}
+tfoot{display:table-row-group;}
+}
+
+</style>
+</head>
+
+<body>
+
+<div id="root">
+
+<div class="header">
+
+<div id="ctyHeader">
+<b>CÔNG TY</b><br>
+Địa chỉ: ...<br>
+ĐT: ...
+</div>
+
+<div style="text-align:right">
+Ngày: <span id="ngayHD"></span><br>
+Số PX: <span id="soHD"></span>
+</div>
+
+</div>
+
+<h2>PHIẾU XUẤT KHO</h2>
+
+<table class="info-table">
+
+<tr>
+<td>
+<strong>Người nhận:</strong>
+<span id="nguoinhan"></span>
+</td>
+</tr>
+
+<tr>
+<td>
+<strong>Ghi chú:</strong>
+<span id="ghiChu"></span>
+</td>
+</tr>
+
+</table>
+
+
+<table class="product-table">
+
+<thead>
+<tr>
+<th>STT</th>
+<th>Tên SP</th>
+<th>SL</th>
+<th>Đơn vị</th>
+<th>Ghi chú</th>
+</tr>
+</thead>
+
+<tbody id="bangSP"></tbody>
+
+</table>
+
+
+<br><br>
+
+<table style="width:100%;margin-top:40px">
+
+<tr>
+
+<td style="text-align:center">
+Người giao hàng
+<br><br><br>
+(ký tên)
+</td>
+
+<td style="text-align:center">
+Người nhận hàng
+<br><br><br>
+(ký tên)
+</td>
+
+<td style="text-align:center">
+Thủ kho
+<br><br><br>
+(ký tên)
+</td>
+
+</tr>
+
+</table>
+
+</div>
+
+<script type="module">
+
+import { supabase } from "./supabase.config.js"
+
+const $ = s => document.querySelector(s)
+
+const url = new URL(location.href)
+const sohd = url.searchParams.get("sohd")
+const sohdlist = url.searchParams.get("sohdlist")
+
+let dsHD = []
+
+if(sohd) dsHD=[sohd]
+
+if(sohdlist){
+ try{ dsHD = JSON.parse(sohdlist) }catch{}
+}
+
+if(!dsHD.length){
+ alert("Không có hóa đơn")
+}
+
+const fmtDate = d => new Date(d).toLocaleDateString("vi-VN")
+
+
+async function taiDuLieu(){
+
+/* ---------- lấy header hóa đơn ---------- */
+
+const { data:hd } = await supabase
+.from("hoadon")
+.select("sohd,ngay,makh,ghichu")
+.in("sohd",dsHD)
+
+if(hd?.length){
+
+$("#soHD").textContent =
+dsHD.length===1
+? hd[0].sohd
+: "GHÉP "+dsHD.length+" ĐƠN"
+
+$("#ngayHD").textContent = fmtDate(hd[0].ngay)
+
+$("#nguoinhan").textContent =
+[...new Set(hd.map(x=>x.makh).filter(Boolean))].join(" | ")
+
+$("#ghiChu").textContent =
+hd.map(x=>x.ghichu).filter(Boolean).join(" | ")
+
+}
+
+
+/* ---------- lấy ledger ---------- */
+
+const { data:ledger } = await supabase
+.from("stock_ledger")
+.select("masp,qty")
+.eq("ref_type","xk")
+.in("sohd",dsHD)
+
+
+/* ---------- gộp sản phẩm ---------- */
+
+const map = new Map()
+
+ledger.forEach(r=>{
+
+const key=r.masp
+
+if(!map.has(key)){
+map.set(key,{ masp:r.masp, qty:0 })
+}
+
+map.get(key).qty += Math.abs(Number(r.qty||0))
+
+})
+
+const arr=[...map.values()]
+
+
+/* ---------- lấy thông tin sản phẩm ---------- */
+
+const maspList = arr.map(x=>x.masp)
+
+const { data:sp } = await supabase
+.from("sanpham")
+.select(`
+masp,
+tensp,
+dvt,
+dinhluong,
+quycach,
+quycach2,
+dvtchuyendoi,
+dvtchuyendoi2
+`)
+.in("masp",maspList)
+
+const spMap={}
+sp.forEach(s=> spMap[s.masp]=s )
+
+
+/* ---------- render ---------- */
+
+veBang(arr,spMap)
+
+}
+function chiaQuyCach(qty, sp){
+
+const qc1 = Number(sp.quycach || 0)   // lốc
+const qc2 = Number(sp.quycach2 || 0)  // thùng
+
+let best = null
+
+for(let t=0; t<=Math.floor(qty/(qc2||999999)); t++){
+
+for(let l=0; l<=Math.floor((qty - t*qc2)/(qc1||999999)); l++){
+
+const used = t*qc2 + l*qc1
+const remain = qty - used
+
+if(remain < 0) continue
+
+const score = remain
+
+if(best==null || score < best.remain){
+
+best = { t,l,remain }
+
+}
+
+}
+
+}
+
+return best
+
+}
+
+function veBang(arr,spMap){
+
+const tbody=$("#bangSP")
+tbody.innerHTML=""
+
+arr.forEach((row,i)=>{
+
+const sp = spMap[row.masp] || {}
+const qty = Number(row.qty || 0)
+const dinhluong = Number(sp.dinhluong || 1)
+const soluong = qty / dinhluong
+
+let note=""
+
+if(sp.quycach || sp.quycach2){
+
+const kq = chiaQuyCach(qty,sp)
+
+let parts=[]
+
+if(kq.t>0)
+parts.push(kq.t+" "+(sp.dvtchuyendoi2 || "thùng"))
+
+if(kq.l>0)
+parts.push(kq.l+" "+(sp.dvtchuyendoi || "lốc"))
+
+if(kq.remain>0)
+parts.push(kq.remain+" "+(sp.dvt || ""))
+
+note = parts.join(" + ")
+if(note === qty + " " + (sp.dvt || "")){
+ note = ""
+}
+}
+const tr=document.createElement("tr")
+
+tr.innerHTML=`
+<td>${i+1}</td>
+<td>${sp.tensp || row.masp}</td>
+<td>${soluong}</td>
+<td>${sp.dvt || ""}</td>
+<td>${note}</td>
+`
+
+tbody.appendChild(tr)
+
+})
+
+}
+
+
+taiDuLieu()
+
+</script>
+
+</body>
+</html>
