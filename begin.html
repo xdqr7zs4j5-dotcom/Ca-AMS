@@ -14,9 +14,7 @@
       --gap:8px;                  /* khoảng cách giữa card */
       --pad:16px 8px 0px 8px;     /* padding ngoài của .wrap */
       --h-kpi:   16vh;            /* 📈 Doanh thu & Trạng thái */
-      --h-kh:    28vh;            /* 👥 Khách hàng */
-      --h-sp:    10vh;            /* 📦 Sửa nhanh SP */
-      --h-notes: 40vh;            /* 📝 Ghi chú nhanh */
+      --h-notes: 25vh;            /* 📝 Ghi chú nhanh */
     }
     *{box-sizing:border-box}
     html,body{height:100%}
@@ -28,10 +26,10 @@
 
     /* Grid 4 hàng */
     .wrap{
-      height:calc(100vh - 2*var(--pad));
+      height:100vh;
       padding:var(--pad);
       display:grid;
-      grid-template-rows: var(--h-kpi) var(--h-kh) var(--h-sp) var(--h-notes);
+      grid-template-rows: 150px 180px 1fr;
       gap:var(--gap);
       overflow:hidden;
     }
@@ -52,7 +50,7 @@
     .section{padding:12px}
     .card-body{flex:1 1 auto; min-height:0; overflow:auto}
     .card-body::-webkit-scrollbar{ width:8px; height:8px }
-    .card-body::-webkit-scrollbar-thumb{ background:#d1d5db; border-radius:999px }
+    .card-body::-webkit-scrollbar-thumb{ background:#d1d5db; border-radius:12px }
     .card-body::-webkit-scrollbar-track{ background:transparent }
 
     /* KPI */
@@ -61,19 +59,19 @@
     .kpi .label{font-size:12px; color:var(--muted)}
     .kpi .value{font-size:28px; font-weight:800; margin-top:6px}
     .chips{display:flex; gap:6px; flex-wrap:wrap; margin-top:8px}
-    .chip-mini{font-size:12px; padding:4px 8px; border-radius:999px; color:#fff}
+    .chip-mini{font-size:12px; padding:4px 8px; border-radius:12px; color:#fff}
     .chip-mini.red{background:var(--red)}
     .chip-mini.yellow{background:var(--yellow)}
     .chip-mini.green{background:var(--green)}
 
     /* Inputs & buttons */
-    .pill{display:flex; align-items:center; gap:8px; padding:6px 10px; border:1px solid var(--line); border-radius:999px; background:#fff}
+    .pill{display:flex; align-items:center; gap:8px; padding:6px 10px; border:1px solid var(--line); border-radius:12px; background:#fff}
     .pill label{font-size:12px; color:var(--muted); white-space:nowrap}
     .pill input,.pill select,.pill textarea{flex: 1; border:none; outline:none; font-size:14px; background:transparent; min-height:24px;width: 100%;  }
-    .btn{border:none; background:var(--blue); color:#fff; padding:8px 12px; border-radius:999px; font-weight:600; cursor:pointer}
+    .btn{border:none; background:var(--blue); color:#fff; padding:8px 12px; border-radius:12px; font-weight:600; cursor:pointer}
     .btn:active{opacity:.85}
     .btn-ghost{background:#fff; color:#1f2937; border:1px solid var(--line);
-      padding:8px 12px; border-radius:999px; font-weight:600; cursor:pointer; box-shadow:0 1px 0 rgba(0,0,0,.02)}
+      padding:8px 12px; border-radius:12px; font-weight:600; cursor:pointer; box-shadow:0 1px 0 rgba(0,0,0,.02)}
     .btn-ghost:hover{background:#f8fafc}
     .btn-ghost.primary{color:var(--blue); border-color:#dbeafe}
     .btn-ghost.small{padding:6px 10px; font-weight:600}
@@ -88,7 +86,7 @@
     .meta{color:var(--muted); font-size:12px; padding-left:12px;}
     .pay{display:flex; gap:8px; align-items:center}
     .money{height:34px; padding:6px 10px; border:1px solid var(--line); border-radius:10px; min-width:160px; text-align:right}
-    .status-btn{border:0; border-radius:999px; padding:4px 10px; font-size:12px; color:#fff; cursor:pointer}
+    .status-btn{border:0; border-radius:12px; padding:4px 10px; font-size:12px; color:#fff; cursor:pointer}
     .status-btn.chua{background:var(--red)}
     .status-btn.dang{background:var(--yellow)}
     .status-btn.da{background:var(--green)}
@@ -207,56 +205,19 @@
       <div class="card-body" style="padding:12px">
         <div class="notes-grid" id="notesGrid"></div>
       </div>
-    </div>
+    </div> 
 
-    <!-- 3) Sửa nhanh SP -->
+    <!-- 3) Chấm công -->
     <div class="card">
       <div class="section-bar">
-        <div class="title">📦 Sản phẩm</div>
-
-        <div class="pill toolbar-grow">
-          <label>Tên/Mã SP</label>
-          <input id="qSP" list="dsSP" placeholder="Nhập tên hoặc mã…" style="width:100%">
-          <datalist id="dsSP"></datalist>
-        </div>
-
-        <div class="pill" style="min-width:180px">
-          <label>Đơn giá</label>
-          <input id="spDonGia" placeholder="0" style="width:100%; text-align:right">
-        </div>
-
-        <div class="pill" style="min-width:200px">
-          <label>Quy cách</label>
-          <input id="spQuyCach" placeholder="VD: 24 gói/thùng" style="width:100%">
-        </div>
-
-        <button id="btnSaveSP" class="btn-ghost primary">Lưu</button>
+        <div class="title">⏱ Chấm công</div>
       </div>
 
-      <div class="card-body" style="padding-top:0">
-        <div class="section meta" id="spMeta" style="padding-top:8px">—</div>
-      </div>
-    </div>
-
-    <!-- 4) Khách hàng -->
-    <div class="card">
-      <div class="section-bar">
-        <div class="title">👥 Khách hàng</div>
-
-        <div class="pill toolbar-grow">
-          <label>Tìm KH</label>
-          <input id="qKH" list="dsKH" placeholder="Nhập mã hoặc tên…" style="width:100%">
-          <datalist id="dsKH"></datalist>
-        </div>
-
-        <div class="pill"><label>Công nợ</label><span id="khCongNo" style="font-weight:700">0</span></div>
-        <button id="btnViewKH" class="btn-ghost primary">Xem KH</button>
-        <button id="btnAllOrders" class="btn-ghost primary">Đơn gần đây</button>
-      </div>
-
-      <div class="card-body" style="padding-top:8px">
-        <div class="section meta">Đơn gần đây của <b id="khNameLabel">—</b></div>
-        <div id="khOrders" class="orders" style="margin-top:8px"></div>
+      <div class="card-body" style="padding:0">
+        <iframe 
+        src="chamcong.html"
+        style="width:100%; height:100%; border:none;">
+        </iframe>
       </div>
     </div>
 
@@ -370,148 +331,6 @@
       $('#stMonthChua').textContent = stM.chua; $('#stMonthDang').textContent = stM.dang; $('#stMonthDa').textContent = stM.da;
     }
 
-    // ===== 3) KH + đơn gần đây (giữ nguyên Supabase) =====
-    const khCache = new Map();
-    async function loadKHList(){
-      const { data, error } = await supabase.from('khachhang').select('makh,tenkh');
-      if (error){ console.error(error); return; }
-      const dl = document.createElement('datalist'); dl.id='dsKH';
-      (data||[]).forEach(k=>{
-        khCache.set(k.makh, k);
-        const opt = document.createElement('option'); opt.value = `${k.makh} — ${k.tenkh}`; dl.appendChild(opt);
-      });
-      const old = document.getElementById('dsKH'); if(old) old.remove();
-      document.body.appendChild(dl);
-      $('#qKH').setAttribute('list','dsKH');
-    }
-
-    async function onPickKH(){
-      const raw = $('#qKH').value.trim(); if (!raw) return;
-      const makh = raw.split('—')[0].trim();
-      const kh = khCache.get(makh);
-      $('#khNameLabel').textContent = kh ? kh.tenkh : '—';
-
-      const { data, error } = await supabase
-        .from('hoadon')
-        .select('sohd, ngay, tongtien, thanhtoan, tinhtrang')
-        .eq('makh', makh)
-        .order('ngay', { ascending:false })
-        .limit(8);
-      if (error){ console.error(error); return; }
-
-      const box = $('#khOrders'); box.innerHTML='';
-      (data||[]).forEach(h=>{
-        const div = document.createElement('div'); div.className='order';
-        const curr = (h.tinhtrang || 'chua');
-        const tag = `<button class="status-btn ${curr}" data-status="${curr}" data-sohd="${h.sohd}" title="Nhấp để chuyển trạng thái">${curr}</button>`;
-        div.innerHTML = `
-          <div>
-            <div><b>${h.sohd}</b> • ${moneyVN(h.tongtien)} đ</div>
-            <div class="meta">${h.ngay} ${tag}</div>
-          </div>
-          <div class="pay">
-            <input type="text" class="money" placeholder="Đã thanh toán" value="${moneyVN(Number(h.thanhtoan||0))}" data-sum="${Number(h.tongtien||0)}" id="pay-${h.sohd}">
-            <button class="btn-ghost primary" data-act="pay" data-sohd="${h.sohd}">Thanh toán</button>
-            <button class="btn-ghost" data-act="edit" data-sohd="${h.sohd}">Sửa</button>
-            <button class="btn-ghost" data-act="print" data-sohd="${h.sohd}">In</button>
-          </div>`;
-        box.appendChild(div);
-        bindMoneyInput(div.querySelector(`#pay-${h.sohd}`));
-      });
-    }
-
-    $('#qKH').addEventListener('change', onPickKH);
-    $('#btnAllOrders').addEventListener('click', ()=> parent?.document?.getElementById('view')?.setAttribute('src','danhsachxk.html'));
-    $('#btnViewKH').addEventListener('click', ()=> parent?.document?.getElementById('view')?.setAttribute('src','danhsachkh.html'));
-
-    document.getElementById('khOrders')?.addEventListener('click', async (e)=>{
-      const btn = e.target.closest('button'); if(!btn) return;
-
-      const setChip = (chip, status, ip, paid)=>{
-        if(ip) ip.value = moneyVN(paid);
-        chip.dataset.status = status; chip.textContent = status;
-        chip.classList.remove('chua','dang','da'); chip.classList.add(status);
-      };
-
-      // toggle chip
-      if (btn.classList.contains('status-btn')){
-        const sohd = btn.dataset.sohd;
-        const item = btn.closest('.order');
-        const ip = item.querySelector(`#${window.CSS?.escape ? CSS.escape(`pay-${sohd}`) : `pay-${sohd}`}`);
-        const tong = Number(ip?.dataset.sum || 0);
-        const curr = (btn.dataset.status || 'chua').toLowerCase();
-        const nextStatus = (curr === 'da') ? 'chua' : 'da';
-        const nextPaid = (nextStatus === 'da') ? tong : 0;
-        try{
-          btn.disabled = true;
-          const { error } = await supabase.from('hoadon')
-            .update({ thanhtoan: nextPaid, tinhtrang: nextStatus })
-            .eq('sohd', sohd);
-          if (error) throw error;
-          setChip(btn, nextStatus, ip, nextPaid);
-        }catch(err){ console.error(err); alert('Cập nhật thất bại'); }
-        finally{ btn.disabled = false; }
-        return;
-      }
-
-      // pay / edit / print
-      const sohd = btn.dataset.sohd;
-      if (btn.dataset.act==='pay'){
-        const ip = document.getElementById(`pay-${sohd}`);
-        const amt = parseMoneyVN(ip.value), sum = Number(ip.dataset.sum||0);
-        const nextStatus = amt >= sum ? 'da' : (amt>0 ? 'dang' : 'chua');
-        try{
-          btn.disabled = true;
-          const { error } = await supabase.from('hoadon')
-            .update({ thanhtoan: amt, tinhtrang: nextStatus })
-            .eq('sohd', sohd);
-          if (error) throw error;
-          const chip = btn.closest('.order').querySelector('.status-btn');
-          if (chip) { chip.dataset.status = nextStatus; chip.textContent = nextStatus; chip.classList.remove('chua','dang','da'); chip.classList.add(nextStatus); }
-          ip.value = moneyVN(amt);
-          alert('Đã cập nhật thanh toán');
-        }catch(err){ console.error(err); alert('Cập nhật thanh toán thất bại'); }
-        finally{ btn.disabled = false; }
-        return;
-      }
-      if (btn.dataset.act==='edit'){ parent?.document?.getElementById('view')?.setAttribute('src', `ghihd.html?sohd=${encodeURIComponent(sohd)}`); return; }
-      if (btn.dataset.act==='print'){ parent?.document?.getElementById('view')?.setAttribute('src', `formin.html?sohd=${encodeURIComponent(sohd)}`); return; }
-    });
-
-    // ===== 4) SP nhanh (giữ nguyên Supabase) =====
-    const spCache = new Map(); let spPicked=null;
-    async function loadSPList(){
-      const { data, error } = await supabase.from('sanpham').select('masp,tensp,tonkho,dvt,dongia,quycach');
-      if (error){ console.error(error); return; }
-      const dl = document.createElement('datalist'); dl.id='dsSP';
-      spCache.clear();
-      (data||[]).forEach(sp=>{
-        spCache.set((sp.tensp||'').toLowerCase(), sp);
-        spCache.set((sp.masp||'').toLowerCase(), sp);
-        const opt = document.createElement('option'); opt.value = sp.tensp; dl.appendChild(opt);
-      });
-      const old = document.getElementById('dsSP'); if(old) old.remove();
-      document.body.appendChild(dl);
-      $('#qSP').setAttribute('list','dsSP');
-    }
-    function bindSP(sp){
-      spPicked = sp;
-      $('#spDonGia').value = moneyVN(Number(sp?.dongia||0));
-      $('#spQuyCach').value = sp?.quycach || '';
-      $('#spMeta').textContent = sp ? `Mã: ${sp.masp} • ĐVT: ${sp.dvt||'-'}` : '—';
-    }
-    $('#qSP').addEventListener('change', ()=>{
-      const q = $('#qSP').value.trim().toLowerCase();
-      bindSP(spCache.get(q)||null);
-    });
-    $('#btnSaveSP').addEventListener('click', async ()=>{
-      if(!spPicked){ alert('Chọn sản phẩm trước'); return; }
-      const payload = { dongia: parseMoneyVN($('#spDonGia').value||0), quycach: $('#spQuyCach').value.trim() };
-      const { error } = await supabase.from('sanpham').update(payload).eq('masp', spPicked.masp);
-      if (error){ console.error(error); alert('Lưu thất bại'); return; }
-      alert('Đã lưu sản phẩm!');
-    });
-
     // ===== 5) GHI CHÚ NHANH – localStorage =====
     const NOTES_KEY = 'ca_notes_v1'; // đổi version nếu muốn reset format
     const fmtTimeVN = (ts) => {
@@ -603,8 +422,6 @@
       await Promise.all([
         loadRevenue(),
         loadStatuses(),
-        loadKHList(),
-        loadSPList()
       ]);
       renderNotes(); // localStorage
     })();

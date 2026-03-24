@@ -27,7 +27,7 @@
     .pill{
       display:flex; align-items:center; gap:8px;
       padding:4px 8px; /* thấp hơn */
-      border:1px solid var(--line); border-radius:999px; background:#fff;
+      border:1px solid var(--line); border-radius:12px; background:#fff;
     }
     .pill label{font-size:12px; color:var(--muted)}
     .pill input, .pill select{
@@ -38,10 +38,11 @@
       background:linear-gradient(45deg,transparent 50%,var(--muted) 50%) right 8px center/8px 8px no-repeat;
     }
     .pill button{
-      border:none; background:var(--blue); color:#fff; padding:8px 12px; border-radius:999px;
+      border:none; background:var(--blue); color:#fff; padding:8px 12px; border-radius:12px;
       font-weight:600; cursor:pointer
     }
     .pill button:active{opacity:.85}
+    .pill:has(button){border:none;background:transparent;padding:0;}
 
     /* Meta ở bên phải hàng lọc */
     .meta{

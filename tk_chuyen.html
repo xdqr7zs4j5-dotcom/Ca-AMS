@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Chuyển kho</title>
+
+<style>
+  :root{
+    --bg:#f5f5f7; --card:#fff; --text:#111; --muted:#6b7280; --line:#e5e7eb;
+    --blue:#007aff; --red:#ff3b30; --radius:14px; --shadow:0 6px 24px rgba(0,0,0,.06);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; display:flex; flex-direction:column; background:var(--bg);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif; color:var(--text)
+  }
+ 
+  .wrap{padding:16px; display:flex; flex-direction:column; gap:12px; flex:1 1 auto; min-height:0}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow)}
+  .toolbar{display:flex; flex-wrap:wrap; gap:10px; padding:12px; align-items:center}
+  .pill{display:flex; align-items:center; gap:8px; padding:4px 8px; border:1px solid var(--line); border-radius:12px; background:#fff}
+  .pill label{font-size:12px; color:var(--muted)}
+  .pill input,.pill select{border:none; outline:none; font-size:14px; background:transparent; min-height:24px}
+  .pill select{
+    min-width:140px; appearance:none; padding-right:18px;
+    background:linear-gradient(45deg,transparent 50%,var(--muted) 50%) right 8px center/8px 8px no-repeat
+  }
+  .btn{border:none; background:var(--blue); color:#fff; padding:8px 12px; border-radius:12px;
+      font-weight:600; cursor:pointer}
+  .btn:active{opacity:.85}
+  
+
+ 
+  input, select {
+  border: none;
+  outline: none;
+  background: transparent;
+  box-shadow: none;
+  appearance: none;
+}
+
+  .table-card{flex:1 1 auto; min-height:0; padding:8px}
+  .table-wrap{overflow:auto; border-radius:12px; border:1px solid var(--line); background:#fff; height:100%}
+  table{width:100%; border-collapse:separate; border-spacing:0}
+  thead th{
+    position:sticky; top:0; z-index:1; background:#fafafa; border-bottom:1px solid var(--line);
+    font-size:13px; font-weight:700; color:#374151; text-align:left; padding:10px 12px
+  }
+  tbody td{border-bottom:1px solid var(--line); padding:10px 12px; vertical-align:middle; font-size:14px}
+
+tbody tr:hover{
+  background:#fafbff;
+}
+
+.num{
+  text-align:right;
+  font-variant-numeric:tabular-nums;
+}
+
+.mono{
+  font-family:ui-monospace,Menlo,Consolas,monospace;
+}
+
+.low{
+  background:#fef2f2;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="wrap">
+
+<!-- Toolbar -->
+
+<div class="card">
+
+<div class="toolbar">
+
+<div class="pill">
+<label>Kho nguồn</label>
+<select id="kho_from"></select>
+</div>
+
+<div class="pill">
+<label>Kho đích</label>
+<select id="kho_to"></select>
+</div>
+
+<div class="pill" style="flex:1">
+<label>Lọc</label>
+<input id="filter" placeholder="Mã hoặc tên sản phẩm">
+</div>
+
+<button class="btn" id="btnTransfer">
+Chuyển kho
+</button>
+
+</div>
+
+</div>
+
+<!-- Table -->
+<div class="card table-card">
+
+<div class="table-wrap">
+
+<table>
+
+<thead>
+<tr>
+<th style="width:110px">Mã SP</th>
+<th>Tên SP</th>
+<th style="width:80px">ĐVT</th>
+<th class="num" style="width:120px">Tồn</th>
+<th class="num" style="width:120px">Số chuyển</th>
+<th class="num" style="width:120px">Tồn sau</th>
+</tr>
+</thead>
+
+<tbody id="tbody"></tbody>
+
+</table>
+
+</div>
+
+</div>
+
+</div>
+
+<script type="module">
+
+import { supabase } from "./supabase.config.js"
+
+const tbody = document.getElementById("tbody")
+
+const fmt=n=>Number(n||0).toLocaleString("vi-VN")
+const num=v=>Number(v)||0
+
+let khoList=[]
+
+async function loadKho(){
+
+const {data} = await supabase
+.from("thietlap_kho")
+.select("id,ten_kho")
+
+khoList=data
+
+kho_from.innerHTML=data
+.map(k=>`<option value="${k.id}">${k.ten_kho}</option>`)
+.join("")
+
+kho_to.innerHTML=data
+.map(k=>`<option value="${k.id}">${k.ten_kho}</option>`)
+.join("")
+
+}
+
+async function loadSP(){
+
+const kho_id=kho_from.value
+
+const { data, error } = await supabase
+.from("v_tonkho")
+.select("*")
+.eq("kho_id",kho_id)
+
+tbody.innerHTML=""
+
+data.forEach(sp=>{
+
+const ton=sp.ton||0
+
+const tr=document.createElement("tr")
+
+tr.dataset.masp=sp.masp
+
+tr.innerHTML=`
+<td class="mono">${sp.masp}</td>
+<td>${sp.tensp}</td>
+<td>${sp.dvt||""}</td>
+<td class="num ton">${fmt(ton)}</td>
+
+<td class="num">
+<input class="qty" type="number"
+style="width:90px;text-align:right">
+</td>
+
+<td class="num after">${fmt(ton)}</td>
+`
+
+const input=tr.querySelector(".qty")
+
+input.addEventListener("input",()=>{
+
+const qty=num(input.value)
+
+const after=ton-qty
+
+tr.querySelector(".after").textContent=fmt(after)
+
+tr.classList.toggle("low",after<0)
+
+})
+
+tbody.appendChild(tr)
+
+})
+
+}
+
+filter.oninput=e=>{
+
+const kw=e.target.value.toLowerCase()
+
+tbody.querySelectorAll("tr").forEach(tr=>{
+
+tr.style.display=
+tr.innerText.toLowerCase().includes(kw)
+?"":"none"
+
+})
+
+}
+
+kho_from.onchange=loadSP
+
+btnTransfer.onclick=async()=>{
+
+const items=[]
+
+for(const tr of tbody.querySelectorAll("tr")){
+
+const qty=num(tr.querySelector(".qty").value)
+
+if(!qty) continue
+
+items.push({
+masp:tr.dataset.masp,
+qty:qty
+})
+
+}
+
+if(items.length===0){
+alert("Không có sản phẩm chuyển")
+return
+}
+
+const {error}=await supabase.rpc("transfer_kho_batch",{
+p_kho_from:kho_from.value,
+p_kho_to:kho_to.value,
+p_items:items
+})
+
+if(error){
+alert(error.message)
+return
+}
+
+alert("Đã chuyển kho")
+
+await loadSP()
+
+}
+
+await loadKho()
+await loadSP()
+
+</script>
+
+</body>
+</html>

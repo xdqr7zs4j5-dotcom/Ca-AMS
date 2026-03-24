@@ -67,6 +67,7 @@ const MENU = [
     children:[
       { text:'Tồn kho', url:'./tk_theodoi.html' },
       { text:'Kiểm kho', url:'tk_chinh.html' },
+      { text:'Chuyển kho', url:'tk_chuyen.html' },
       { text:'Thiết lập', url:'./thietlapkho.html' }
     ]
   },
