@@ -241,10 +241,17 @@
 <script type="module" src="xulisp.js"></script>
 <script type="module" src="bootstrap.js"></script>
 <script type="module" src="thanhtoan.js"></script>
-<script type="module" src="xulihd.js"></script>
+<script type="module">
+const params = new URLSearchParams(location.search);
+const mode = params.get("mode");
+const sohd = params.get("sohd");
+
+import("./xulihd.js");
+</script>
   <!-- Keyboard Manager dùng chung -->
   <script type="module" src="./hotkeys.js"></script>
   <script type="module">
+    import { supabase } from "./supabase.config.js";
     import { KeyboardManager } from './hotkeys.js';
 
     // Khởi tạo hotkeys + Enter-next
@@ -372,7 +379,132 @@ function _refreshPPBModeUI(){
 document.getElementById('ppbUseTongSL')?.addEventListener('change', _refreshPPBModeUI);
 document.addEventListener('DOMContentLoaded', _refreshPPBModeUI);
 
+const modeXuat = new URLSearchParams(location.search).get("mode");
+const sohdXuat = new URLSearchParams(location.search).get("sohd");
 
+document.addEventListener("DOMContentLoaded", () => {
+
+  const modeXuat = new URLSearchParams(location.search).get("mode");
+  const sohdXuat = new URLSearchParams(location.search).get("sohd");
+
+  if(modeXuat === "xuat"){
+
+  document.getElementById("luuHD").style.display="none";
+
+  const btn = document.getElementById("luuVaIn");
+  btn.textContent = "Xuất kho";
+
+  // ===== tạo nút in =====
+  const btnIn = document.createElement("button");
+  btnIn.textContent = "In PX";
+  btnIn.className = "btn print";
+
+  btn.parentNode.insertBefore(btnIn, btn.nextSibling);
+
+  btnIn.onclick = async () => {
+
+  const { data:check } = await supabase
+    .from("stock_ledger")
+    .select("id")
+    .eq("sohd",sohdXuat)
+    .limit(1);
+
+  if(!check?.length){
+    await xuatKhoHoaDon(sohdXuat);
+  }
+
+  window.open(
+    `xuatkho.html?sohd=${encodeURIComponent(sohdXuat)}`,
+    "_blank",
+    "width=900,height=700"
+  );
+
+};
+
+  btn.removeAttribute("onclick");
+  btn.onclick = async (e)=>{
+    e.preventDefault();
+    e.stopPropagation();
+    await xuatKhoHoaDon(sohdXuat);
+  };
+
+}
+});
+function taoSoPhieuXuat(sohd){
+  const num = sohd.slice(2);   // bỏ BH
+  return "XK" + num;
+}
+
+async function xuatKhoHoaDon(sohd){
+
+  const rows = document.querySelectorAll("#bangSPBody tr");
+  const sopx = taoSoPhieuXuat(sohd);
+  const data = [];
+
+  rows.forEach(r=>{
+
+    const masp = r.querySelector(".maSP")?.value?.trim();
+
+    const kho_id = r.querySelector(".khoSelect")?.value;
+
+    const sl = Number(
+      r.querySelector(".tongSL")?.value || 0
+    );
+
+    console.log("ROW:",masp,kho_id,sl);
+
+    if(!masp || !kho_id || sl<=0) return;
+
+    data.push({
+      masp,
+      kho_id,
+      qty: -sl,
+      ref_type: "xk",
+      ref_id:sopx,
+      sohd: sohd,
+      ngay: new Date(),
+      note: "Xuất kho từ hóa đơn"
+    });
+
+  });
+
+  if(data.length===0){
+    alert("Không có sản phẩm để xuất");
+    return;
+  }
+
+  const { data:check } = await supabase
+    .from("stock_ledger")
+    .select("id")
+    .eq("sohd",sohd)
+    .limit(1);
+
+  if(check?.length){
+    alert("Hóa đơn đã xuất kho rồi");
+    return;
+  }
+
+  const { error } = await supabase
+    .from("stock_ledger")
+    .insert(data);
+
+  if(error){
+    console.error(error);
+    alert("Xuất kho lỗi");
+    return;
+  }
+
+  await supabase
+    .from("hoadon")
+    .update({ 
+      trangthai:"da xuat kho",
+      thamchieu:sopx 
+    })
+    .eq("sohd",sohd);
+
+  alert("Xuất kho thành công");
+
+}
 </script>
 </body>
 </html>

@@ -310,7 +310,8 @@ window.themDongSP = function(sp = {}) {
   const soLuongDisplay = isNhapGoc ? "" : soLuong;
   const dvtNhapDisplay = isNhapGoc ? "" : dvtNhap;
   const dvtDisplay = dvtGoc;
-  const dongia = parseMoneyVN(sp.dongia ?? sp.don_gia ?? 0);
+  const mode = new URLSearchParams(location.search).get("mode");
+  const dongia = mode === "xuat" ? 0 : parseMoneyVN(sp.dongia ?? sp.don_gia ?? 0);
 
   const stt = tbody.rows.length + 1;
 
@@ -345,7 +346,7 @@ window.themDongSP = function(sp = {}) {
         inputmode="numeric">
     </td>
 
-    <td class="thanhTien">0</td>
+    <td class="thanhTien">${mode === "xuat" ? 0 : 0}</td>
 
     <td><button class="xoaSP">❌</button></td>
   `;

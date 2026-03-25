@@ -170,242 +170,168 @@
   <script src="/shared/mobile-fix.js" defer></script>
 
   <script type="module">
-    import { supabase } from './supabase.config.js';
 
-    let duLieuGoc = [];
-    const $ = s => document.querySelector(s);
-    const $$ = s => Array.from(document.querySelectorAll(s));
-    const fmtVND = n => (n||0).toLocaleString("vi-VN") + " ₫";
+import { supabase } from "./supabase.config.js"
 
-    // ======= Load danh sách =======
-    async function taiDanhSach(){
-      const tu   = $("#tuNgay").value;
-      const den  = $("#denNgay").value;
-      const makh = $("#maKH").value.trim();
+const tbody = document.querySelector("#bangHD tbody")
 
-      let query = supabase
-        .from("hoadon")
-        .select("*")
-        .eq("phanloai", "kh")
-        .order("ngay", { ascending:false })
-        .order("sohd", { ascending:false });
+const tuNgay = document.getElementById("tuNgay")
+const denNgay = document.getElementById("denNgay")
+const maKH = document.getElementById("maKH")
 
-      if (tu)  query = query.gte("ngay", tu);
-      if (den) query = query.lte("ngay", den);
-      if (makh)query = query.ilike("makh", `%${makh}%`);
+const demChon = document.getElementById("demChon")
+const tongTatCa = document.getElementById("tongTatCa")
+const tongTatCaTop = document.getElementById("tongTatCaTop")
 
-      const { data, error } = await query;
-      if (error) { alert("Lỗi tải dữ liệu! " + error.message); return; }
+const fmt = n => Number(n||0).toLocaleString("vi-VN")+" ₫"
 
-      duLieuGoc = data || [];
-      veBang(duLieuGoc);
-    }
 
-    // ======= Vẽ bảng =======
-    function veBang(data){
-      const tbody = $("#bangHD tbody");
-      tbody.innerHTML = "";
+async function loadPX(){
 
-      let tong = 0;
+let query = supabase
+.from("hoadon")
+.select("*")
+.like("thamchieu","XK%")
+.order("ngay",{ascending:false})
 
-      data.forEach(hd => {
-        const tien = parseFloat(String(hd.tongthanhtoan ?? "0").replace(/[^\d.-]/g,"")) || 0;
-        tong += tien;
 
-        const tr = document.createElement("tr");
-        const tt = (hd.tinhtrang || "chua");
-        const thanhtoanSo = parseFloat(hd.thanhtoan || 0) || 0;
+if(tuNgay.value){
+query = query.gte("ngay",tuNgay.value)
+}
 
-        tr.innerHTML = `
-          <td><input type="checkbox" class="chk chonHD" value="${hd.sohd}"></td>
-          <td style="text-align:left; font-weight:700">${hd.sohd}</td>
-          <td style="text-align:left; color:var(--muted)">${hd.ghichu || ""}</td>
-          <td>${hd.ngay || ""}</td>
-          <td>${hd.makh || ""}</td>
-          <td style="font-weight:700">${fmtVND(tien)}</td>
-          <td>
-            <select class="tt-thanh-toan">
-              <option value="chua">Chưa xử lý</option>
-              <option value="da">Đã xử lý</option>
-              <option value="dang">Đang xử lý</option>
-            </select>
-          </td>
-          <td>
-            <input class="thanh-toan" type="text" value="${tt==='da'? fmtVND(tien): (thanhtoanSo? fmtVND(thanhtoanSo): '')}"
-              ${tt==='dang' ? '' : 'readonly'}
-              placeholder="${tt==='dang' ? 'Nhập số tiền đã trả' : ''}"
-              style="width:100%; border:1px solid var(--line); border-radius:10px; padding:8px 10px; text-align:right; background:#fff;"
-            />
-          </td>
-          <td>
-            <div style="display:flex; gap:8px; justify-content:center">
-              <button class="btn-ghost btn-icon" data-view="${hd.sohd}" title="Xem">👁️</button>
-              <button class="btn-ghost btn-icon" data-print="${hd.sohd}" title="In">🖨️</button>
-              <button class="btn-ghost btn-icon btn-danger" data-del="${hd.sohd}" title="Xoá">🗑️</button>
-            </div>
-          </td>
-        `;
-        tbody.appendChild(tr);
+if(denNgay.value){
+query = query.lte("ngay",denNgay.value)
+}
 
-        // init select + input (đúng, không lồng listener)
-        const select = tr.querySelector(".tt-thanh-toan");
-        const input  = tr.querySelector(".thanh-toan");
+if(maKH.value){
+query = query.ilike("makh","%"+maKH.value+"%")
+}
 
-        // màu theo trạng thái
-        select.value = tt;
-        select.setAttribute("value", tt);
+const { data } = await query
 
-        // trạng thái ban đầu
-        if (tt === "da") {
-          input.value = fmtVND(tien);
-          input.readOnly = true;
-          input.placeholder = "";
-          input.style.color = "";
-        } else if (tt === "dang") {
-          input.readOnly = false;
-          input.placeholder = "Nhập số tiền đã trả";
-          if (thanhtoanSo) input.value = fmtVND(thanhtoanSo);
-        } else {
-          input.value = "0 ₫";
-          input.readOnly = true;
-          input.placeholder = "";
-          input.style.color = "";
-        }
+render(data||[])
 
-        if (thanhtoanSo > 0 && thanhtoanSo < tien){
-          input.style.color = "red";
-          input.title = "Thanh toán chưa đủ";
-        }
+}
 
-        // đổi trạng thái
-        select.addEventListener("change", async () => {
-          select.setAttribute("value", select.value); // cập nhật màu
-          const val = select.value;
 
-          if (val === "da"){
-            input.value = fmtVND(tien);
-            input.readOnly = true;
-            input.placeholder = "";
-            input.style.color = "";
-            await capNhatTT(hd.sohd, "da", tien);
-          } else if (val === "dang"){
-            input.value = "";
-            input.readOnly = false;
-            input.placeholder = "Nhập số tiền đã trả";
-            await capNhatTT(hd.sohd, "dang", null);
-          } else {
-            input.value = "0 ₫";
-            input.readOnly = true;
-            input.placeholder = "";
-            input.style.color = "";
-            await capNhatTT(hd.sohd, "chua", null);
-          }
-        });
+function render(list){
 
-        // nhập số tiền khi đang xử lý
-        input.addEventListener("blur", async () => {
-          if (select.value === "dang"){
-            const so = parseFloat(String(input.value).replace(/[^\d.-]/g,"")) || 0;
-            await capNhatTT(hd.sohd, "dang", so);
-            if (so < tien){ input.style.color="red"; input.title="Thanh toán chưa đủ"; }
-            else { input.style.color=""; input.title=""; }
-            input.value = so ? fmtVND(so) : "";
-          }
-        });
-      });
+tbody.innerHTML=""
 
-      $("#tongTatCa").textContent = fmtVND(tong);
-      $("#tongTatCaTop").textContent = fmtVND(tong);
-      capNhatDemChon();
-    }
+let tong=0
 
-    // ======= Helpers chọn nhiều =======
-    function capNhatDemChon(){
-      const n = $$(".chonHD:checked").length;
-      $("#demChon").textContent = n;
-    }
-    function layDanhSachDaChon(){
-      return $$(".chonHD:checked").map(cb => cb.value);
-    }
+list.forEach(hd=>{
 
-    // ======= Hành động =======
-    async function xoaNhieu(ds){
-      if (!confirm(`Xóa ${ds.length} hóa đơn?`)) return;
-      for (const sohd of ds){
-        await supabase.from("hoadon").delete().eq("sohd", sohd);
-        await supabase.from("chitiet").delete().eq("sohd", sohd);
-      }
-      alert("✅ Đã xóa!");
-      await taiDanhSach();
-    }
-    
-    function inHD(sohd){ window.open(`formIn.html?sohd=${sohd}`, "_blank", "width=900,height=600"); }
-    function xemHD(sohd){ window.open(`ghihd.html?sohd=${sohd}`, "_blank"); }
-    function inNhieu(ds){ ds.forEach(sohd => inHD(sohd)); }
+tong += Number(hd.tongtien||0)
 
-    async function thanhToanNhieu(ds){
-      for (const sohd of ds){
-        const row  = $$("#bangHD tbody tr").find(r => r.children[1]?.textContent.trim() === sohd);
-        if (!row) continue;
-        const tien = parseFloat(row.children[5].textContent.replace(/[^\d.-]/g,"")) || 0;
+const tr=document.createElement("tr")
 
-        await supabase.from("hoadon").update({ tinhtrang:"da", thanhtoan:tien }).eq("sohd", sohd);
+tr.innerHTML=`
+<td>
+<input type="checkbox" class="chk chkRow">
+</td>
 
-        // update UI
-        const select = row.querySelector(".tt-thanh-toan");
-        const input  = row.querySelector(".thanh-toan");
-        if (select){ select.value = "da"; select.setAttribute("value","da"); }
-        if (input){
-          input.value = fmtVND(tien);
-          input.readOnly = true; input.placeholder = ""; input.style.color = "";
-        }
-      }
-      alert("✅ Đã thanh toán các hóa đơn đã chọn!");
-    }
+<td>${hd.thamchieu || ""}</td>
 
-    async function capNhatTT(sohd, tinhtrang, thanhtoan){
-      const { error } = await supabase.from("hoadon").update({ tinhtrang, thanhtoan }).eq("sohd", sohd);
-      if (error) console.error("❌ Lỗi cập nhật TT:", error.message);
-    }
+<td>${hd.ghichu || ""}</td>
 
-    // ======= Events =======
-    $("#btnLoc").addEventListener("click", taiDanhSach);
+<td>${new Date(hd.ngay).toLocaleDateString("vi-VN")}</td>
 
-    $("#chonHanhDong").addEventListener("change", async (e)=>{
-      const action = e.target.value; e.target.value = "";
-      const ds = layDanhSachDaChon();
-      if (!ds.length) { alert("Vui lòng chọn hóa đơn!"); return; }
-      if (action === "xoa") await xoaNhieu(ds);
-      else if (action === "in") inNhieu(ds);
-      else if (action === "thanhtoan") await thanhToanNhieu(ds);
-    });
+<td>${hd.makh || ""}</td>
 
-    $("#chkAll").addEventListener("change", (e)=>{
-      $$(".chonHD").forEach(cb => cb.checked = e.target.checked);
-      capNhatDemChon();
-    });
+<td>${fmt(hd.tongtien)}</td>
 
-    document.addEventListener("change", (e)=>{
-      if (e.target.classList?.contains("chonHD")) capNhatDemChon();
-    });
+<td>
+<select class="tt-thanh-toan" value="${hd.tinhtrang||'chua'}">
+<option value="chua">Chưa</option>
+<option value="dang">Đang</option>
+<option value="da">Đã</option>
+</select>
+</td>
 
-    document.addEventListener("click", (e)=>{
-      const v = e.target.getAttribute?.("data-view");
-      const p = e.target.getAttribute?.("data-print");
-      const d = e.target.getAttribute?.("data-del");
-      if (v) xemHD(v);
-      if (p) inHD(p);
-      if (d) xoaNhieu([d]);
-    });
+<td>${fmt(hd.thanhtoan||0)}</td>
 
-    // Tải lần đầu
-    taiDanhSach();
+<td>
 
-    function moFormNhap(){
-    window.location.href = "ghihd.html?phanLoai=ncc";
-  }
-  // xuất ra global để onclick gọi được
-  window.moFormNhap = moFormNhap;
-  </script>
+<button class="btn-ghost btn-icon" data-sohd="${hd.sohd}">
+🖨
+</button>
+
+</td>
+`
+
+tbody.appendChild(tr)
+
+})
+
+
+tongTatCa.textContent = fmt(tong)
+tongTatCaTop.textContent = fmt(tong)
+
+ganSuKien()
+
+}
+
+
+function ganSuKien(){
+
+document.querySelectorAll(".btn-icon").forEach(btn=>{
+
+btn.onclick=()=>{
+
+const sohd = btn.dataset.sohd
+
+window.open(
+`xuatkho.html?sohd=${encodeURIComponent(sohd)}`,
+"_blank",
+"width=900,height=700"
+)
+
+}
+
+})
+
+
+document.querySelectorAll(".chkRow").forEach(chk=>{
+chk.onchange = capNhatDem
+})
+
+}
+
+
+function capNhatDem(){
+
+const checked = document.querySelectorAll(".chkRow:checked")
+
+demChon.textContent = checked.length
+
+}
+
+
+/* ===== chọn tất cả ===== */
+
+document.getElementById("chkAll").onchange = e=>{
+
+const checked = e.target.checked
+
+document.querySelectorAll(".chkRow").forEach(c=>{
+c.checked = checked
+})
+
+capNhatDem()
+
+}
+
+
+/* ===== lọc ===== */
+
+document.getElementById("btnLoc").onclick = loadPX
+
+
+/* ===== load lần đầu ===== */
+
+loadPX()
+
+</script>
 </body>
 </html>

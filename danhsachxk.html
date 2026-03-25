@@ -379,9 +379,13 @@
     }
 
     function moxuatkho(dsSoHD){
-      const url = `xuatkho.html?sohdlist=${encodeURIComponent(JSON.stringify(dsSoHD))}`;
-      window.open(url, "_blank", "width=1000,height=700");
-    }
+      if(!dsSoHD?.length) return;
+      
+      dsSoHD.forEach(sohd=>{
+      const url = `ghihd.html?sohd=${encodeURIComponent(sohd)}&mode=xuat`;
+      window.open(url, "_blank");
+    });
+  }
 
     async function xoaNhieu(ds){
       if (!ds?.length) return;
@@ -491,3 +495,4 @@
   </script>
 </body>
 </html>
+ 

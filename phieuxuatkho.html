@@ -6,217 +6,267 @@
 <title>Phiếu Xuất Kho</title>
 
 <style>
-  body {
-    font-family: Arial, sans-serif;
-    font-size: 15px;
-    margin: 0;
-    padding: 16px;
-  }
 
-  h2 { text-align: center; margin: 10px 0; }
+body{
+font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto;
+background:#f5f5f7;
+margin:0;
+padding:20px;
+}
 
-  .header {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 10px;
-  }
+.card{
+background:#fff;
+border:1px solid #e5e7eb;
+border-radius:14px;
+padding:16px;
+margin-bottom:16px;
+}
 
-  .info-table, .product-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 10px;
-  }
+h2{
+margin:0 0 10px 0;
+}
 
-  .info-table td {
-    padding: 4px 8px;
-  }
+.row{
+display:flex;
+gap:10px;
+align-items:center;
+}
 
-  .product-table th, .product-table td {
-    border: 1px solid #000;
-    padding: 6px;
-    text-align: left;
-  }
+button{
+padding:10px 14px;
+border:none;
+border-radius:10px;
+font-weight:600;
+cursor:pointer;
+}
 
-  .product-table th {
-    background: #f0f0f0;
-  }
+.btn-blue{
+background:#007aff;
+color:white;
+}
 
-  .sign {
-    margin-top: 40px;
-    display: flex;
-    justify-content: space-between;
-    text-align: center;
-  }
+table{
+width:100%;
+border-collapse:collapse;
+}
 
-  .sign div {
-    width: 30%;
-  }
+th,td{
+border-bottom:1px solid #eee;
+padding:8px;
+text-align:left;
+}
 
-  .page { page-break-after: always; }
-  .page:last-child { page-break-after: auto; }
+thead{
+background:#fafafa;
+}
 
-  @media print {
-    thead, tfoot { display: table-row-group; }
-    tr { page-break-inside: avoid; }
-  }
+input{
+border:none;
+outline:none;
+width:100%;
+background:transparent;
+}
+
 </style>
 </head>
 
 <body>
 
-<div id="root"></div>
+<div class="card">
+
+<h2>Phiếu Xuất Kho</h2>
+
+<div class="row">
+
+<label>Số HĐ</label>
+<input id="sohd" style="width:140px">
+
+<button class="btn-blue" id="btnLoad">Load</button>
+
+<button class="btn-blue" id="btnXuat">Xuất kho</button>
+
+</div>
+
+</div>
+
+
+<div class="card">
+
+<table>
+
+<thead>
+<tr>
+<th>STT</th>
+<th>Mã SP</th>
+<th>Tên SP</th>
+<th>SL đặt</th>
+<th>SL giao</th>
+<th>ĐVT</th>
+</tr>
+</thead>
+
+<tbody id="tableBody"></tbody>
+
+</table>
+
+</div>
+
 
 <script type="module">
+
 import { supabase } from "./supabase.config.js";
 
 const qs = new URLSearchParams(location.search);
-const fmt = n => (Number(n)||0).toLocaleString("vi-VN");
 
-// ---------------------
-// Parse
-// ---------------------
-function parseInput() {
-  const sohd = (qs.get("sohd") || "").trim();
-  if (!sohd) throw new Error("Thiếu số hóa đơn");
-  return sohd;
+document.getElementById("btnLoad")
+.addEventListener("click", loadHoaDon);
+
+document.getElementById("btnXuat")
+.addEventListener("click", xuatKho);
+
+
+async function loadHoaDon(){
+
+const sohd =
+document.getElementById("sohd").value ||
+qs.get("sohd");
+
+if(!sohd){
+alert("Thiếu số hóa đơn");
+return;
 }
 
-// ---------------------
-// Fetch data
-// ---------------------
-async function fetchData(sohd) {
-  const { data: hoadon } =
-    await supabase.from("hoadon").select("*").eq("sohd", sohd).single();
+const { data: chitiet, error } =
+await supabase
+.from("chitiet")
+.select("*")
+.eq("sohd", sohd)
+.order("masp",{ascending:true});
 
-  const { data: chitiet } =
-    await supabase.from("chitiet")
-      .select("*")
-      .eq("sohd", sohd);
-
-  return { hoadon, chitiet };
+if(error || !chitiet){
+alert("Không tìm thấy chi tiết hóa đơn");
+console.log(error);
+return;
 }
 
-// ---------------------
-// Header công ty
-// ---------------------
-async function getCty() {
-  const { data } = await supabase
-    .from("taikhoan")
-    .select("*")
-    .order("id",{ascending:false})
-    .limit(1)
-    .single();
+renderTable(chitiet);
 
-  return `
-    <strong>${data?.name || "CÔNG TY"}</strong><br>
-    Địa chỉ: ${data?.dc_dn || ""}<br>
-    SĐT: ${data?.sdt_dn || ""}
-  `;
 }
 
-// ---------------------
-// Render
-// ---------------------
-function render({ hoadon, chitiet }, ctyHTML) {
 
-  // ⚠️ GROUP THEO KHO
-  const mapKho = {};
+function renderTable(list){
 
-  chitiet.forEach(sp => {
-    const kho = sp.makho || "Không rõ";
-    if (!mapKho[kho]) mapKho[kho] = [];
-    mapKho[kho].push(sp);
-  });
+const tbody = document.getElementById("tableBody");
 
-  let pages = "";
+tbody.innerHTML = list.map((sp,i)=>`
 
-  Object.keys(mapKho).forEach(kho => {
+<tr>
 
-    const rows = mapKho[kho].map((sp, i) => `
-      <tr>
-        <td>${i+1}</td>
-        <td>${sp.tensp}</td>
-        <td>${sp.slthung || ""}</td>
-        <td>${sp.soluong || 0} ${sp.dvt || ""}</td>
-        <td>${sp.ghichu || ""}</td>
-      </tr>
-    `).join("");
+<td>${i+1}</td>
 
-    pages += `
-    <section class="page">
+<td>${sp.masp}</td>
 
-      <div class="header">
-        <div>${ctyHTML}</div>
-        <div style="text-align:right">
-          Ngày: ${hoadon.ngay || ""}<br>
-          Số PXK: ${hoadon.sohd || ""}<br>
-          Kho: <strong>${kho}</strong>
-        </div>
-      </div>
+<td>${sp.tensp}</td>
 
-      <h2>PHIẾU XUẤT KHO</h2>
+<td>${sp.soluong}</td>
 
-      <table class="info-table">
-        <tr><td><strong>Khách hàng:</strong> ${hoadon.makh || ""}</td></tr>
-        <tr><td><strong>Lý do xuất:</strong> Bán hàng</td></tr>
-        <tr><td><strong>Ghi chú:</strong> ${hoadon.ghichu || ""}</td></tr>
-      </table>
+<td>
+<input class="slgiao"
+value="${sp.soluong}"
+data-masp="${sp.masp}">
+</td>
 
-      <table class="product-table">
-        <thead>
-          <tr>
-            <th>STT</th>
-            <th>Tên hàng</th>
-            <th>SL thùng</th>
-            <th>Số lượng</th>
-            <th>Ghi chú</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${rows}
-        </tbody>
-      </table>
+<td>${sp.dvt || ""}</td>
 
-      <div class="sign">
-        <div>
-          Người lập phiếu<br><br><br>
-          (Ký tên)
-        </div>
-        <div>
-          Thủ kho<br><br><br>
-          (Ký tên)
-        </div>
-        <div>
-          Người nhận hàng<br><br><br>
-          (Ký tên)
-        </div>
-      </div>
+</tr>
 
-    </section>
-    `;
-  });
+`).join("");
 
-  return pages;
 }
 
-// ---------------------
-// Init
-// ---------------------
-document.addEventListener("DOMContentLoaded", async () => {
-  try {
-    const sohd = parseInput();
-    const data = await fetchData(sohd);
-    const ctyHTML = await getCty();
 
-    document.getElementById("root").innerHTML = render(data, ctyHTML);
 
-    setTimeout(() => window.print(), 300);
-    window.onafterprint = () => window.close();
+async function xuatKho(){
 
-  } catch (e) {
-    alert(e.message);
-  }
+const sohd =
+document.getElementById("sohd").value;
+
+const rows =
+document.querySelectorAll("#tableBody tr");
+
+let list=[];
+
+rows.forEach(r=>{
+
+const masp =
+r.children[1].innerText;
+
+const tensp =
+r.children[2].innerText;
+
+const sl =
+Number(r.querySelector(".slgiao").value);
+
+const dvt =
+r.children[5].innerText;
+
+list.push({
+sohd,
+masp,
+tensp,
+soluong:sl,
+dvt
 });
+
+});
+
+
+if(!list.length){
+alert("Không có sản phẩm");
+return;
+}
+
+
+const { error } =
+await supabase
+.from("stock_ledger")
+.insert(list);
+
+if(error){
+
+console.log(error);
+
+alert("Lỗi xuất kho");
+
+return;
+
+}
+
+
+await truTonKho(list);
+
+alert("Xuất kho thành công");
+
+}
+
+
+
+async function truTonKho(list){
+
+for(const sp of list){
+
+await supabase.rpc(
+"tru_ton_kho",
+{
+p_masp: sp.masp,
+p_sl: sp.soluong
+}
+);
+
+}
+
+}
+
 </script>
 
 </body>

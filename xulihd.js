@@ -2,53 +2,58 @@ import { supabase } from "./supabase.config.js";
 import { loaiHDMap, loaiHDReady } from "./xulisp.js"; // 👈 dùng map chung + promise ready
 import { spMap, napDanhSachSanPham, moneyVN, parseMoneyVN } from './sanpham.data.js';
 
-document.addEventListener("DOMContentLoaded", async () => {
-  // === Gán nút thao tác ===
-  document.getElementById("luuHD").addEventListener("click", async () => {
-    console.log("Đã bấm nút Lưu");
-    const hoaDon = await luuHoaDon();
-    if (hoaDon?.sohd) {
-      await window.taiDonHangGanDay?.();
-      await xoaHoaDon();               // ❗ reset, KHÔNG tự tăng số
-    }
-  });
+// === Gán nút thao tác ===
 
-  document.getElementById("xoaHD").addEventListener("click", async () => {
-    if (confirm("Bạn có chắc chắn muốn xóa hóa đơn này?")) {
-      await xoaHoaDon();               // đã tự xử lý ngày, KHÔNG xin số
-    }
-  });
+const btnLuu = document.getElementById("luuHD");
+const btnXoa = document.getElementById("xoaHD");
+const btnIn  = document.getElementById("luuVaIn");
 
-  document.getElementById("luuVaIn").addEventListener("click", async () => {
-    const hoaDon = await luuHoaDon();
-    if (!hoaDon?.sohd) {
-      alert("Không thể lưu hóa đơn.");
-      return;
-    }
+btnLuu?.addEventListener("click", async () => {
+  console.log("Đã bấm nút Lưu");
+
+  const hoaDon = await luuHoaDon();
+  if (hoaDon?.sohd) {
     await window.taiDonHangGanDay?.();
-    await xoaHoaDon();                 // ❗ reset, KHÔNG tự tăng số
-
-    const url = `formIn.html?sohd=${encodeURIComponent(hoaDon.sohd)}`;
-    window.open(url, "_blank", "width=900,height=600");
-  });
-  
-  // === Khi mới vào form: KHÔNG gán số HĐ, chỉ gán ngày nếu trống ===
-  const soHDInput = document.getElementById("soHD");
-  if (soHDInput) soHDInput.value = ""; // để trống → tạo mới sẽ xin số lúc Lưu
-
-  const ngayHD = document.getElementById("ngayHD");
-  if (ngayHD && !ngayHD.value) {
-    ngayHD.value = new Date().toISOString().split("T")[0];
+    await xoaHoaDon();
   }
 });
 
-// === Hàm tạo số hóa đơn mới (JS-only, chống paginate) ===
+btnXoa?.addEventListener("click", async () => {
+  if (confirm("Bạn có chắc chắn muốn xóa hóa đơn này?")) {
+    await xoaHoaDon();
+  }
+});
+
+btnIn?.addEventListener("click", async () => {
+  const mode = new URLSearchParams(location.search).get("mode");
+  if(mode === "xuat") return; 
+  const hoaDon = await luuHoaDon();
+  if (!hoaDon?.sohd) {
+    alert("Không thể lưu hóa đơn.");
+    return;
+  }
+
+  await window.taiDonHangGanDay?.();
+  await xoaHoaDon();
+
+  const url = `formIn.html?sohd=${encodeURIComponent(hoaDon.sohd)}`;
+  window.open(url, "_blank", "width=900,height=600");
+});
+
+// khởi tạo form
+const soHDInput = document.getElementById("soHD");
+if (soHDInput) soHDInput.value = "";
+
+const ngayHD = document.getElementById("ngayHD");
+if (ngayHD && !ngayHD.value) {
+  ngayHD.value = new Date().toISOString().split("T")[0];
+}
 // Dựa vào pad 5 số nên ORDER BY chuỗi = ORDER BY số
 async function taoSoHoaDonMoi() {
   const { data, error } = await supabase
     .from("hoadon")
     .select("sohd")
-    .like("sohd", "HD%")
+    .like("sohd", "BH%")
     .order("sohd", { ascending: false })
     .limit(1);
 
@@ -56,9 +61,9 @@ async function taoSoHoaDonMoi() {
     console.error("Lỗi khi lấy số hóa đơn:", error);
     return "HD00001";
   }
-  const max = data?.[0]?.sohd || "HD00000";
+  const max = data?.[0]?.sohd || "BH00000";
   const num = parseInt(max.slice(2), 10) || 0;
-  return "HD" + String(num + 1).padStart(5, "0");
+  return "BH" + String(num + 1).padStart(5, "0");
 }
 
 async function loadNhanVienBanHang() {
@@ -143,6 +148,7 @@ async function luuHoaDon() {
       phanloai:      loaiphieu || null,
       tongthanhtoan: nz(tongthanhtoan),
       thanhtoan:     0,
+      trangthai:     'lap phieu',
       tinhtrang:     '',
       thamchieu:     thamChieu || null,
       nv,
@@ -229,7 +235,6 @@ if (errCT) {
   alert("Lưu chi tiết hóa đơn thất bại!");
   return;
 }
-await supabase.rpc('apply_hoadon', { p_sohd: sohd });
 
     // Thông báo & sync
     try { window.opener?.postMessage({ type: "hd-saved", sohd }, "*"); } catch {}
@@ -288,3 +293,5 @@ function tangSoHoaDon(sohdCu) {
   const next = number + 1;
   return prefix + next.toString().padStart(5, "0");
 }
+window.luuHoaDon = luuHoaDon;
+window.xoaHoaDon = xoaHoaDon;
