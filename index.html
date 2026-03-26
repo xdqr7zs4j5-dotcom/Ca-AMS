@@ -113,7 +113,7 @@
     }
     .sb-title{
       font-weight:700;
-      padding:6px 10px;
+      padding:6px 5px;
       border-radius:8px;
       cursor:pointer;
     }
@@ -141,7 +141,7 @@
       display:flex;
       align-items:center;
       gap:10px;
-      padding:10px 12px;
+      padding:10px 2px;
       border-radius:10px;
       border:0;
       background:transparent;
@@ -158,6 +158,14 @@
     body[data-ui="desktop"].collapsed .item .txt{
       display:none;
     }
+    body[data-ui="desktop"].collapsed #sbTitle{
+    font-size:0;}
+
+    body[data-ui="desktop"].collapsed #sbTitle::after{
+  content:"Cá";
+  font-size:18px;
+  font-weight:700;
+}
 
     /* ================= CONTENT ================= */
     iframe#view{
@@ -253,8 +261,8 @@ body[data-ui="mobile"] .menu{
 }
 .toggle{
   position:absolute;
-  top:18px;
-  left:40px;   /* vị trí ngoài sidebar */
+  top:530px;
+  left:14px;   /* vị trí ngoài sidebar */
   z-index:500;
 }
 .sidebar{

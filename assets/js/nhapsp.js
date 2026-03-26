@@ -187,7 +187,7 @@ if (maspSua) {
   const sp = {
   masp: maspValue,
   tensp: get('tensp'),
-  dinhluong: parseFloat(get('dinhluong')) || null,
+  dinhluong: parseFloat(get('dinhluong')) || 1,
   dongia: parseFloat(get('dongia')) || 0,
   dongia2: parseFloat(get('dongia2')) || 0,
   dongia3: parseFloat(get('dongia3')) || 0,
@@ -455,7 +455,7 @@ function dongBarcodeModal() {
 const isParent = document.getElementById("isParent");
 const childGroup = document.getElementById("childGroup");
 
-if (isParent) isParent.checked = false;
+if (isParent) isParent.checked = true;
 if (childGroup) childGroup.style.display = "none";
 
   // focus vào tên SP để nhập nhanh
@@ -470,6 +470,8 @@ if (childGroup) childGroup.style.display = "none";
   await taiDanhSachNhom();
   await taiDanhSachKho();
   await taiDanhSachDVT();
+  document.getElementById("isParent").checked = true;
+  document.getElementById("childGroup").style.display = "block";
 
   // ... đoạn lấy params như cũ
   const params = new URLSearchParams(window.location.search);

@@ -95,7 +95,7 @@ let activeUrl = './begin.html';
 // ---- RENDER MENU ----
 function renderMenu() {
   menuEl.innerHTML = '';
-  sbTitle.textContent = 'Cá';
+  sbTitle.textContent = 'Cá AMS';
 
   MENU.forEach(item => {
 
