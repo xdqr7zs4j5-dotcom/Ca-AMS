@@ -44,7 +44,7 @@
     }
 
     body[data-ui="desktop"] .sidebar{
-      width:280px;
+      width:200px;
       background:var(--card);
       border-radius:var(--radius);
       padding:14px;
@@ -106,8 +106,9 @@
     /* ================= SIDEBAR COMMON ================= */
     .sb-head{
       display:flex;
-      align-items:center;
-      justify-content:space-between;
+      flex-direction:column;
+      align-items:flex-start;
+      gap:6px;
       margin-bottom:12px;
     }
     .sb-title{
@@ -196,7 +197,7 @@
 
 .menu-group .submenu{
   display:none;
-  padding-left:18px;
+  padding-left:10px;
   gap:4px;
 }
 
@@ -207,11 +208,12 @@
 
 /* menu cha */
 .item.parent{
-  justify-content:space-between;
+  justify-content:flex-start;
 }
 
 /* mũi tên */
 .item.parent .arrow{
+  margin-left:auto;
   font-size:12px;
   transition:transform .2s ease;
   opacity:.6;
@@ -241,7 +243,23 @@ body[data-ui="desktop"].collapsed .submenu{
 body[data-ui="mobile"] .menu{
   padding-bottom: calc(56px + var(--safe-bottom));
 }
-
+.item.sub .ic{
+  width:24px;
+  text-align:center;
+}
+.menu-group{
+  margin:0;
+  padding:0;
+}
+.toggle{
+  position:absolute;
+  top:18px;
+  left:40px;   /* vị trí ngoài sidebar */
+  z-index:500;
+}
+.sidebar{
+  position:relative;
+}
   </style>
 
   <script type="module" src="./app.js" defer></script>

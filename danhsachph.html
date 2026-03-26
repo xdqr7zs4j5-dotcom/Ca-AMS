@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
-  <title>HĐ Khác</title>
+  <title>Nhập kho</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root{
@@ -72,16 +72,26 @@
     .chk:checked{border-color:var(--blue); background:var(--blue)}
     .chk:checked::after{content:""; position:absolute; left:4px; top:0px; width:6px; height:10px; border:2px solid #fff; border-top:none; border-left:none; transform:rotate(45deg)}
 
-    /* Select trạng thái tô màu như badge */
-    .tt-thanh-toan{
-      border:none; border-radius:999px; padding:6px 12px; font-weight:600; cursor:pointer; text-align:center; appearance:none;
-    }
-    .tt-thanh-toan[value="chua"]{ background:#f1f5f9; color:#0f172a; }
-    .tt-thanh-toan[value="da"]  { background:#ecfdf5; color:#065f46; }
-    .tt-thanh-toan[value="dang"]{ background:#fffbeb; color:#92400e; }
+    .badge{
+padding:4px 10px;
+border-radius:999px;
+font-weight:600;
+}
 
-    /* Nút thao tác */
-    .btn-ghost{border:1px solid var(--line); background:#fff; padding:6px 10px; border-radius:10px; cursor:pointer}
+.badge-lap{
+background:#eef2ff;
+color:#1e40af;
+}
+
+.badge-xuat{
+background:#ecfdf5;
+color:#065f46;
+}
+
+.badge-ghiso{
+background:#fffbeb;
+color:#92400e;
+}    .btn-ghost{border:1px solid var(--line); background:#fff; padding:6px 10px; border-radius:10px; cursor:pointer}
     .btn-ghost:active{opacity:.85}
     .btn-icon{font-size:18px; line-height:0}
     .btn-danger{border-color:#fecaca; color:#b91c1c}
@@ -93,170 +103,208 @@
     }
   </style>
 </head>
+
 <body>
-  <div class="wrap">
-    <!-- Bộ lọc -->
-    <div class="card">
-      <div class="filters">
-        <div class="pill">
-          <label>Hành động</label>
-          <select id="chonHanhDong">
-            <option value="">— Chọn —</option>
-            <option value="in">In hàng loạt</option>
-            <option value="xoa">Xóa hóa đơn</option>
-            <option value="thanhtoan">Thanh toán</option>
-          </select>
-        </div>
-        <div class="pill">
-          <label>Từ</label>
-          <input type="date" id="tuNgay">
-        </div>
-        <div class="pill">
-          <label>Đến</label>
-          <input type="date" id="denNgay">
-        </div>
-        <div class="pill">
-          <label>Mã KH</label>
-          <input type="text" id="maKH" placeholder="Nhập mã KH...">
-        </div>
-        <div class="pill">
-          <button id="btnLoc">🔍 Lọc</button>
-        </div>
 
-        <!-- Meta đếm -->
-        <div class="meta">
-          <span>Đã chọn:</span>
-          <span class="chip" id="demChon">0</span>
-          <span>| Tổng:</span>
-          <span class="chip" id="tongTatCaTop">0 ₫</span>
-        </div>
-      </div>
-    </div>
+<div class="wrap">
 
-    <!-- Bảng -->
-    <div class="table-wrap card" style="flex:1 1 auto; min-height:0; padding:8px">
-      <div class="table-wrapper">
-        <table id="bangHD">
-          <thead>
-            <tr>
-              <th style="width:44px"><input id="chkAll" type="checkbox" class="chk"></th>
-              <th style="min-width:120px">Số HĐ</th>
-              <th style="min-width:200px">Ghi chú</th>
-              <th style="min-width:120px">Ngày</th>
-              <th style="min-width:100px">Mã KH</th>
-              <th style="min-width:140px">Tổng tiền</th>
-              <th style="min-width:160px">TT thanh toán</th>
-              <th style="min-width:160px">Thanh toán</th>
-              <th style="min-width:140px">Thao tác</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-          <tfoot>
-            <tr>
-              <td colspan="5" style="text-align:right">Tổng</td>
-              <td id="tongTatCa">0 ₫</td>
-              <td colspan="3"></td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-    </div>
+<!-- filter -->
+<div class="card">
+<div class="filters">
 
-    <div class="summary">
-      Gợi ý: Chọn nhiều hoá đơn → dùng “Hành động” để In/Xoá/Đánh dấu đã thanh toán.
-    </div>
-  </div>
-  <link rel="stylesheet" href="/shared/mobile-fix.css">
-  <script src="/shared/mobile-fix.js" defer></script>
+<div class="pill">
+<label>Hành động</label>
+<select id="chonHanhDong">
+<option value="">— Chọn —</option>
+<option value="in">In</option>
+<option value="xoa">Xóa</option>
+<option value="ghiso">Ghi sổ</option>
+</select>
+</div>
 
-  <script type="module">
+<div class="pill">
+<label>Từ</label>
+<input type="date" id="tuNgay">
+</div>
 
-import { supabase } from "./supabase.config.js"
+<div class="pill">
+<label>Đến</label>
+<input type="date" id="denNgay">
+</div>
 
-const tbody = document.querySelector("#bangHD tbody")
+<div class="pill">
+<label>Mã KH</label>
+<input type="text" id="maKH">
+</div>
 
-const tuNgay = document.getElementById("tuNgay")
-const denNgay = document.getElementById("denNgay")
-const maKH = document.getElementById("maKH")
+<div class="pill">
+<button id="btnLoc">🔍 Lọc</button>
+</div>
 
-const demChon = document.getElementById("demChon")
-const tongTatCa = document.getElementById("tongTatCa")
-const tongTatCaTop = document.getElementById("tongTatCaTop")
+<div class="meta">
+<span>Đã chọn</span>
+<span class="chip" id="demChon">0</span>
+</div>
 
-const fmt = n => Number(n||0).toLocaleString("vi-VN")+" ₫"
+</div>
+</div>
 
 
-async function loadPX(){
+<!-- table -->
+<div class="table-wrap card" style="flex:1;min-height:0;padding:8px">
 
-let query = supabase
+<div class="table-wrapper">
+
+<table id="bangHD">
+
+<thead>
+<tr>
+<th style="width:40px">
+<input type="checkbox" id="chkAll" class="chk">
+</th>
+<th style="min-width:140px;text-align:left">Số phiếu</th>
+<th style="min-width:220px;text-align:left">Ghi chú</th>
+<th style="min-width:120px">Ngày</th>
+<th style="min-width:120px">Mã KH</th>
+<th style="min-width:140px">Tổng tiền</th>
+<th style="min-width:140px">Tình trạng</th>
+<th style="min-width:140px">Thao tác</th>
+</tr>
+</thead>
+
+<tbody></tbody>
+
+<tfoot>
+<tr>
+<td colspan="5" style="text-align:right">Tổng</td>
+<td id="tongTatCa">0</td>
+<td colspan="2"></td>
+</tr>
+</tfoot>
+
+</table>
+
+</div>
+</div>
+
+</div>
+
+
+<script type="module">
+
+import { supabase } from './supabase.config.js'
+
+const $=s=>document.querySelector(s)
+const $$=s=>document.querySelectorAll(s)
+
+function fmt(n){
+return (n||0).toLocaleString("vi-VN")+" ₫"
+}
+
+function capNhatDem(){
+$("#demChon").textContent=[...$$(".chonHD:checked")].length
+}
+
+function layDanhSachDaChon(){
+return [...$$(".chonHD:checked")].map(cb=>cb.value)
+}
+
+
+async function taiDanhSach(){
+
+const tu=$("#tuNgay").value
+const den=$("#denNgay").value
+const makh=$("#maKH").value.trim()
+
+let query=supabase
 .from("hoadon")
 .select("*")
-.like("thamchieu","XK%")
+.not("thamchieu","is",null)
+.neq("thamchieu","")
 .order("ngay",{ascending:false})
 
+if(tu) query=query.gte("ngay",tu)
+if(den) query=query.lte("ngay",den)
+if(makh) query=query.ilike("makh",`%${makh}%`)
 
-if(tuNgay.value){
-query = query.gte("ngay",tuNgay.value)
+const {data,error}=await query
+
+if(error){
+alert(error.message)
+return
 }
 
-if(denNgay.value){
-query = query.lte("ngay",denNgay.value)
-}
-
-if(maKH.value){
-query = query.ilike("makh","%"+maKH.value+"%")
-}
-
-const { data } = await query
-
-render(data||[])
-
+veBang(data||[])
 }
 
 
-function render(list){
+function veBang(data){
 
+const tbody=$("#bangHD tbody")
 tbody.innerHTML=""
 
 let tong=0
 
-list.forEach(hd=>{
+data.forEach(hd=>{
 
-tong += Number(hd.tongtien||0)
+const tien=parseFloat(hd.tongtienvon)||0
+tong+=tien
+
+let badge="badge-ghiso"
+let text="Đang xử lí"
+
+if(hd.trangthai==="da xuat kho"){
+badge="badge-lap"
+text="Lập phiếu"
+}
+
+if(hd.trangthai==="da ghi so"){
+badge="badge-xuat"
+text="Đã xuất kho"
+}
 
 const tr=document.createElement("tr")
+tr.dataset.sohd=hd.sohd
 
 tr.innerHTML=`
-<td>
-<input type="checkbox" class="chk chkRow">
+<td><input type="checkbox" class="chk chonHD" value="${hd.thamchieu}"></td>
+
+<td style="text-align:left;font-weight:700">
+${hd.thamchieu}
 </td>
 
-<td>${hd.thamchieu || ""}</td>
-
-<td>${hd.ghichu || ""}</td>
-
-<td>${new Date(hd.ngay).toLocaleDateString("vi-VN")}</td>
-
-<td>${hd.makh || ""}</td>
-
-<td>${fmt(hd.tongtien)}</td>
-
-<td>
-<select class="tt-thanh-toan" value="${hd.tinhtrang||'chua'}">
-<option value="chua">Chưa</option>
-<option value="dang">Đang</option>
-<option value="da">Đã</option>
-</select>
+<td 
+ style="text-align:left"
+ title="Ngày: ${hd.ngay || ""} 
+ Ghi chú: ${hd.ghichu || ""}
+ Mã KH: ${hd.makh || ""} 
+ Tổng tiền: ${fmt(hd.tongthanhtoan || 0)}"
+ >
+<span style="color:#2563eb;font-weight:700">
+${hd.sohd || ""}
+</span>
 </td>
 
-<td>${fmt(hd.thanhtoan||0)}</td>
+<td>${hd.ngay||""}</td>
+
+<td>${hd.makh||""}</td>
+
+<td style="font-weight:700">${fmt(tien)}</td>
 
 <td>
+<span class="badge ${badge}">${text}</span>
+</td>
 
-<button class="btn-ghost btn-icon" data-sohd="${hd.sohd}">
-🖨
-</button>
+<td>
+<div style="display:flex;gap:8px;justify-content:center">
 
+<button class="btn-ghost btn-icon" data-view="${hd.thamchieu}">👁️</button>
+
+<button class="btn-ghost btn-icon" data-print="${hd.sohd}">🖨️</button>
+
+<button class="btn-ghost btn-icon btn-danger" data-del="${hd.sohd}">🗑️</button>
+
+</div>
 </td>
 `
 
@@ -264,74 +312,37 @@ tbody.appendChild(tr)
 
 })
 
-
-tongTatCa.textContent = fmt(tong)
-tongTatCaTop.textContent = fmt(tong)
-
-ganSuKien()
+$("#tongTatCa").textContent=fmt(tong)
 
 }
 
 
-function ganSuKien(){
+$("#btnLoc").onclick=taiDanhSach
 
-document.querySelectorAll(".btn-icon").forEach(btn=>{
-
-btn.onclick=()=>{
-
-const sohd = btn.dataset.sohd
-
-window.open(
-`xuatkho.html?sohd=${encodeURIComponent(sohd)}`,
-"_blank",
-"width=900,height=700"
-)
-
-}
-
-})
-
-
-document.querySelectorAll(".chkRow").forEach(chk=>{
-chk.onchange = capNhatDem
-})
-
-}
-
-
-function capNhatDem(){
-
-const checked = document.querySelectorAll(".chkRow:checked")
-
-demChon.textContent = checked.length
-
-}
-
-
-/* ===== chọn tất cả ===== */
-
-document.getElementById("chkAll").onchange = e=>{
-
-const checked = e.target.checked
-
-document.querySelectorAll(".chkRow").forEach(c=>{
-c.checked = checked
-})
-
+$("#chkAll").onchange=e=>{
+$$(".chonHD").forEach(cb=>cb.checked=e.target.checked)
 capNhatDem()
-
 }
 
+document.addEventListener("change",e=>{
+if(e.target.classList.contains("chonHD")) capNhatDem()
+})
 
-/* ===== lọc ===== */
+document.addEventListener("click",e=>{
 
-document.getElementById("btnLoc").onclick = loadPX
+const v=e.target.getAttribute("data-view")
+const p=e.target.getAttribute("data-print")
+const d=e.target.getAttribute("data-del")
 
+if(v) window.open(`ghihd.html?sophieu=${v}&nguon=xuatkho`)
+if(p) window.open(`xuatkho.html?sohd=${p}`)
+if(d) console.log("delete",d)
 
-/* ===== load lần đầu ===== */
+})
 
-loadPX()
+taiDanhSach()
 
 </script>
+
 </body>
 </html>

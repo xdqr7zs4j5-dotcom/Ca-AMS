@@ -75,7 +75,7 @@
             <option value="gopdon">Gộp đơn</option>
             <option value="tachdon">Tách đơn</option>
             <option value="thanhtoan">Thanh toán</option>
-            <option value="tra">Lập phiếu xuất kho</option>
+            <option value="xuatkho">Lập phiếu xuất kho</option>
             <option value="xoa">Xóa hóa đơn</option>
           </select>
         </div>
@@ -109,8 +109,8 @@
           <thead>
             <tr>
               <th style="width:44px"><input id="chkAll" type="checkbox" class="chk"></th>
-              <th style="min-width:120px">Số HĐ</th>
-              <th style="min-width:200px">Ghi chú</th>
+              <th style="min-width:120px ; text-align:left">Số HĐ</th>
+              <th style="min-width:200px ;text-align:left">Ghi chú</th>
               <th style="min-width:120px">Ngày</th>
               <th style="min-width:100px">Mã KH</th>
               <th style="min-width:140px">Tổng tiền</th>
@@ -201,7 +201,7 @@
       let query = supabase
         .from("hoadon")
         .select("*")
-        .or("phanloai.eq.xk,phanloai.is.null")   // chỉ xuất kho
+        .or("phanloai.eq.xk,phanloai.eq.kk")
         .order("ngay", { ascending:false })
         .order("sohd", { ascending:false });
 
@@ -426,7 +426,7 @@
       if (action === "in") inGopNhieu(ds);
       else if (action === "phathanh") moformphathanh(ds);
       else if (action === "thanhtoan") await thanhToanNhieu(ds);
-      else if (action === "tra") moxuatkho(ds);
+      else if (action === "xuatkho") moxuatkho(ds);
       else if (action === "xoa") await xoaNhieu(ds);
     });
 

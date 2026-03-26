@@ -240,8 +240,15 @@ const qty=num(tr.querySelector(".qty").value)
 if(!qty) continue
 
 items.push({
-masp:tr.dataset.masp,
-qty:qty
+  masp: tr.dataset.masp,
+  kho_id: kho_from.value,
+  soluong: -qty
+})
+
+items.push({
+  masp: tr.dataset.masp,
+  kho_id: kho_to.value,
+  soluong: qty
 })
 
 }
@@ -251,10 +258,10 @@ alert("Không có sản phẩm chuyển")
 return
 }
 
-const {error}=await supabase.rpc("transfer_kho_batch",{
-p_kho_from:kho_from.value,
-p_kho_to:kho_to.value,
-p_items:items
+const { data, error } = await supabase.rpc("tao_chungtu",{
+  p_phanloai: "kk",
+  p_items: items,
+  p_ghichu: "ctk"
 })
 
 if(error){
@@ -262,7 +269,7 @@ alert(error.message)
 return
 }
 
-alert("Đã chuyển kho")
+alert("Đã tạo chứng từ " + data)
 
 await loadSP()
 

@@ -156,14 +156,20 @@ async function loadKho(){
 
   const sel = document.getElementById("kho");
 
-  sel.innerHTML = data.map(k =>
+  sel.innerHTML = 
+    `<option value="all">Tất cả kho</option>` +
+    data.map(k =>
     `<option value="${k.id}">${k.ten_kho}</option>`
   ).join("");
 } 
 // ===== load report =====
 async function loadReport(){
-  const kho_id = selKho.value;
-  if (!kho_id || !ipFrom.value || !ipTo.value) return;
+  let kho_id = selKho.value;
+
+  if (!kho_id || kho_id === "all") {
+    kho_id = null;
+  }
+  if (!ipFrom.value || !ipTo.value) return;
 
   const { data, error } = await supabase.rpc("bao_cao_ton", {
     p_kho_id: kho_id,
@@ -264,10 +270,9 @@ ipFrom.addEventListener("change", loadReport);
 ipTo.addEventListener("change", loadReport);
 selKho.addEventListener("change", loadReport);
 
-document.addEventListener("DOMContentLoaded", loadReport);
-document.addEventListener("DOMContentLoaded", async () => {
+window.addEventListener("DOMContentLoaded", async () => {
   await loadKho();
-  loadReport();
+  await loadReport();
 });
 </script>
 </body>

@@ -43,8 +43,14 @@ const ICON = {
 const MENU = [
   { text:'Bán hàng', url:'./ghihd.html' },
   { text:'Tra cứu', url:'./tracuu.html' },
-  { text:'Hóa đơn', url:'./danhsachxk.html' },
-  { text:'Khác', url:'./danhsachph.html' },
+  {
+    text:'Hóa đơn',url:'./danhsachxk.html',
+    children:[
+      { text:'Xuất kho', url:'./danhsachph.html' },
+      { text:'Nhập kho', url:'./danhsachnk.html'},
+    ]
+  },
+
   { text:'Danh sách SP', url:'./danhsachsp.html' },
   { text:'Thêm SP', url:'./nhapsp.html' },
   { text:'Danh sách KH', url:'./danhsachkh.html' },
@@ -52,18 +58,17 @@ const MENU = [
   { text:'Báo cáo', url:'./baocao.html' },
 
   {
-    text:'Nhân sự',
+    text:'Nhân sự',url:'./nhansu.html' ,
     children:[
       { text:'Chấm công', url:'./chamcong.html' },
-      { text:'Hồ sơ', url:'./nhansu.html' },
       { text:'Bậc lương', url:'./thietlapluong.html' },
       { text:'Thiết lập', url:'./thietlappc.html' }
     ]
   },
 
+
   {
     text:'Kho',
-    url:'./danhsachnk.html',
     children:[
       { text:'Tồn kho', url:'./tk_theodoi.html' },
       { text:'Kiểm kho', url:'tk_chinh.html' },
@@ -90,7 +95,7 @@ let activeUrl = './begin.html';
 // ---- RENDER MENU ----
 function renderMenu() {
   menuEl.innerHTML = '';
-  sbTitle.textContent = 'Cá AMS';
+  sbTitle.textContent = 'Cá';
 
   MENU.forEach(item => {
 

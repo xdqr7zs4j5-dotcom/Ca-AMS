@@ -145,7 +145,8 @@ async function loadKho(){
 
   const sel = document.getElementById("kho");
 
-  sel.innerHTML = data.map(k =>
+  sel.innerHTML =
+    data.map(k =>
     `<option value="${k.id}">${k.ten_kho}</option>`
   ).join("");
 }
@@ -228,14 +229,6 @@ filter.oninput=e=>{
   });
 };
 
-function taoChungTuKiemKho(){
-  const d = new Date();
-  const pad = n => String(n).padStart(2,'0');
-
-  return `KT-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}`
-       + `-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
-}
-
 luu.onclick = async () => {
   luu.disabled = true;
 
@@ -246,9 +239,7 @@ luu.onclick = async () => {
       return;
     }
 
-    const chungtuVal =
-      chungTu.value?.trim()
-      || taoChungTuKiemKho();
+    const chungtuVal = chungTu.value?.trim() || null;
 
     chungTu.value = chungtuVal;
 
@@ -268,6 +259,7 @@ luu.onclick = async () => {
 
       items.push({
         masp,
+        kho_id: kho_id,
         soluong: chenhlech
       });
     }
@@ -277,16 +269,15 @@ luu.onclick = async () => {
       return;
     }
 
-    // 👉 CALL RPC (QUAN TRỌNG NHẤT)
-    const { error } = await supabase.rpc('apply_kiemkho_full', {
-      p_kho_id: kho_id,
+    const { data, error } = await supabase.rpc('tao_chungtu', {
+      p_phanloai: 'kk',
       p_items: items,
-      p_note: chungtuVal
+      p_ghichu: "ctk"
     });
 
     if (error) throw error;
 
-    alert(`✅ Đã chỉnh tồn (${items.length} sản phẩm)`);
+    alert(`✅ Đã tạo chứng từ ${data}`);
 
     await loadAll();
 

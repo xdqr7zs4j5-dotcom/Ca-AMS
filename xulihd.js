@@ -50,20 +50,31 @@ if (ngayHD && !ngayHD.value) {
 }
 // Dựa vào pad 5 số nên ORDER BY chuỗi = ORDER BY số
 async function taoSoHoaDonMoi() {
+
+  const phanLoai = document.getElementById("phanLoai")?.value || "";
+
+  let prefix = "BH";
+
+  if(phanLoai === "ncc"){
+    prefix = "NK";
+  }
+
   const { data, error } = await supabase
     .from("hoadon")
     .select("sohd")
-    .like("sohd", "BH%")
+    .like("sohd", prefix + "%")
     .order("sohd", { ascending: false })
     .limit(1);
 
   if (error) {
     console.error("Lỗi khi lấy số hóa đơn:", error);
-    return "HD00001";
+    return prefix + "00001";
   }
-  const max = data?.[0]?.sohd || "BH00000";
+
+  const max = data?.[0]?.sohd || prefix + "00000";
   const num = parseInt(max.slice(2), 10) || 0;
-  return "BH" + String(num + 1).padStart(5, "0");
+
+  return prefix + String(num + 1).padStart(5, "0");
 }
 
 async function loadNhanVienBanHang() {

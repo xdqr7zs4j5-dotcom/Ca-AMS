@@ -9,6 +9,8 @@ const $  = (s) => document.querySelector(s);
 const $$ = (s) => document.querySelectorAll(s);
 const moneyVN = new Intl.NumberFormat("vi-VN");
 const toYMD = (d) => new Date(d).toISOString().slice(0,10);
+const params = new URLSearchParams(location.search);
+const nguon = params.get("nguon");
 let khoList = [];
 
 async function loadKhoList() {
@@ -118,7 +120,11 @@ async function init(){
     // format nghìn cho ô nợ cũ
     formatThousandInput($("#noCu"));
 
-    const sohd = new URLSearchParams(location.search).get("sohd") || "";
+    const params = new URLSearchParams(location.search);
+    const sohd = params.get("sohd");
+    const sophieu = params.get("sophieu");
+    
+    const id = sohd || sophieu;
 
     await loadNhanVienBanHang();
     await loadKhoList();
@@ -127,7 +133,7 @@ async function init(){
     if (typeof taiDonHangGanDay === "function") await taiDonHangGanDay();
 
     // Nạp HĐ cũ nếu có sohd
-    if (sohd) await taiHoaDonCu(sohd);
+    if (id) await taiHoaDonCu(id);
 
     // Tự tính nợ cũ khi đổi mã KH / ngày
     $("#maKH")?.addEventListener("change", () => {
@@ -149,11 +155,11 @@ async function init(){
 }
 
 // =================== Nạp hóa đơn cũ ===================
-export async function taiHoaDonCu(sohd){
+export async function taiHoaDonCu(id){
   try {
     // 1) Header hóa đơn
     const { data: hd, error: errHD } = await supabase
-      .from("hoadon").select("*").eq("sohd", sohd).single();
+      .from("hoadon").select("*").or(`sohd.eq.${id},thamchieu.eq.${id}`).single();
 
     if (errHD || !hd) {
       alert("Không tìm thấy hóa đơn!");
@@ -161,10 +167,27 @@ export async function taiHoaDonCu(sohd){
       return;
     }
 
-    // 2) Chi tiết
-    const { data: chitiet, error: errCT } = await supabase
-      .from("chitiet").select(`*,thietlap_kho (id, ma_kho)`).eq("sohd", sohd);
+    if(hd.trangthai === "da nhap kho"){
+      document.querySelector("#btnLuu").disabled = true;
+      document.querySelector("#btnXoa").disabled = true;
 
+      document.querySelectorAll("input, select").forEach(el=>{
+        el.disabled = true;
+      });
+    }
+
+    // 2) Chi tiết
+    let table = "chitiet";
+    let field = "sohd";
+
+    if (nguon === "xuatkho") {
+      table = "xuatkho";
+      field = "sophieu";
+    }
+    const { data: chitiet, error: errCT } = await supabase
+      .from(table)
+      .select(`*,thietlap_kho (id, ma_kho)`)
+      .eq(field, id);
     if (errCT) {
       alert("Không tìm được chi tiết sản phẩm!");
       console.error("[CT ERROR]", errCT);
@@ -231,7 +254,6 @@ export async function taiHoaDonCu(sohd){
     tbody.innerHTML = "";
 
     if (!chitiet || chitiet.length === 0) {
-      console.warn("[CT EMPTY] Không có chi tiết cho", sohd);
       window.themDongSP({});
     } else {
       chitiet.forEach(sp => window.themDongSP(sp));

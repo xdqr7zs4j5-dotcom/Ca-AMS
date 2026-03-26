@@ -27,7 +27,7 @@
   .form-row{display:grid;grid-template-columns:150px 1fr;gap:8px;align-items:center}
   .form-row label{color:var(--muted)}
   input[type="text"],input[type="number"],input[type="date"],select{
-    width:100%;padding:10px 12px;border-radius:12px;border:1px solid var(--inputBorder);
+    width:100%;padding:8px 10px;border-radius:12px;border:1px solid var(--inputBorder);
     background:var(--inputBg);outline:none;transition:.15s border-color,.15s box-shadow;
   }
   input:focus,select:focus{border-color:var(--inputFocus);box-shadow:0 0 0 3px rgba(0,122,255,.15)}
@@ -66,7 +66,6 @@
   .input-bar #tenSP{
     padding-block: 11px;   /* mặc định bạn đang ~10px */
   }
-
   table{width:100%;border-collapse:separate;border-spacing:0;margin-top:12px;background:var(--card);
     border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
   .table-scroll{flex:1 1 auto;min-height:0;overflow:auto;border:1px solid var(--line);border-radius:16px;background:var(--card);box-shadow:var(--shadow)}
@@ -125,6 +124,7 @@
     position:absolute; right:10px; top:50%; transform:translateY(-50%);
     color:#6b7280; font-size:12px; pointer-events:none; white-space:nowrap;
   }
+  
 </style>
 </head>
 <body>
@@ -163,7 +163,7 @@
     <section class="card">
       <div class="card-head"><h3>Thông tin khách hàng</h3><button id="themKH" type="button" class="icon-btn">➕</button></div>
       <div class="card-body">
-        <div class="form-row"><label>Mã KH</label><input list="dsMaKH" id="maKH" data-step="4"><datalist id="dsMaKH"></datalist></div>
+        <div class="form-row"><label>Mã KH</label><input type="text" list="dsMaKH" id="maKH" data-step="4"><datalist id="dsMaKH"></datalist></div>
         <div class="form-row"><label>Tên ĐV</label><input type="text" id="tenDV"></div>
         <div class="form-row"><label>SĐT</label><input type="text" id="sdt"></div>
         <div class="form-row"><label>MST</label><input type="text" id="mst"></div>
@@ -404,7 +404,7 @@ document.addEventListener("DOMContentLoaded", () => {
   btnIn.onclick = async () => {
 
   const { data:check } = await supabase
-    .from("stock_ledger")
+    .from("xuatkho")
     .select("id")
     .eq("sohd",sohdXuat)
     .limit(1);
@@ -439,31 +439,40 @@ async function xuatKhoHoaDon(sohd){
 
   const rows = document.querySelectorAll("#bangSPBody tr");
   const sopx = taoSoPhieuXuat(sohd);
+
   const data = [];
 
   rows.forEach(r=>{
 
+    const ngay = document.getElementById("ngayHD").value;
     const masp = r.querySelector(".maSP")?.value?.trim();
-
+    const tensp = r.querySelector(".tenSP")?.value?.trim();
+    const dvt   = r.querySelector(".dvt")?.value?.trim();
     const kho_id = r.querySelector(".khoSelect")?.value;
 
-    const sl = Number(
-      r.querySelector(".tongSL")?.value || 0
-    );
+    const sl = Number(r.querySelector(".tongSL")?.value || 0);
 
-    console.log("ROW:",masp,kho_id,sl);
+    const dongia = Number(r.querySelector(".donGia")?.value || 0);
 
-    if(!masp || !kho_id || sl<=0) return;
+    if(!masp || !kho_id) return;
 
     data.push({
-      masp,
-      kho_id,
-      qty: -sl,
-      ref_type: "xk",
-      ref_id:sopx,
+
+      sophieu: sopx,
       sohd: sohd,
-      ngay: new Date(),
-      note: "Xuất kho từ hóa đơn"
+
+      masp: masp,
+      tensp: tensp,
+      dvt: dvt,
+      kho_id: kho_id,
+
+      soluong: sl,
+      dongia: dongia,
+      thanhtien: sl * dongia,
+
+      ngay: ngay,
+      ghichu: "Xuất kho từ hóa đơn"
+
     });
 
   });
@@ -473,19 +482,8 @@ async function xuatKhoHoaDon(sohd){
     return;
   }
 
-  const { data:check } = await supabase
-    .from("stock_ledger")
-    .select("id")
-    .eq("sohd",sohd)
-    .limit(1);
-
-  if(check?.length){
-    alert("Hóa đơn đã xuất kho rồi");
-    return;
-  }
-
   const { error } = await supabase
-    .from("stock_ledger")
+    .from("xuatkho")
     .insert(data);
 
   if(error){
@@ -496,13 +494,13 @@ async function xuatKhoHoaDon(sohd){
 
   await supabase
     .from("hoadon")
-    .update({ 
+    .update({
       trangthai:"da xuat kho",
-      thamchieu:sopx 
+      thamchieu:sopx
     })
     .eq("sohd",sohd);
 
-  alert("Xuất kho thành công");
+  alert("Đã tạo phiếu xuất kho");
 
 }
 </script>

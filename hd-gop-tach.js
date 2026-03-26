@@ -106,9 +106,26 @@ function todayISO(){
   return `${d.getFullYear()}-${m}-${day}`;
 }
 // Tùy bạn thay bằng generator thực tế (sequence / rpc)
-function genSohd(prefix="BH"){
-  const rand = Math.floor(Math.random()*9000)+1000;
-  return `${prefix}-${rand}`;
+async function genSohd(prefix="BH"){
+
+  const { data, error } = await sb
+    .from("hoadon")
+    .select("sohd")
+    .like("sohd", `${prefix}%`)
+    .order("sohd", { ascending:false })
+    .limit(1);
+
+  if(error) throw error;
+
+  let next = 1;
+
+  if(data.length){
+    const last = data[0].sohd;
+    const num = parseInt(last.replace(prefix,"")) || 0;
+    next = num + 1;
+  }
+
+  return prefix + String(next).padStart(3,"0");
 }
 
 function getSelectedSohd(){
@@ -257,7 +274,7 @@ export async function gopDon(){
   if (!mergedRows.length) return toast("Không có dòng hợp lệ để gộp.");
 
   const tongtien = mergedRows.reduce((s, r) => s + (Number(r.soluong)||0)*(Number(r.dongia)||0), 0);
-  const sohdMoi = genSohd("BH"); 
+  const sohdMoi = await genSohd("BH");
 
   // Tạo HĐ mới
   const newHD = {
@@ -398,7 +415,7 @@ export async function tachDon(){
       const moves = modal.getPayload(); // [{id, sl}]
       if (!moves.length) return toast("Chưa chọn dòng/SL để tách.");
 
-      const sohdMoi = genSohd("BH"); // T = tách
+      const sohdMoi = await genSohd("BH");
       const insertRows = [];
       const updateOps  = [];
 
