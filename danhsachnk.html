@@ -85,6 +85,7 @@
     .btn-ghost:active{opacity:.85}
     .btn-icon{font-size:18px; line-height:0}
     .btn-danger{border-color:#fecaca; color:#b91c1c}
+    tr.row-nhapkho{color:#065f46; font-weight:600;}
 
     .summary{margin-top:8px; display:flex; gap:8px; align-items:center; color:var(--muted); font-size:13px; padding-left:2px;}
 
@@ -187,7 +188,7 @@
 
       let query = supabase
         .from("hoadon")
-        .select("*")
+        .select("sohd,ngay,makh,ghichu,tongthanhtoan,tinhtrang,thanhtoan,trangthai")
         .eq("phanloai", "nk")
         .order("ngay", { ascending:false })
         .order("sohd", { ascending:false });
@@ -211,10 +212,15 @@
       let tong = 0;
 
       data.forEach(hd => {
+        const khoa = hd.trangthai === "da nhap kho"
         const tien = parseFloat(String(hd.tongthanhtoan ?? "0").replace(/[^\d.-]/g,"")) || 0;
         tong += tien;
 
         const tr = document.createElement("tr");
+
+        if(hd.trangthai === "da nhap kho"){
+          tr.classList.add("row-nhapkho")
+        }
         const tt = (hd.tinhtrang || "chua");
         const thanhtoanSo = parseFloat(hd.thanhtoan || 0) || 0;
 
@@ -241,12 +247,17 @@
           </td>
           <td>
             <div style="display:flex; gap:8px; justify-content:center">
-              ${hd.trangthai === "da nhap kho"
-                ? `<span style="color:#9ca3af">🔒</span>`
-                : `<button class="btn-ghost btn-icon" data-view="${hd.sohd}" title="Xem">👁️</button>`
-                }
+              ${
+              khoa
+              ? `<button class="btn-ghost btn-icon" disabled style="opacity:.35;cursor:not-allowed">👁️</button>`
+              : `<button class="btn-ghost btn-icon" data-view="${hd.sohd}">👁️</button>`
+              }
               <button class="btn-ghost btn-icon" data-print="${hd.sohd}" title="In">🖨️</button>
-              <button class="btn-ghost btn-icon btn-danger" data-del="${hd.sohd}" title="Xoá">🗑️</button>
+              ${
+              khoa
+              ? `<button class="btn-ghost btn-icon btn-danger" disabled style="opacity:.35;cursor:not-allowed">🗑️</button>`
+              : `<button class="btn-ghost btn-icon btn-danger" data-del="${hd.sohd}">🗑️</button>`
+              }
             </div>
           </td>
         `;
@@ -337,8 +348,18 @@
     async function xoaNhieu(ds){
       if (!confirm(`Xóa ${ds.length} hóa đơn?`)) return;
       for (const sohd of ds){
-        await supabase.from("hoadon").delete().eq("sohd", sohd);
+        const { data: hd } = await supabase
+        .from("hoadon")
+        .select("trangthai")
+        .eq("sohd", sohd)
+        .single()
+        
+        if(hd?.trangthai === "da nhap kho"){
+        alert(`Hóa đơn ${sohd} đã nhập kho, không được xóa`)
+        continue
+      }
         await supabase.from("chitiet").delete().eq("sohd", sohd);
+        await supabase.from("hoadon").delete().eq("sohd", sohd);
       }
       alert("✅ Đã xóa!");
       await taiDanhSach();
@@ -395,9 +416,14 @@
       .from("chitiet")
       .select("*")
       .eq("sohd", sohd);
-    
-    const maspList = chitiet.map(r=>r.masp)
 
+    if(error){
+      alert(error.message);
+      continue
+    }
+    if(!chitiet?.length) continue
+
+    const maspList = chitiet.map(r=>r.masp)
     const { data: sp } = await supabase
       .from("sanpham")
       .select("masp,parent_id,dinhluong,is_stock_parent")
@@ -406,10 +432,7 @@
     const spMap={}
     sp.forEach(s=>spMap[s.masp]=s)
 
-    if(error){
-      alert(error.message);
-      return;
-    }
+   
 
     const ledgerRows = chitiet.map(r=>{
     let masp = r.masp
@@ -455,6 +478,21 @@
   alert("✅ Đã ghi sổ nhập kho");
 }
 
+function setMacDinhNgay(){
+
+const d = new Date()
+
+const y = d.getFullYear()
+const m = String(d.getMonth()+1).padStart(2,"0")
+const day = String(d.getDate()).padStart(2,"0")
+
+// ngày đầu tháng
+$("#tuNgay").value = `${y}-${m}-01`
+
+// ngày hôm nay
+$("#denNgay").value = `${y}-${m}-${day}`
+
+}
     // ======= Events =======
     $("#btnLoc").addEventListener("click", taiDanhSach);
 
@@ -481,19 +519,18 @@
       const v = e.target.getAttribute?.("data-view");
       const p = e.target.getAttribute?.("data-print");
       const d = e.target.getAttribute?.("data-del");
+      if(e.target.disabled) return
       if (v) xemHD(v);
       if (p) inHD(p);
       if (d) xoaNhieu([d]);
     });
 
     // Tải lần đầu
+    setMacDinhNgay()
     taiDanhSach();
 
-    function moFormNhap(){
-    window.location.href = "ghihd.html?phanLoai=ncc";
-  }
-  // xuất ra global để onclick gọi được
-  window.moFormNhap = moFormNhap;
+    function moFormNhap(){ window.location.href = "ghihd.html?phanLoai=ncc";}
+    window.moFormNhap = moFormNhap;
   </script>
 </body>
 </html>

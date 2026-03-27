@@ -125,12 +125,14 @@ async function init(){
     const sophieu = params.get("sophieu");
     
     const id = sohd || sophieu;
+    
 
     await loadNhanVienBanHang();
     await loadKhoList();
 
     // Đổ danh sách đơn gần đây nếu có khung
     if (typeof taiDonHangGanDay === "function") await taiDonHangGanDay();
+    
 
     // Nạp HĐ cũ nếu có sohd
     if (id) await taiHoaDonCu(id);
@@ -316,13 +318,13 @@ window.themDongSP = function(sp = {}) {
   const tensp   = sp.tensp ?? sp.ten_sp ?? "";
   const ghichu  = sp.ghichu ?? "";
   const kho_id  = sp.kho_id ?? "";
-  const soluong = Number(sp.soluong ?? sp.so_luong ?? 0);
+  const soluong = Number(sp.soluong ?? sp.so_luong ?? "");
   const spInfo = spMap?.[masp] || {};
 
   const dvtGoc = sp.dvt ?? sp.don_vi_tinh ?? spInfo.dvt ?? "";
   const dvtChuyen = spInfo.dvtchuyendoi ?? "";
 
-  const soLuong = Number(sp.soLuongNhap ?? sp.so_luong ?? 0);
+  const soLuong = Number(sp.soLuongNhap ?? sp.so_luong ?? "");
   const dvtNhap = sp.dvtNhap ?? "";
 
   // 🔥 KEY LOGIC
@@ -354,7 +356,7 @@ window.themDongSP = function(sp = {}) {
         <option value="">-- Chọn kho --</option>
       </select>
     </td>
-    <td><input class="soLuong" type="number" value="${soLuongDisplay}"></td>
+    <td><input class="soLuong" type="number" value="${soLuongDisplay|| ""}"></td>
     
     <td><input class="dvtNhap" value="${dvtNhapDisplay}"></td>
 

@@ -247,11 +247,17 @@ let tong=0
 
 data.forEach(hd=>{
 
+const khoa = hd.trangthai === "da ghi so"
 const tien=parseFloat(hd.tongtienvon)||0
 tong+=tien
 
-let badge="badge-ghiso"
-let text="Đang xử lí"
+let badge=""
+let text=""
+
+if(hd.trangthai==="lap phieu"){
+badge="badge-ghiso"
+text="Đang xử lí"
+}
 
 if(hd.trangthai==="da xuat kho"){
 badge="badge-lap"
@@ -298,11 +304,19 @@ ${hd.sohd || ""}
 <td>
 <div style="display:flex;gap:8px;justify-content:center">
 
-<button class="btn-ghost btn-icon" data-view="${hd.thamchieu}">👁️</button>
+${
+khoa
+? `<button class="btn-ghost btn-icon" disabled style="opacity:.35;cursor:not-allowed">👁️</button>`
+: `<button class="btn-ghost btn-icon" data-view="${hd.thamchieu}">👁️</button>`
+}
 
 <button class="btn-ghost btn-icon" data-print="${hd.sohd}">🖨️</button>
 
-<button class="btn-ghost btn-icon btn-danger" data-del="${hd.sohd}">🗑️</button>
+${
+khoa
+? `<button class="btn-ghost btn-icon btn-danger" disabled style="opacity:.35;cursor:not-allowed">🗑️</button>`
+: `<button class="btn-ghost btn-icon btn-danger" data-del="${hd.sohd}">🗑️</button>`
+}
 
 </div>
 </td>
@@ -313,10 +327,196 @@ tbody.appendChild(tr)
 })
 
 $("#tongTatCa").textContent=fmt(tong)
+$("#chkAll").checked = false
+capNhatDem()
+}
+async function xoaNhieu(ds){
+
+if(!confirm("Xóa "+ds.length+" phiếu xuất kho?")) return
+
+for(const sophieu of ds){
+  const { data: hd } = await supabase
+  .from("hoadon")
+  .select("trangthai")
+  .eq("thamchieu", sophieu)
+  .single()
+
+  if(hd?.trangthai === "da ghi so"){
+    alert(`Phiếu ${sophieu} đã ghi sổ, không được xóa`)
+    continue
+  }
+
+  // 1 xóa dữ liệu xuất kho
+  await supabase
+  .from("xuatkho")
+  .delete()
+  .eq("sophieu",sophieu)
+
+  // 2 bỏ liên kết hóa đơn
+  await supabase
+  .from("hoadon")
+  .update({ thamchieu:null, trangthai:"lap phieu"})
+  .eq("thamchieu",sophieu)
 
 }
 
+taiDanhSach()
 
+}
+async function moxuatkho(dsPhieu){
+
+for(const sophieu of dsPhieu){
+
+  // 1 kiểm tra đã ghi sổ chưa
+  const { data: check } = await supabase
+  .from("stock_ledger")
+  .select("id")
+  .eq("ref_id", sophieu)
+  .eq("ref_type", "xk")
+  .limit(1)
+
+  if(check?.length){
+    alert(`Phiếu ${sophieu} đã ghi sổ rồi`)
+    continue
+  }
+
+  // 2 lấy sohd
+  const { data: hd } = await supabase
+  .from("hoadon")
+  .select("sohd")
+  .eq("thamchieu", sophieu)
+  .single()
+
+  if(!hd){
+    alert("Không tìm thấy hóa đơn")
+    continue
+  }
+
+  // 3 lấy dữ liệu xuất kho
+  const { data: rows, error } = await supabase
+  .from("xuatkho")
+  .select("*")
+  .eq("sophieu", sophieu)
+
+  if(error){
+    alert(error.message)
+    continue
+  }
+
+  if(!rows?.length) continue
+
+
+  // 4 lấy thông tin sản phẩm
+  const maspList = rows.map(r=>r.masp)
+
+  const { data: sp } = await supabase
+  .from("sanpham")
+  .select("masp,parent_id,dinhluong,is_stock_parent")
+  .in("masp", maspList)
+
+  const spMap={}
+  sp.forEach(s=> spMap[s.masp]=s )
+
+
+  // 5 tạo ledger
+  const ledgerRows = rows.map(r=>{
+
+    const sp = spMap[r.masp]
+
+    let masp = r.masp
+    let qty = Number(r.soluong)
+    if(r.ref_type === "xk"){
+      qty = -qty
+    }
+
+    // nếu là sản phẩm con → đổi sang cha
+    if(sp && sp.parent_id && !sp.is_stock_parent){
+      masp = sp.parent_id
+      qty = qty * (sp.dinhluong || 1)
+    }
+
+    return{
+      kho_id: r.kho_id,
+      masp,
+      qty,
+      ref_type:"xk",
+      ref_id:sophieu,
+      sohd:hd.sohd,
+      ngay:r.ngay || new Date()
+    }
+
+  })
+
+
+  // 6 ghi ledger
+  const { error: err2 } = await supabase
+  .from("stock_ledger")
+  .insert(ledgerRows)
+
+  if(err2){
+    alert("Lỗi ghi sổ: "+err2.message)
+    continue
+  }
+
+  // 7 update trạng thái
+  await supabase
+  .from("hoadon")
+  .update({ trangthai:"da ghi so" })
+  .eq("thamchieu", sophieu)
+
+}
+
+alert("✅ Đã ghi sổ xuất kho")
+
+}
+function inHD(sohd){
+window.open(`xuatkho.html?sohd=${sohd}`,"_blank")
+}
+
+function inNhieu(ds){
+ds.forEach(s=>inHD(s))
+}
+
+
+async function ghiSoNhieu(ds){
+
+for(const sophieu of ds){
+
+await supabase
+.from("hoadon")
+.update({trangthai:"da ghi so"})
+.eq("thamchieu",sophieu)
+
+}
+
+taiDanhSach()
+
+}
+function setMacDinhNgay(){
+
+const d = new Date()
+
+const y = d.getFullYear()
+const m = String(d.getMonth()+1).padStart(2,"0")
+const day = String(d.getDate()).padStart(2,"0")
+
+$("#tuNgay").value = `${y}-${m}-01`
+$("#denNgay").value = `${y}-${m}-${day}`
+
+}
+
+$("#chonHanhDong").onchange = e=>{
+ const action=e.target.value
+ const ds=layDanhSachDaChon()
+
+ if(!ds.length) return alert("Chưa chọn phiếu")
+
+ if(action==="xoa") xoaNhieu(ds)
+ if(action==="in") inNhieu(ds)
+ if(action==="ghiso") moxuatkho(ds)
+
+ e.target.value=""
+}
 $("#btnLoc").onclick=taiDanhSach
 
 $("#chkAll").onchange=e=>{
@@ -335,11 +535,24 @@ const p=e.target.getAttribute("data-print")
 const d=e.target.getAttribute("data-del")
 
 if(v) window.open(`ghihd.html?sophieu=${v}&nguon=xuatkho`)
-if(p) window.open(`xuatkho.html?sohd=${p}`)
-if(d) console.log("delete",d)
+if(p) inHD(p)
+if(d) xoaNhieu([d])
+if(e.target.disabled) return
+})
+
+document.addEventListener("dblclick",e=>{
+
+const tr = e.target.closest("tr")
+if(!tr) return
+
+const sohd = tr.dataset.sohd
+if(!sohd) return
+
+window.open(`formIn.html?sohd=${sohd}`,"_blank")
 
 })
 
+setMacDinhNgay()
 taiDanhSach()
 
 </script>

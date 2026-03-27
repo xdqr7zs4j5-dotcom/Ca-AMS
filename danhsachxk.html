@@ -58,6 +58,7 @@
     .btn-icon{font-size:18px;line-height:0}
     .btn-danger{border-color:#fecaca;color:#b91c1c}
 
+    .tr-da-xuat{  color:#065f46; font-weight:600;}
     .summary{margin-top:8px;display:flex;gap:8px;align-items:center;color:var(--muted);font-size:13px;padding-left:2px}
   </style>
 </head>
@@ -239,10 +240,16 @@
       let tong = 0;
 
       data.forEach(hd => {
+        
         const tien = toNumber(hd.tongthanhtoan ?? hd.tongtien ?? 0);
         tong += tien;
 
         const tr = document.createElement("tr");
+        const daXuatKho = hd.trangthai === "da xuat kho" || hd.trangthai === "da ghi so";
+
+        if (daXuatKho) {
+          tr.classList.add("tr-da-xuat");
+        }
         const tt = (hd.tinhtrang || "chua");         // chua | dang | da
         const daPH = !!hd.phathanh;
         const daThanhToanSo = toNumber(hd.thanhtoan);
@@ -382,6 +389,13 @@
       if(!dsSoHD?.length) return;
       
       dsSoHD.forEach(sohd=>{
+
+      const hd = duLieuGoc.find(x => x.sohd === sohd);
+
+      if (hd?.trangthai === "da xuat kho" || hd?.trangthai === "da ghi so"){
+        alert("Hóa đơn này đã xuất kho rồi");
+        return;
+      }
       const url = `ghihd.html?sohd=${encodeURIComponent(sohd)}&mode=xuat`;
       window.open(url, "_blank");
     });
@@ -491,6 +505,17 @@
 
     // ====== Tải lần đầu ======
     initGopTachDon({ supabase });
+    
+    const now = new Date();
+    
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
+      .toISOString()
+      .slice(0,10);
+      
+    const today = now.toISOString().slice(0,10);
+    $("#tuNgay").value = firstDay;
+    $("#denNgay").value = today;
+    
     taiDanhSach();
   </script>
 </body>
