@@ -211,6 +211,18 @@ export async function taiHoaDonCu(id){
     setVal("#ngayHD",hd.ngay);
     setVal("#maKH",  hd.makh);
     setVal("#ghiChu",hd.ghichu ?? "");
+    // tự chọn phân loại nếu có phí phân bổ
+    const selPhanLoai = document.getElementById("phanLoai");
+    
+    if (selPhanLoai) {
+      if (hd.so_luong_pb !== null && hd.so_luong_pb !== undefined) {
+        selPhanLoai.value = "ncc";
+      } else {
+        selPhanLoai.value = "1.khách thường";
+      }
+      
+      selPhanLoai.dispatchEvent(new Event("change", { bubbles: true }));
+    }
     setVal("#chietKhau", hd.chietkhau ?? 0);
     setVal("#thue",      hd.thue ?? 0);
 
@@ -222,7 +234,7 @@ export async function taiHoaDonCu(id){
     }
 
     // 4b) Ẩn/hiện khung theo phân loại NK/KH
-    const isNK = String(hd.phanloai || "").trim().toLowerCase() === "nk";
+    const isNK = hd.so_luong_pb != null;
     const k4 = document.getElementById("recentInvoices") || document.getElementById("khung4");
     const k5 = document.getElementById("khuPhiPhanBo");
     if (k4) k4.classList.toggle("hidden",  isNK);

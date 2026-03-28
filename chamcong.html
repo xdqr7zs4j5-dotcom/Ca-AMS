@@ -26,7 +26,7 @@
   }
 
   /* ====== Card + Filters (giống DS Sản phẩm) ====== */
-  .wrap{flex:1 1 auto; min-height:0; padding:16px; display:flex; flex-direction:column; gap:12px}
+  .wrap{flex:1 1 auto; min-height:0; padding:8px; display:flex; flex-direction:column; gap:12px}
   .card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow)}
   .filters{display:flex; flex-wrap:wrap; gap:10px; padding:12px; align-items:center}
   .pill{display:flex; align-items:center; gap:8px; padding:6px 10px; border:1px solid var(--line); border-radius:12px; background:#fff}
@@ -384,6 +384,7 @@
 
   // ===== 4. HIỂN THỊ TỔNG =====
   tr.querySelector('.count-badge').textContent = stripZero(total);
+  countVal = total;
 };
       return tr;
     }
@@ -410,62 +411,58 @@
 
     // ===== Lưu chấm công (full/half) =====
     async function saveToChamCong(){
-      const {year, month} = getYearMonth();
-      const tu = `${year}-${pad(month)}-01`;
-      const den = new Date(year, month, 1);
-      const denStr = `${den.getFullYear()}-${pad(den.getMonth()+1)}-01`;
-      const thangText = `${pad(month)}/${year}`;
 
-      const rows = Array.from(document.querySelectorAll('#tbody tr'));
-      const byManv = new Map();
+  const {year, month} = getYearMonth();
+  const thangText = `${pad(month)}/${year}`;
 
-      rows.forEach(tr=>{
-        const manv = tr.querySelector('td:nth-child(3) input')?.value.trim();
-        if(!manv) return;
-        const marks = tr.querySelectorAll('.cell-mark');
-        const arr = [];
-        marks.forEach((btn, idx)=>{
-          const st = btn.dataset.state;
-          if(st==='0') return;
-          const d = currentDays[idx];
-          arr.push({ manv, ngay: isoDate(d), thang: thangText, loai: (st==='2' ? 'full' : 'half') });
-        });
-        byManv.set(manv, arr);
-      });
+  const rows = Array.from(document.querySelectorAll('#tbody tr'));
+  const records = [];
 
-      if(byManv.size===0){ alert('Chưa có mã NV nào.'); return; }
+  rows.forEach(tr=>{
+    const manv = tr.querySelector('td:nth-child(3) input')?.value.trim();
+    if(!manv) return;
 
-      for (const [manv, arrRaw] of byManv.entries()){
-        const rank = v => v.loai === 'full' ? 2 : 1;
-        const mapByDay = new Map();
-        for (const r of arrRaw) { const old = mapByDay.get(r.ngay); if (!old || rank(r) > rank(old)) mapByDay.set(r.ngay, r); }
-        const arr = [...mapByDay.values()];
+    const marks = tr.querySelectorAll('.cell-mark');
 
-        const del = await supabase
-          .from('chamcong')
-          .delete()
-          .eq('manv', manv)
-          .gte('ngay', tu).lt('ngay', denStr)
-          .in('loai', ['full','half']);
-        if (del.error) { alert(`Lỗi xoá ${manv}: ${del.error.message}`); return; }
+    marks.forEach((btn, idx)=>{
+  const st = btn.dataset.state;
+  if(st === '0') return;
 
-        if (arr.length){
-          const ins = await supabase.from('chamcong').insert(arr);
-          if (ins.error) { alert(`Lỗi ghi ${manv}: ${ins.error.message}`); return; }
-        }
-      }
+  const d = viewDays[idx];
 
-      await loadChamCongThang();
-      document.querySelectorAll('#tbody tr').forEach(tr=>{
-        const manv = tr.querySelector('td:nth-child(3) input')?.value.trim();
-        if(manv) applyTicksFromCache(tr, manv);
-      });
-      const t = new Date().toISOString().slice(0,10);
-      localStorage.setItem('cc_done_' + t, String(Date.now()));
-      window.top?.postMessage({ type: 'CC_DONE' }, '*');
-      
-      alert('Đã lưu chấm công.');
-    }
+  records.push({
+    manv,
+    ngay: isoDate(d),
+    thang: thangText,
+    loai: (st === '2' ? 'full' : 'half')
+  });
+});
+  });
+
+  if(records.length === 0){
+    alert('Không có dữ liệu.');
+    return;
+  }
+
+  // UPSERT
+  const { error } = await supabase
+    .from('chamcong')
+    .upsert(records, { onConflict: 'manv,ngay' });
+
+  if(error){
+    alert('Lỗi lưu: ' + error.message);
+    return;
+  }
+
+  await loadChamCongThang();
+
+  document.querySelectorAll('#tbody tr').forEach(tr=>{
+    const manv = tr.querySelector('td:nth-child(3) input')?.value.trim();
+    if(manv) applyTicksFromCache(tr, manv);
+  });
+
+  alert('Đã lưu chấm công.');
+}
 
     // ===== Lưu Ứng/Thưởng =====
     async function saveUngThuong(){
@@ -521,19 +518,17 @@
     });
     syncToggleUI();
 
-    // Render tổng
-    function renderAll(){
-      const {year, month} = getYearMonth();
-      currentDays = getDaysOfMonth(year, month);
-      const viewDays = getViewDaysForRender(currentDays);
-      $('#subtitle').textContent = `Tháng ${pad(month)}/${year}`;
-      renderHeader(viewDays);
-      renderBody(viewDays, 5);
-      document.querySelectorAll('#tbody tr').forEach(tr=>{
-        const manv = tr.querySelector('td:nth-child(3) input')?.value.trim();
-        if(manv) applyTicksFromCache(tr, manv);
-      });
-    }
+    let viewDays = [];
+
+function renderAll(){
+  const {year, month} = getYearMonth();
+  currentDays = getDaysOfMonth(year, month);
+
+  viewDays = getViewDaysForRender(currentDays);
+
+  renderHeader(viewDays);
+  renderBody(viewDays);
+}
 
     // Events
     $('#chonThang').value = `${today.getFullYear()}-${pad(today.getMonth()+1)}`;
