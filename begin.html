@@ -27,16 +27,16 @@
     /* Grid 4 hàng */
     .wrap{
       height:100vh;
-      padding:var(--pad);
+      padding:0 6px 0 0px;
       display:grid;
-      grid-template-rows: 150px 180px 1fr;
-      gap:var(--gap);
+      grid-template-rows: 250px 1fr;
+      gap:1px;
       overflow:hidden;
     }
 
     .card{
-      background:var(--card); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow);
-      display:flex; flex-direction:column; min-height:0; overflow:hidden;
+      background:var(--card); border:1px solid var(--line); border-radius:0; box-shadow:var(--shadow);
+      display:flex; flex-direction:column; height:100%; min-height:0;overflow:hidden;
     }
 
     /* Thanh tiêu đề + điều khiển trên cùng 1 hàng */
@@ -48,21 +48,10 @@
     .section-bar .title{ font-weight:800; margin-right:auto }
 
     .section{padding:12px}
-    .card-body{flex:1 1 auto; min-height:0; overflow:auto}
-    .card-body::-webkit-scrollbar{ width:8px; height:8px }
-    .card-body::-webkit-scrollbar-thumb{ background:#d1d5db; border-radius:12px }
+    .card-body{flex:1 1 auto; min-height:0; overflow-y:auto; overflow-x:hidden;max-height:100%;}
+    .card-body::-webkit-scrollbar{ width:6px; }
+    .card-body::-webkit-scrollbar-thumb{ background:#d1d5db; border-radius:6px }
     .card-body::-webkit-scrollbar-track{ background:transparent }
-
-    /* KPI */
-    .kpi-wrap{display:grid; grid-template-columns:repeat(3,1fr); gap:12px; padding:12px}
-    .kpi{border:1px solid var(--line); border-radius:12px; padding:14px}
-    .kpi .label{font-size:12px; color:var(--muted)}
-    .kpi .value{font-size:28px; font-weight:800; margin-top:6px}
-    .chips{display:flex; gap:6px; flex-wrap:wrap; margin-top:8px}
-    .chip-mini{font-size:12px; padding:4px 8px; border-radius:12px; color:#fff}
-    .chip-mini.red{background:var(--red)}
-    .chip-mini.yellow{background:var(--yellow)}
-    .chip-mini.green{background:var(--green)}
 
     /* Inputs & buttons */
     .pill{display:flex; align-items:center; gap:8px; padding:6px 10px; border:1px solid var(--line); border-radius:12px; background:#fff}
@@ -137,9 +126,6 @@
     @media (max-width: 900px){
       :root{
         --h-notes: 50vh;
-        --h-kpi:  30vh;
-        --h-kh:  30vh;
-        --h-sp: calc(100vh - 2*var(--pad) - 3*var(--gap) - var(--h-kpi) - var(--h-kh) - var(--h-notes));
       }
       .kpi-wrap{grid-template-columns:1fr}
     }
@@ -154,40 +140,6 @@
 </head>
 <body>
   <div class="wrap">
-     <!-- 1) Doanh thu + trạng thái -->
-    <div class="card">
-      <div class="card-body">
-        <div class="kpi-wrap">
-          <div class="kpi">
-            <div class="label">Hôm nay</div>
-            <div class="value" id="revToday">0</div>
-            <div class="chips">
-              <span class="chip-mini red">Chưa <b id="stTodayChua">0</b></span>
-              <span class="chip-mini yellow">Đang <b id="stTodayDang">0</b></span>
-              <span class="chip-mini green">Đã <b id="stTodayDa">0</b></span>
-            </div>
-          </div>
-          <div class="kpi">
-            <div class="label">Hôm qua</div>
-            <div class="value" id="revYesterday">0</div>
-            <div class="chips">
-              <span class="chip-mini red">Chưa <b id="stYestChua">0</b></span>
-              <span class="chip-mini yellow">Đang <b id="stYestDang">0</b></span>
-              <span class="chip-mini green">Đã <b id="stYestDa">0</b></span>
-            </div>
-          </div>
-          <div class="kpi">
-            <div class="label">Tháng này</div>
-            <div class="value" id="revMonth">0</div>
-            <div class="chips">
-              <span class="chip-mini red">Chưa <b id="stMonthChua">0</b></span>
-              <span class="chip-mini yellow">Đang <b id="stMonthDang">0</b></span>
-              <span class="chip-mini green">Đã <b id="stMonthDa">0</b></span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
      <!-- 2) Ghi chú nhanh (localStorage) -->
     <div class="card">
       <div class="section-bar">
@@ -244,67 +196,6 @@
     const addDays = (date, n)=>{ const d=new Date(date); d.setDate(d.getDate()+n); return d; };
     function monthRange(d=new Date()){ const y=d.getFullYear(), m=d.getMonth(); const s=new Date(y,m,1), e=new Date(y,m+1,1); return {start:s.toISOString().slice(0,10), end:e.toISOString().slice(0,10)}; }
 
-    // ===== 1) Doanh thu từ VIEW =====
-    async function loadRevenue(){
-      const today = todayStr();
-      const yesterday = todayStr(addDays(new Date(), -1));
-      const ym = new Date().toISOString().slice(0,7); // "YYYY-MM"
-
-      async function getDay(ngay){
-        const { data, error } = await supabase.from('v_bc_doanhthu_ngay').select('*').eq('ngay', ngay).limit(1);
-        if (error){ console.error(error); return {sum:0,cnt:0}; }
-        const row = (data||[])[0] || {};
-        const sum = Number(row.doanhthu ?? row.tong ?? row.tongtien ?? row.sum ?? 0);
-        const cnt = Number(row.so_don ?? row.count ?? row.sodon ?? 0);
-        return { sum, cnt };
-      }
-      function rangeFromYM(ym){
-        const [y,m] = ym.split('-').map(Number);
-        const s = new Date(y, m-1, 1);
-        const e = new Date(y, m,   1);
-        const fmt = d => d.toISOString().slice(0,10);
-        return { start: fmt(s), end: fmt(e) };
-      }
-      async function getMonth(ym){
-        let { data, error } = await supabase
-          .from('v_bc_doanhthu_thang')
-          .select('doanhthu, giavon, profit')
-          .eq('label', ym)
-          .limit(1);
-        if (error) console.error('[getMonth] view_thang error:', error);
-        let row = (data || [])[0];
-
-        if (!row) {
-          const { start, end } = rangeFromYM(ym);
-          const r2 = await supabase
-            .from('v_bc_doanhthu_ngay')
-            .select('doanhthu, giavon, profit')
-            .gte('ngay', start)
-            .lt('ngay', end);
-          if (r2.error) {
-            console.error('[getMonth] fallback error:', r2.error);
-            return { sum:0, giavon:0, profit:0, cnt:0 };
-          }
-          const list = r2.data || [];
-          const sum    = list.reduce((a,x)=>a + Number(x.doanhthu||0), 0);
-          const giavon = list.reduce((a,x)=>a + Number(x.giavon||0),    0);
-          const profit = list.reduce((a,x)=>a + Number(x.profit||0),    0);
-          return { sum, giavon, profit, cnt: list.length };
-        }
-        return {
-          sum:    Number(row.doanhthu || 0),
-          giavon: Number(row.giavon   || 0),
-          profit: Number(row.profit   || 0),
-          cnt: 0
-        };
-      }
-
-      const [t, y, m] = await Promise.all([ getDay(today), getDay(yesterday), getMonth(ym) ]);
-      $('#revToday').textContent = moneyVN(t.sum);
-      $('#revYesterday').textContent = moneyVN(y.sum);
-      $('#revMonth').textContent = moneyVN(m.sum);
-    }
-
     // ===== 2) Trạng thái =====
     async function statusCountsRange(startIncl, endExcl){
       const qBase = { count:'exact', head:true };
@@ -313,22 +204,6 @@
       const da   = supabase.from('hoadon').select('*', qBase).gte('ngay', startIncl).lt('ngay', endExcl).eq('tinhtrang','da');
       const [c1,c2,c3] = await Promise.all([chua,dang,da]);
       return { chua:c1.count||0, dang:c2.count||0, da:c3.count||0 };
-    }
-    async function loadStatuses(){
-      const today = todayStr();
-      const tStart = today, tEnd = todayStr(addDays(new Date(today), 1));
-      const yStart = todayStr(addDays(new Date(), -1)), yEnd = today;
-      const { start:mStart, end:mEnd } = monthRange();
-
-      const [stT, stY, stM] = await Promise.all([
-        statusCountsRange(tStart, tEnd),
-        statusCountsRange(yStart, yEnd),
-        statusCountsRange(mStart, mEnd),
-      ]);
-
-      $('#stTodayChua').textContent = stT.chua; $('#stTodayDang').textContent = stT.dang; $('#stTodayDa').textContent = stT.da;
-      $('#stYestChua').textContent  = stY.chua; $('#stYestDang').textContent  = stY.dang; $('#stYestDa').textContent  = stY.da;
-      $('#stMonthChua').textContent = stM.chua; $('#stMonthDang').textContent = stM.dang; $('#stMonthDa').textContent = stM.da;
     }
 
     // ===== 5) GHI CHÚ NHANH – localStorage =====
@@ -419,10 +294,6 @@
 
     // ===== INIT =====
     (async function init(){
-      await Promise.all([
-        loadRevenue(),
-        loadStatuses(),
-      ]);
       renderNotes(); // localStorage
     })();
   </script>

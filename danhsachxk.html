@@ -348,7 +348,13 @@
 
     // ====== Hành động ======
     function in1(sohd){ window.open(`formIn.html?sohd=${encodeURIComponent(sohd)}`, "_blank", "width=900,height=600"); }
-    function xem1(sohd){ window.open(`ghihd.html?sohd=${encodeURIComponent(sohd)}`, "_blank"); }
+    function xem1(sohd){ 
+      parent.openTab(
+        "hd-"+sohd,
+        "HĐ "+sohd,
+        "ghihd.html?sohd="+encodeURIComponent(sohd)
+      )
+    }
 
     function inGopNhieu(ds){
       if (!ds?.length) return alert("Chọn hoá đơn để in!");
@@ -382,24 +388,33 @@
 
     function moformphathanh(dsSoHD){
       const url = `formphathanh.html?sohdlist=${encodeURIComponent(JSON.stringify(dsSoHD))}`;
-      window.open(url, "_blank", "width=900,height=600");
+      parent.openTab(
+        "ph-"+Date.now(),
+        "Phát hành",
+        url
+      )
     }
 
     function moxuatkho(dsSoHD){
-      if(!dsSoHD?.length) return;
+  if(!dsSoHD?.length) return;
       
-      dsSoHD.forEach(sohd=>{
+  dsSoHD.forEach(sohd=>{
 
-      const hd = duLieuGoc.find(x => x.sohd === sohd);
+    const hd = duLieuGoc.find(x => x.sohd === sohd);
 
-      if (hd?.trangthai === "da xuat kho" || hd?.trangthai === "da ghi so"){
-        alert("Hóa đơn này đã xuất kho rồi");
-        return;
-      }
-      const url = `ghihd.html?sohd=${encodeURIComponent(sohd)}&mode=xuat`;
-      window.open(url, "_blank");
-    });
-  }
+    if (hd?.trangthai === "da xuat kho" || hd?.trangthai === "da ghi so"){
+      alert("Hóa đơn này đã xuất kho rồi");
+      return;
+    }
+
+    parent.openTab(
+      "xk-"+sohd,
+      "Xuất "+sohd,
+      `ghihd.html?sohd=${encodeURIComponent(sohd)}&mode=xuat`
+    )
+
+  })
+}
 
     async function xoaNhieu(ds){
       if (!ds?.length) return;

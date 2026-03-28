@@ -1,18 +1,22 @@
+import { supabase } from "./supabase.config.js"
 // =====================
 // Cá AMS – App Shell
 // =====================
 
 // ---- DOM ----
 const body      = document.body;
-const menuEl   = document.getElementById('menu');
-const view     = document.getElementById('view');
-const sbTitle  = document.getElementById('sbTitle');
-const btnToggle= document.getElementById('btnToggle');
-const tabbar   = document.getElementById('tabbar');
+const menuEl    = document.getElementById('menu');
+const viewWrap  = document.getElementById('viewWrap');
+const sbTitle   = document.getElementById('sbTitle');
+const btnToggle = document.getElementById('btnToggle');
+const tabbar    = document.getElementById('tabbar');
+
+const tabMap = new Map()
 
 // ---- Helpers ----
 const mqMobile = window.matchMedia('(max-width: 768px)');
 const isMobile = () => mqMobile.matches;
+const tabsEl = document.getElementById("tabs")
 
 // ---- UI MODE ----
 function applyUIMode() {
@@ -33,9 +37,10 @@ const ICON = {
   'Tra cứu':'🔎',
   'Hóa đơn':'📑',
   'Nhập kho':'📋',
-  'Danh sách SP':'📦',
   'Thêm SP':'➕',
+  'Thêm KH':'➕',
   'Nhân sự':'👤',
+  'Kho':'📦',
   'Cài đặt':'⚙️'
 };
 
@@ -44,22 +49,24 @@ const MENU = [
   { text:'Bán hàng', url:'./ghihd.html' },
   { text:'Tra cứu', url:'./tracuu.html' },
   {
-    text:'Hóa đơn',url:'./danhsachxk.html',
+    text:'Hóa đơn',
     children:[
-      { text:'Xuất kho', url:'./danhsachph.html' },
+      { text:'Bán hàng', url:'./danhsachxk.html' },
       { text:'Nhập kho', url:'./danhsachnk.html'},
+      { text:'Xuất kho', url:'./danhsachph.html' },  
     ]
   },
 
-  { text:'Danh sách SP', url:'./danhsachsp.html' },
+  { text:'Sản phẩm', url:'./danhsachsp.html' },
   { text:'Thêm SP', url:'./nhapsp.html' },
-  { text:'Danh sách KH', url:'./danhsachkh.html' },
+  { text:'Khách hàng', url:'./danhsachkh.html' },
   { text:'Thêm KH', url:'./nhapkh.html' },
   { text:'Báo cáo', url:'./baocao.html' },
 
   {
-    text:'Nhân sự',url:'./nhansu.html' ,
+    text:'Nhân sự',
     children:[
+      { text:'Danh sách', url:'./nhansu.html' },
       { text:'Chấm công', url:'./chamcong.html' },
       { text:'Bậc lương', url:'./thietlapluong.html' },
       { text:'Thiết lập', url:'./thietlappc.html' }
@@ -71,8 +78,8 @@ const MENU = [
     text:'Kho',
     children:[
       { text:'Tồn kho', url:'./tk_theodoi.html' },
-      { text:'Kiểm kho', url:'tk_chinh.html' },
-      { text:'Chuyển kho', url:'tk_chuyen.html' },
+      { text:'Kiểm kho', url:'./tk_chinh.html' },
+      { text:'Chuyển kho', url:'./tk_chuyen.html' },
       { text:'Thiết lập', url:'./thietlapkho.html' }
     ]
   },
@@ -117,24 +124,9 @@ function renderMenu() {
         <span class="arrow">▾</span>
       `;
 
-      parent.onclick = (e) => {
-  // nếu click vào mũi tên → chỉ toggle
-  if (e.target.closest('.arrow')) {
-    group.classList.toggle('open');
-    return;
-  }
-
-  // còn lại → đi trang của menu cha
-  if (item.url) {
-    activeUrl = item.url;
-    view.src = item.url;
-    renderMenu();
-
-    if (body.dataset.ui === 'mobile') {
-      body.classList.remove('menu-open');
-    }
-  }
-};
+      parent.onclick = () => {
+  group.classList.toggle('open')
+}
 
       const sub = document.createElement('div');
       sub.className = 'submenu';
@@ -148,14 +140,20 @@ function renderMenu() {
         `;
 
         btn.onclick = () => {
-          activeUrl = ch.url;
-          view.src = ch.url;
-          renderMenu();
 
-          if (body.dataset.ui === 'mobile') {
-            body.classList.remove('menu-open');
-          }
-        };
+  openTab(
+    ch.url,
+    ch.text,
+    ch.url
+  )
+
+  activeUrl = ch.url
+  renderMenu()
+
+  if (body.dataset.ui === 'mobile') {
+    body.classList.remove('menu-open')
+  }
+}
 
         sub.appendChild(btn);
       });
@@ -174,14 +172,20 @@ function renderMenu() {
     `;
 
     btn.onclick = () => {
-      activeUrl = item.url;
-      view.src = item.url;
-      renderMenu();
 
-      if (body.dataset.ui === 'mobile') {
-        body.classList.remove('menu-open');
-      }
-    };
+  window.openTab(
+    item.url,
+    item.text,
+    item.url
+  )
+
+  activeUrl = item.url
+  renderMenu()
+
+  if (body.dataset.ui === 'mobile') {
+    body.classList.remove('menu-open')
+  }
+}
 
     menuEl.appendChild(btn);
   });
@@ -230,7 +234,6 @@ function renderTabbar() {
         return;
       }
       activeUrl = tab.url;
-      view.src = tab.url;
       renderMenu();
     };
 
@@ -238,21 +241,118 @@ function renderTabbar() {
   });
 }
 
+const tabs = {}
+
+window.openTab = function(id,title,url){
+
+  if(tabs[id]){
+    setActiveTab(id)
+    return
+  }
+
+  tabs[id] = url
+
+  // ⭐ TẠO IFRAME
+  const frame = document.createElement("iframe")
+  frame.src = url
+  frame.className = "tab-frame"
+
+  viewWrap.appendChild(frame)
+  tabMap.set(url,frame)
+
+  const tab = document.createElement("div")
+  tab.className = "tab"
+  tab.dataset.id = id
+
+  tab.innerHTML = `
+    <span>${title}</span>
+    <span class="close">✕</span>
+  `
+
+  tab.onclick = ()=> setActiveTab(id)
+
+  tab.querySelector(".close").onclick = (e)=>{
+    e.stopPropagation()
+    closeTab(id)
+  }
+
+  tabsEl.appendChild(tab)
+
+  setActiveTab(id)
+}
+
+function setActiveTab(id){
+
+  const url = tabs[id]
+
+  const frame = tabMap.get(url)
+  
+  if(frame){
+    document.querySelectorAll(".tab-frame").forEach(f=>f.classList.remove("active"))
+    frame.classList.add("active")
+  }
+
+  document.querySelectorAll(".tab").forEach(t=>{
+    t.classList.toggle("active", t.dataset.id === id)
+  })
+}
+
+function closeTab(id){
+
+  const tab = tabsEl.querySelector(`[data-id="${id}"]`)
+  if(tab) tab.remove()
+
+  delete tabs[id]
+
+  const last = Object.keys(tabs).pop()
+
+  if(last){
+    setActiveTab(last)
+  }
+}
+async function loadMiniKPI(){
+
+  const today = new Date().toISOString().slice(0,10)
+
+  // doanh thu hôm nay
+  const { data:rev } = await supabase
+    .from("v_bc_doanhthu_ngay")
+    .select("doanhthu")
+    .eq("ngay",today)
+    .limit(1)
+
+  document.getElementById("miniRev").textContent =
+    Number(rev?.[0]?.doanhthu || 0).toLocaleString("vi-VN")
+
+  const qBase = {count:"exact",head:true}
+
+  const [c1,c2,c3] = await Promise.all([
+    supabase.from("hoadon").select("*",qBase).eq("ngay",today).or("tinhtrang.is.null,tinhtrang.eq.chua"),
+    supabase.from("hoadon").select("*",qBase).eq("ngay",today).eq("tinhtrang","dang"),
+    supabase.from("hoadon").select("*",qBase).eq("ngay",today).eq("tinhtrang","da")
+  ])
+
+  document.getElementById("miniChua").textContent = c1.count || 0
+  document.getElementById("miniDang").textContent = c2.count || 0
+  document.getElementById("miniDa").textContent   = c3.count || 0
+}
 // ---- INIT ----
-view.src = activeUrl;
+window.openTab(activeUrl,"Trang chủ",activeUrl)
 renderMenu();
 renderTabbar();
+loadMiniKPI()
 
 // ---- RE-RENDER ON MODE CHANGE ----
 mqMobile.addEventListener('change', () => {
   renderTabbar();
   renderMenu();
+  loadMiniKPI()
 });
 
 // ---- CLICK LOGO / TITLE -> VỀ TRANG BẮT ĐẦU ----
 sbTitle.addEventListener('click', () => {
   activeUrl = './begin.html';
-  view.src = activeUrl;
+  window.openTab(activeUrl,"Trang chủ",activeUrl)
   renderMenu();
 
   // mobile thì đóng sidebar luôn
@@ -260,4 +360,3 @@ sbTitle.addEventListener('click', () => {
     body.classList.remove('menu-open');
   }
 });
-

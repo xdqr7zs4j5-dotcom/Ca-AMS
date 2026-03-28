@@ -19,7 +19,6 @@
       --muted:#6b7280;
       --line:#e5e7eb;
       --blue:#007aff;
-      --radius:16px;
       --safe-top:env(safe-area-inset-top,0px);
       --safe-bottom:env(safe-area-inset-bottom,0px);
     }
@@ -39,28 +38,28 @@
 
     /* ================= DESKTOP ================= */
     body[data-ui="desktop"] .app{
-      padding:16px;
-      gap:16px;
+      padding:0px;
+      gap:2px;
     }
 
     body[data-ui="desktop"] .sidebar{
       width:200px;
       background:var(--card);
-      border-radius:var(--radius);
-      padding:14px;
+      border-radius:0;
+      padding:0px 6px;
       display:flex;
       flex-direction:column;
     }
 
     body[data-ui="desktop"].collapsed .sidebar{
-      width:72px;
-      padding:10px;
+      width:70px;
+      padding:0px 6px;
     }
 
     body[data-ui="desktop"] .content{
       flex:1;
       background:var(--card);
-      border-radius:var(--radius);
+      border-radius:0;
       overflow:hidden;
     }
 
@@ -105,28 +104,31 @@
 
     /* ================= SIDEBAR COMMON ================= */
     .sb-head{
+      position:relative;
       display:flex;
-      flex-direction:column;
-      align-items:flex-start;
-      gap:6px;
+      align-items:center;
+      padding:10px 6px 6px;
       margin-bottom:12px;
     }
     .sb-title{
       font-weight:700;
-      padding:6px 5px;
-      border-radius:8px;
+      font-size:18px;
+      padding:0px 4px;
       cursor:pointer;
     }
     .sb-title:hover{background:#f3f4f6}
 
     .toggle{
+      position:absolute;
+      right:-6px;
+      top:55%;
+      transform:translateY(-50%);
       border:0;
       background:transparent;
       cursor:pointer;
-      font-size:16px;
+      font-size:18px;
       color:var(--muted);
     }
-
     .menu{
       display:flex;
       flex-direction:column;
@@ -141,8 +143,7 @@
       display:flex;
       align-items:center;
       gap:10px;
-      padding:10px 2px;
-      border-radius:10px;
+      padding:8px;
       border:0;
       background:transparent;
       cursor:pointer;
@@ -153,19 +154,22 @@
       background:#eef2ff;
       color:#1e40af;
     }
-    .item .ic{width:24px;text-align:center}
+    .item .ic{width:30px;text-align:center;font-size:18px;}
+    .content{ border-left:1px solid #e5e7eb;}
 
     body[data-ui="desktop"].collapsed .item .txt{
       display:none;
     }
     body[data-ui="desktop"].collapsed #sbTitle{
-    font-size:0;}
-
+      font-size:0;
+      width:34px;
+      height:34px;
+      background:url("./icons/icon-192.png") center/contain no-repeat;
+      border-radius:12px;
+    }
     body[data-ui="desktop"].collapsed #sbTitle::after{
-  content:"Cá";
-  font-size:18px;
-  font-weight:700;
-}
+      font-weight:700;
+    }
 
     /* ================= CONTENT ================= */
     iframe#view{
@@ -248,6 +252,14 @@
 body[data-ui="desktop"].collapsed .submenu{
   padding-left:0;
 }
+body[data-ui="desktop"].collapsed .toggle{
+  opacity:0;
+  pointer-events:none;
+}
+body[data-ui="desktop"].collapsed .sidebar:hover .toggle{
+  opacity:1;
+  pointer-events:auto;
+}
 body[data-ui="mobile"] .menu{
   padding-bottom: calc(56px + var(--safe-bottom));
 }
@@ -259,15 +271,77 @@ body[data-ui="mobile"] .menu{
   margin:0;
   padding:0;
 }
-.toggle{
-  position:absolute;
-  top:530px;
-  left:14px;   /* vị trí ngoài sidebar */
-  z-index:500;
-}
 .sidebar{
   position:relative;
 }
+.tabs{
+  height:42px;
+  border-bottom:1px solid var(--line);
+  display:flex;
+  align-items:center;
+  overflow-x:auto;
+  gap:4px;
+  padding:0 6px;
+  background:#fafafa;
+}
+
+.tab{
+  padding:6px 12px;
+  border-radius:10px;
+  background:#fff;
+  border:1px solid var(--line);
+  font-size:13px;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+
+.tab.active{
+  background:#eef2ff;
+  color:#1e40af;
+}
+
+.tab .close{
+  font-size:12px;
+  opacity:.6;
+  cursor:pointer;
+}
+#viewWrap{
+  width:100%;
+  height:100%;
+  position:relative;
+}
+
+.tab-frame{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  border:0;
+  display:none;
+}
+
+.tab-frame.active{
+  display:block;
+}
+.kpi-mini{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-size:12px;
+  margin-right:10px;
+  padding-right:10px;
+  border-right:1px solid #e5e7eb;
+}
+
+.kpi-mini span{
+  color:#374151;
+}
+
+.kpi-mini .red{color:#ff3b30}
+.kpi-mini .yellow{color:#f59e0b}
+.kpi-mini .green{color:#34c759}
   </style>
 
   <script type="module" src="./app.js" defer></script>
@@ -281,7 +355,7 @@ body[data-ui="mobile"] .menu{
     <!-- Sidebar -->
     <aside class="sidebar">
       <div class="sb-head">
-        <div class="sb-title" id="sbTitle">Trang chủ</div>
+        <div class="sb-title" id="sbTitle">Cá AMS</div>
         <button class="toggle" id="btnToggle">☰</button>
       </div>
       <nav class="menu" id="menu"></nav>
@@ -289,8 +363,21 @@ body[data-ui="mobile"] .menu{
 
     <!-- Content -->
     <main class="content">
-      <iframe id="view" src="./begin.html"></iframe>
-    </main>
+
+  <div class="tabs" id="tabs">
+
+  <div class="kpi-mini">
+    <span>DT: <b id="miniRev">0</b></span>
+    <span class="red">C: <b id="miniChua">0</b></span>
+    <span class="yellow">Đ: <b id="miniDang">0</b></span>
+    <span class="green">X: <b id="miniDa">0</b></span>
+  </div>
+
+</div>
+
+<div id="viewWrap"></div>
+
+</main>
   </div>
 
   <!-- Mobile Tabbar -->

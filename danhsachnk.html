@@ -366,7 +366,13 @@
     }
     
     function inHD(sohd){ window.open(`formIn.html?sohd=${sohd}`, "_blank", "width=900,height=600"); }
-    function xemHD(sohd){ window.open(`ghihd.html?sohd=${sohd}`, "_blank");}
+    function xemHD(sohd){
+      parent.openTab(
+        "hd-"+sohd,
+        "HĐ "+sohd,
+        "ghihd.html?sohd="+sohd
+      )
+    }
     function inNhieu(ds){ ds.forEach(sohd => inHD(sohd)); }
 
     async function thanhToanNhieu(ds){
@@ -529,7 +535,13 @@ $("#denNgay").value = `${y}-${m}-${day}`
     setMacDinhNgay()
     taiDanhSach();
 
-    function moFormNhap(){ window.location.href = "ghihd.html?phanLoai=ncc";}
+    function moFormNhap(){
+      parent.openTab(
+        "hd-new",
+        "Đặt hàng",
+        "ghihd.html?phanLoai=ncc"
+      )
+    }
     window.moFormNhap = moFormNhap;
   </script>
 </body>
