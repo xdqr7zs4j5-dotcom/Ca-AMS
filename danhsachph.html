@@ -383,7 +383,7 @@ for(const sophieu of dsPhieu){
   // 2 lấy sohd
   const { data: hd } = await supabase
   .from("hoadon")
-  .select("sohd")
+  .select("sohd, phanloai")
   .eq("thamchieu", sophieu)
   .single()
 
@@ -425,9 +425,11 @@ for(const sophieu of dsPhieu){
 
     let masp = r.masp
     let qty = Number(r.soluong)
-    if(r.ref_type === "xk"){
-      qty = -qty
-    }
+    
+    // xử lý theo loại chứng từ
+    if(hd.phanloai === "xk"){
+      qty = -Math.abs(qty)
+    }  
 
     // nếu là sản phẩm con → đổi sang cha
     if(sp && sp.parent_id && !sp.is_stock_parent){
@@ -477,21 +479,6 @@ function inNhieu(ds){
 ds.forEach(s=>inHD(s))
 }
 
-
-async function ghiSoNhieu(ds){
-
-for(const sophieu of ds){
-
-await supabase
-.from("hoadon")
-.update({trangthai:"da ghi so"})
-.eq("thamchieu",sophieu)
-
-}
-
-taiDanhSach()
-
-}
 function setMacDinhNgay(){
 
 const d = new Date()
