@@ -167,6 +167,68 @@ function onDvtCD2Change() {
   const get = id => document.getElementById(id).value.trim();
   const isParent = document.getElementById("isParent").checked;
   const params = new URLSearchParams(window.location.search);
+  const mode = params.get("mode")
+
+/* ===== BULK EDIT ===== */
+
+if (mode === "bulk") {
+
+  const maspList = JSON.parse(
+    localStorage.getItem("bulkEditSP") || "[]"
+  )
+
+  if (!maspList.length) {
+    alert("Không có sản phẩm để sửa")
+    return
+  }
+
+  const payload = {}
+
+const setIfTouched = (id, field, parser = v => v) => {
+  const el = document.getElementById(id)
+  if (el && el.dataset.touched) {
+    payload[field] = parser(el.value)
+  }
+}
+
+setIfTouched("dongia", "dongia", Number)
+setIfTouched("dongia2", "dongia2", Number)
+setIfTouched("dongia3", "dongia3", Number)
+setIfTouched("giavon", "giavon", Number)
+
+const kho = document.getElementById("defaultKho")
+if (kho?.dataset.touched) {
+  payload.default_warehouse_id = kho.value || null
+}
+
+  if (!Object.keys(payload).length) {
+    alert("Bạn chưa nhập dữ liệu cần sửa")
+    return
+  }
+
+  const { error } = await supabase
+    .from("sanpham")
+    .update(payload)
+    .in("masp", maspList)
+
+  if (error) {
+    alert("Lỗi: " + error.message)
+    return
+  }
+
+  alert("Đã cập nhật " + maspList.length + " sản phẩm")
+
+  localStorage.removeItem("bulkEditSP")
+
+  if (window.opener && window.opener.taiDanhSachSP) {
+    window.opener.taiDanhSachSP()
+  }
+
+  window.close()
+  return
+}
+
+/* ===== END BULK ===== */
   const maspValue = get('masp');
   const maspSua = params.get("masp");
   let groupId;
@@ -456,7 +518,9 @@ const isParent = document.getElementById("isParent");
 const childGroup = document.getElementById("childGroup");
 
 if (isParent) isParent.checked = true;
-if (childGroup) childGroup.style.display = "none";
+if (childGroup) {
+  childGroup.style.display = isParent?.checked ? "block" : "none";
+}
 
   // focus vào tên SP để nhập nhanh
   const ten = document.getElementById("tensp");
@@ -465,19 +529,50 @@ if (childGroup) childGroup.style.display = "none";
     // Expose
     window.themSanPham = themSanPham;
     window.capNhatMaSP = capNhatMaSP;
+    const params = new URLSearchParams(window.location.search);
+    const maspSua = params.get("masp");
+    const mode = params.get("mode");
 
     document.addEventListener("DOMContentLoaded", async () => {
   await taiDanhSachNhom();
   await taiDanhSachKho();
   await taiDanhSachDVT();
-  document.getElementById("isParent").checked = true;
-  document.getElementById("childGroup").style.display = "block";
+  if (!maspSua && mode !== "bulk") {
+
+  document.getElementById("isParent").checked = true
+  document.getElementById("childGroup").style.display = "block"
+
+}
 
   // ... đoạn lấy params như cũ
-  const params = new URLSearchParams(window.location.search);
-  const maspSua = params.get("masp");
   const tenSP = params.get("tensp");
   if (tenSP) { const el = document.getElementById("tensp"); el.value = tenSP; el.focus(); }
+
+  if (mode === "bulk") {
+
+  // bỏ required
+  document.querySelectorAll("[required]")
+    .forEach(el => el.removeAttribute("required"))
+  document.getElementById("tensp").disabled = true
+  document.getElementById("dvtSelect").disabled = true
+  document.getElementById("dinhluong").disabled = true
+  document.getElementById("nhomsp").disabled = true
+  document.getElementById("masp").disabled = true
+  document.getElementById("isParent").disabled = true
+
+  // reset định lượng
+  const dinhluong = document.getElementById("dinhluong")
+  if (dinhluong) dinhluong.value = ""
+
+  // tắt sản phẩm cha
+  const isParent = document.getElementById("isParent")
+  if (isParent) isParent.checked = false
+
+  // ẩn nhóm con
+  const childGroup = document.getElementById("childGroup")
+  if (childGroup) childGroup.style.display = "none"
+
+}
 
   if (maspSua) {
     const { data, error } = await supabase.from("sanpham").select("*").eq("masp", maspSua).single();
@@ -558,6 +653,16 @@ if (children && children.length > 0) {
   });
 }
   }
+
+  if (params.get("mode") === "bulk") {
+  document.querySelector(".appbar h2").textContent =
+    "Sửa hàng loạt"
+}
+document.querySelectorAll("input,select").forEach(el => {
+  el.addEventListener("change", () => {
+    el.dataset.touched = "1"
+  })
+})
 
   // Nút Lưu trên appbar
   document.getElementById("saveTop").addEventListener("click", ()=>{

@@ -141,6 +141,7 @@
           <select id="chonHanhDong">
             <option value="">— Chọn —</option>
             <option value="sua">Sửa</option>
+            <option value="bulk">Sửa hàng loạt</option>
             <option value="xoa">Xóa đã chọn</option>
           </select>
         </div>
@@ -381,26 +382,47 @@ function getKyHieu(masp){
       await taiSanPham();
     }
 
-    function suaSanPhamTuDanhSach(){
-      const items = Array.from($$("#noiDungBang .chk:checked"));
-      if(!items.length) return alert("Vui lòng chọn 1 sản phẩm để sửa.");
-      if(items.length>1) return alert("Chỉ có thể sửa 1 sản phẩm mỗi lần.");
+  function suaSanPhamTuDanhSach(){
 
-      const masp = items[0].dataset.masp;
+  const items = Array.from($$("#noiDungBang .chk:checked"))
 
-      const win = window.open(
-        `nhapsp.html?masp=${encodeURIComponent(masp)}`,
-        "_blank",
-        "width=760,height=640"
-      );
+  if(!items.length)
+    return alert("Vui lòng chọn 1 sản phẩm để sửa.")
 
-      const timer = setInterval(()=>{
-        if(win.closed){
-          clearInterval(timer);
-          taiSanPham();   // reload danh sách
-          }
-        },500);
-      }
+  if(items.length>1)
+    return alert("Chỉ có thể sửa 1 sản phẩm mỗi lần.")
+
+  const masp = items[0].dataset.masp
+
+  window.open(
+    `nhapsp.html?masp=${masp}`,
+    "_blank"
+  )
+}
+function suaHangLoat(){
+
+  const list = getSelectedMasp()
+
+  if(!list.length)
+    return alert("Chọn sản phẩm")
+
+  localStorage.setItem(
+    "bulkEditSP",
+    JSON.stringify(list)
+  )
+
+  window.open(
+    "nhapsp.html?mode=bulk",
+    "_blank"
+  )
+
+}
+
+      function getSelectedMasp(){
+  return Array
+    .from(document.querySelectorAll(".chk:checked"))
+    .map(e => e.dataset.masp)
+}
 
     function showBarcode(code){
   const modal = document.getElementById("barcodeModal");
@@ -443,6 +465,7 @@ document.querySelector(".bc-box").addEventListener("click", e=>{
       $("#chonHanhDong").addEventListener("change", function(){
         if(this.value==="xoa") xoaSanPham();
         if(this.value==="sua") suaSanPhamTuDanhSach();
+        if(this.value==="bulk") suaHangLoat();
         this.value="";
       });
 
@@ -465,10 +488,36 @@ document.querySelector(".bc-box").addEventListener("click", e=>{
     window.addEventListener("message", (e)=>{ if(e.data?.hanhDong==="taiLaiSP") taiSanPham(); });
   </script>
 
-  <div id="barcodeModal" class="bc-overlay">
+<div id="barcodeModal" class="bc-overlay">
   <div class="bc-box">
     <svg id="barcodeSvg"></svg>
     <div class="bc-text" id="barcodeText"></div>
+  </div>
+</div>
+
+<div id="bulkModal" class="bc-overlay">
+  <div class="bc-box" style="min-width:340px">
+
+    <h3>Sửa hàng loạt</h3>
+
+    <div style="display:flex;flex-direction:column;gap:12px;margin-top:12px">
+
+      <select id="bulkField">
+        <option value="dongia">Đơn giá</option>
+        <option value="dongia2">Đơn giá 2</option>
+        <option value="dongia3">Đơn giá 3</option>
+        <option value="giavon">Giá vốn</option>
+        <option value="dvt">Đơn vị tính</option>
+      </select>
+
+      <input id="bulkValue" placeholder="Giá trị mới">
+
+      <button id="btnBulkUpdate" class="btn">
+        Cập nhật
+      </button>
+
+    </div>
+
   </div>
 </div>
 
